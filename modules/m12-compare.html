@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M12 气源设计方案比选推荐助手</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="../styles/liquid-glass.css">
+<style>
+.dim-card{background:var(--glass-bg-soft);border:1px solid var(--glass-border);border-radius:var(--radius-sm);padding:12px 14px;}
+.dim-row{display:grid;grid-template-columns:120px 1fr 62px;gap:12px;align-items:center;padding:9px 0;border-bottom:1px dashed var(--c-line);}
+.dim-row:last-child{border-bottom:none;}
+.bar-line{display:flex;align-items:center;gap:8px;margin:3px 0;}
+.bar-tag{width:18px;height:18px;border-radius:5px;font-size:10px;font-weight:700;color:#fff;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
+.bar-tag.a{background:var(--c-primary);}
+.bar-tag.b{background:var(--c-accent);}
+.compare-bar{flex:1;height:9px;border-radius:8px;background:rgba(22,50,60,.08);overflow:hidden;}
+.compare-fill{height:100%;border-radius:8px;}
+.fill-a{background:linear-gradient(90deg,#0E7490,#0891B2);}
+.fill-b{background:linear-gradient(90deg,#FF9F0A,#FFB340);}
+.bar-val{font-family:'DM Mono',monospace;font-size:11.5px;font-weight:500;width:36px;text-align:right;flex-shrink:0;}
+.reason-item{background:var(--glass-bg-soft);border:1px solid var(--glass-border);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:10px;}
+.chap-item{display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px dashed var(--c-line);font-size:12.5px;}
+.chap-item:last-child{border-bottom:none;}
+.chap-num{font-family:'DM Mono',monospace;color:var(--c-primary);font-weight:500;width:20px;flex-shrink:0;}
+@media (max-width:1100px){.dim-row{grid-template-columns:1fr;gap:6px;}}
+</style>
+</head>
+<body>
+<div class="ambient-blob"></div>
+<div class="module-wrap">
+
+  <div class="module-top">
+    <div>
+      <div class="flex" style="gap:10px;">
+        <div class="module-title">气源设计方案比选推荐助手</div>
+        <span class="badge badge-low"><i class="fa-solid fa-flag"></i>优先级 低</span>
+      </div>
+      <div class="module-sub">燃气管网工程天然气气源设计方案比选 · 服务侧亮点功能</div>
+    </div>
+    <div class="seg" style="margin-left:auto;">
+      <button class="seg-item active" data-view="v-方案审核专业意见知识库与评判基准构建" onclick="switchView('v-方案审核专业意见知识库与评判基准构建')"><i class="fa-solid fa-database"></i> 知识库与评判基准</button>
+      <button class="seg-item" data-view="v-设计方案智能比选" onclick="switchView('v-设计方案智能比选')"><i class="fa-solid fa-scale-balanced"></i> 设计方案智能比选</button>
+      <button class="seg-item" data-view="v-推荐方案与对比意见输出" onclick="switchView('v-推荐方案与对比意见输出')"><i class="fa-solid fa-file-signature"></i> 推荐与意见输出</button>
+    </div>
+  </div>
+
+  <!-- ============ 页面1：知识库与评判基准构建 ============ -->
+  <section class="view active" id="v-方案审核专业意见知识库与评判基准构建">
+    <div class="page-head">
+      <div>
+        <div class="page-title">方案审核专业意见知识库与评判基准构建</div>
+        <div class="page-desc">五类载体采集解析 → 意见拆条与分类建议 → 技术管理岗逐条确认入库 → 六维度 18 评分项判定要点挂接 ｜ 工程部后台 · 技术管理岗</div>
+      </div>
+      <div class="flex" style="gap:8px;">
+        <button class="btn btn-glass btn-sm" onclick="showToast('批量导入五类载体文件，OCR 解析已排队（预计 12 分钟）')"><i class="fa-solid fa-file-import"></i>导入载体文件</button>
+        <button class="btn btn-primary btn-sm" onclick="openModal('m-kb-audit')"><i class="fa-solid fa-check-double"></i>待审条目确认（36）</button>
+      </div>
+    </div>
+
+    <div class="alert-strip cyan"><i class="fa-solid fa-flask"></i><div><b>调研口径：</b>限新建道路与小区配套管道、工商用户接气、管道迁改及更新三类场景，避免需求蔓延；评审关注配套道路情况、附近社区配套容量（以管径衡量）、沿线用户用气量、管线走向是否绕路；本模块按科研性质处理，先落地再逐步量化。</div></div>
+    <div class="alert-strip orange"><i class="fa-solid fa-circle-question"></i><div><b>待明确事项：</b>历史审核意见资料的数量与可用性、评审评分规则、典型方案示例与可量化评估的关键内容——建议先落地最小闭环再逐步量化。</div></div>
+
+    <div class="grid g-4 mb-14">
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-database"></i>入库意见条目</div>
+        <div class="stat-value">1284</div>
+        <div class="stat-sub">五类载体累计 · 本季新增 87</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-hourglass-half"></i>待人工确认</div>
+        <div class="stat-value orange">36</div>
+        <div class="stat-sub">抽取建议仅作参考 · 逐条确认</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-link"></i>评分项挂接率</div>
+        <div class="stat-value green">18/18</div>
+        <div class="stat-sub">判定要点全部挂接历史意见条目</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-book"></i>现行技术标准</div>
+        <div class="stat-value blue">126</div>
+        <div class="stat-sub">与历史意见冲突时以现行标准为准</div>
+      </div>
+    </div>
+
+    <div class="glass-card mb-14">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-layer-group"></i>五类知识载体</div>
+        <span class="tiny">历史审核意见结构化入库 · 被引用次数自动累计，识别共性问题</span>
+      </div>
+      <div class="flex wrap" style="gap:8px;">
+        <span class="tag tag-cyan"><i class="fa-solid fa-file-lines"></i>评审会议纪要 · 312 条</span>
+        <span class="tag tag-blue"><i class="fa-solid fa-user-tie"></i>专家意见单 · 268 条</span>
+        <span class="tag tag-orange"><i class="fa-solid fa-pen-ruler"></i>设计变更审查意见 · 421 条</span>
+        <span class="tag tag-yellow"><i class="fa-solid fa-clipboard-list"></i>竣工遗留问题清单 · 157 条</span>
+        <span class="tag tag-green"><i class="fa-solid fa-book-open"></i>公司技术标准 · 126 条</span>
+      </div>
+    </div>
+
+    <div class="glass-card mb-14">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-table-list"></i>意见条目库</div>
+        <button class="btn btn-ghost btn-sm" onclick="showToast('高级检索：按比选维度 / 来源工程 / 状态 / 引用次数过滤')"><i class="fa-solid fa-magnifying-glass"></i>高级检索</button>
+      </div>
+      <div class="table-scroll">
+        <table class="glass-table">
+          <thead>
+            <tr><th>条目号</th><th>意见摘要（判定要点）</th><th>对应比选维度</th><th>来源工程与年份</th><th>引用次数</th><th>状态</th><th>操作</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="mono">KB-0017</td>
+              <td>管径选择按远期负荷留有余量，避免投运后短期内二次改造</td>
+              <td><span class="tag tag-cyan">投资经济性</span></td>
+              <td>2021 · 拱墅桥西区块配套管工程</td>
+              <td class="mono">12</td>
+              <td><span class="tag tag-green">现行</span></td>
+              <td><button class="btn btn-ghost btn-xs" onclick="showToast('KB-0017 详情：原文、OCR 置信度 0.96、挂接评分项 2 项')">详情</button></td>
+            </tr>
+            <tr>
+              <td class="mono">KB-0031</td>
+              <td>沿线用户用气量以签订供气意向的工商户为准，意向户数与负荷计算书互校</td>
+              <td><span class="tag tag-cyan">技术可行性</span></td>
+              <td>2022 · 经开区块工商用户接气工程</td>
+              <td class="mono">8</td>
+              <td><span class="tag tag-green">现行</span></td>
+              <td><button class="btn btn-ghost btn-xs" onclick="showToast('KB-0031 详情：原文、OCR 置信度 0.94、挂接评分项 2 项')">详情</button></td>
+            </tr>
+            <tr>
+              <td class="mono">KB-0070</td>
+              <td>跨现状道路穿越优先采用非开挖工艺，开挖段需交通导改方案</td>
+              <td><span class="tag tag-cyan">施工难度</span></td>
+              <td>2022 · 文一西路管道更新工程</td>
+              <td class="mono">6</td>
+              <td><span class="tag tag-green">现行</span></td>
+              <td><button class="btn btn-ghost btn-xs" onclick="showToast('KB-0070 详情：原文、OCR 置信度 0.92、挂接评分项 2 项')">详情</button></td>
+            </tr>
+            <tr>
+              <td class="mono">KB-0009</td>
+              <td>小区配套管随道路同步施工，避免二次开挖（原表述已被替代升级）</td>
+              <td><span class="tag tag-cyan">施工难度</span></td>
+              <td>2019 · 留下街道老旧小区改造工程</td>
+              <td class="mono">9</td>
+              <td><span class="tag tag-gray">已废止</span> <span class="tiny mono">替代条目 KB-0076</span></td>
+              <td><button class="btn btn-ghost btn-xs" onclick="showToast('KB-0009 已废止：判定要点已由 KB-0076 替代，本条保留追溯链不删除')">详情</button></td>
+            </tr>
+            <tr>
+              <td class="mono">KB-0076</td>
+              <td>小区配套管随市政道路同步施工并预留远期管位，杜绝二次开挖</td>
+              <td><span class="tag tag-cyan">施工难度</span></td>
+              <td>2023 · 良渚新区配套管工程</td>
+              <td class="mono">14</td>
+              <td><span class="tag tag-green">现行</span></td>
+              <td><button class="btn btn-ghost btn-xs" onclick="showToast('KB-0076 详情：由 KB-0009 替代升级而来，引用 14 次')">详情</button></td>
+            </tr>
+            <tr>
+              <td class="mono">KB-0024</td>
+              <td>沿天目路敷设需核实地铁保护区间距，穿越段单独论证</td>
+              <td><span class="tag tag-cyan">安全风险</span></td>
+              <td>2020 · 天目山路提升改造工程</td>
+              <td class="mono">9</td>
+              <td><span class="tag tag-green">现行</span></td>
+              <td><button class="btn btn-ghost btn-xs" onclick="showToast('KB-0024 详情：原文、OCR 置信度 0.95、挂接评分项 3 项')">详情</button></td>
+            </tr>
+            <tr>
+              <td class="mono">KB-0052</td>
+              <td>管线走向绕行时，单公里造价上升超同类工程 P75 分位应专门说明理由</td>
+              <td><span class="tag tag-cyan">投资经济性</span></td>
+              <td>2023 · 仓前高压管迁改工程</td>
+              <td class="mono">5</td>
+              <td><span class="tag tag-orange">待审</span></td>
+              <td><button class="btn btn-primary btn-xs" onclick="openModal('m-kb-audit')"><i class="fa-solid fa-user-check"></i>审核</button></td>
+            </tr>
+            <tr>
+              <td class="mono">KB-0063</td>
+              <td>阀门井位置便于巡检与抢修到达，避免设于绿化带与建筑退线内</td>
+              <td><span class="tag tag-cyan">运行维护便利性</span></td>
+              <td>2021 · 城北片区管道更新工程</td>
+              <td class="mono">7</td>
+              <td><span class="tag tag-green">现行</span></td>
+              <td><button class="btn btn-ghost btn-xs" onclick="showToast('KB-0063 详情：原文、OCR 置信度 0.91、挂接评分项 2 项')">详情</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="grid g-main-side">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-diagram-project"></i>六维度 18 评分项 · 判定要点挂接关系</div>
+          <span class="tag tag-green"><i class="fa-solid fa-check"></i>挂接率 18/18</span>
+        </div>
+        <div class="tiny mb-14">历史专家反复提出的问题固定为评分项；每个判定要点均挂接支撑它的历史意见条目。</div>
+        <div class="grid g-3">
+          <div class="dim-card">
+            <div class="flex-between"><div style="font-weight:600;">技术可行性</div><span class="tag tag-cyan">3 项</span></div>
+            <div class="tiny mt-8">水力计算校核 · 气源接入条件 · 用气量核实</div>
+            <div class="flex wrap mt-8" style="gap:5px;"><span class="tag tag-gray">KB-0031</span><span class="tag tag-gray">KB-0048</span></div>
+          </div>
+          <div class="dim-card">
+            <div class="flex-between"><div style="font-weight:600;">投资经济性</div><span class="tag tag-cyan">3 项</span></div>
+            <div class="tiny mt-8">单公里造价 · 远期容量余量 · 绕路系数</div>
+            <div class="flex wrap mt-8" style="gap:5px;"><span class="tag tag-gray">KB-0017</span><span class="tag tag-gray">KB-0052</span></div>
+          </div>
+          <div class="dim-card">
+            <div class="flex-between"><div style="font-weight:600;">施工难度</div><span class="tag tag-cyan">3 项</span></div>
+            <div class="tiny mt-8">开挖条件 · 非开挖适用性 · 交通导改</div>
+            <div class="flex wrap mt-8" style="gap:5px;"><span class="tag tag-gray">KB-0070</span><span class="tag tag-gray">KB-0076</span></div>
+          </div>
+          <div class="dim-card">
+            <div class="flex-between"><div style="font-weight:600;">安全风险</div><span class="tag tag-cyan">3 项</span></div>
+            <div class="tiny mt-8">地铁保护区 · 占压避让 · 第三方破坏</div>
+            <div class="flex wrap mt-8" style="gap:5px;"><span class="tag tag-gray">KB-0024</span><span class="tag tag-gray">KB-0039</span></div>
+          </div>
+          <div class="dim-card">
+            <div class="flex-between"><div style="font-weight:600;">运行维护便利性</div><span class="tag tag-cyan">3 项</span></div>
+            <div class="tiny mt-8">阀门井可达性 · 巡检通行 · 抢修时效</div>
+            <div class="flex wrap mt-8" style="gap:5px;"><span class="tag tag-gray">KB-0063</span><span class="tag tag-gray">KB-0058</span></div>
+          </div>
+          <div class="dim-card">
+            <div class="flex-between"><div style="font-weight:600;">规划符合性</div><span class="tag tag-cyan">3 项</span></div>
+            <div class="tiny mt-8">道路规划红线 · 远期管位预留 · 绕行理由</div>
+            <div class="flex wrap mt-8" style="gap:5px;"><span class="tag tag-gray">KB-0041</span><span class="tag tag-gray">KB-0052</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-gears"></i>入库流程与口径</div>
+        </div>
+        <ul class="icon-list">
+          <li><i class="fa-solid fa-robot"></i>抽取只产生「建议分类 / 建议表述」，不直接入库</li>
+          <li><i class="fa-solid fa-user-check"></i>工程部技术管理岗逐条确认，修正分类与表述后入库</li>
+          <li><i class="fa-solid fa-filter-circle-xmark"></i>流程事务类意见（提交时限、会务安排）不入库，防止稀释评判基准</li>
+          <li><i class="fa-solid fa-code-compare"></i>技术标准与历史意见冲突时以现行标准为准，检索结果中提示</li>
+          <li><i class="fa-solid fa-recycle"></i>废止条目注明替代条目、不删除，保留追溯链</li>
+          <li><i class="fa-solid fa-weight-hanging"></i>权重调整经技术管理岗会签管控，当前版本 W-2026.02</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="modal-mask" id="m-kb-audit" onclick="if(event.target===this)closeModal('m-kb-audit')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-user-check"></i>意见条目人工确认（KB-0052）</div>
+          <button class="modal-close" onclick="closeModal('m-kb-audit')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <dl class="kv">
+            <dt>来源载体</dt><dd>专家意见单 · 2023 仓前高压管迁改工程</dd>
+            <dt>OCR 置信度</dt>
+            <dd>
+              <div class="flex" style="gap:8px;">
+                <div class="meter" style="width:120px;"><div class="meter-fill" style="width:87%;"></div></div>
+                <span class="mono">0.87</span>
+              </div>
+            </dd>
+            <dt>原文摘录</dt><dd>「管线走向绕行时，单公里造价上升超过同类工程 P75 分位应专门说明理由，否则按经济性劣势计。」</dd>
+            <dt>建议分类</dt><dd><span class="tag tag-cyan">投资经济性</span> · 挂接评分项「绕路系数」判定要点</dd>
+            <dt>相关条目</dt><dd class="mono">KB-0017（同类 · 引用 12 次 · 现行）</dd>
+          </dl>
+          <div class="alert-strip blue mt-14" style="margin-bottom:0;"><i class="fa-solid fa-circle-info"></i>抽取只产生建议，不直接入库；请技术管理岗逐条确认分类与表述。</div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost" onclick="closeModal('m-kb-audit');showToast('KB-0052 已标记不入库：流程事务类意见不进入评判基准');">标记不入库</button>
+          <button class="btn btn-glass" onclick="closeModal('m-kb-audit');showToast('KB-0052 已转分类修正，修正记录已留存待重新提交');">修正分类</button>
+          <button class="btn btn-primary" onclick="closeModal('m-kb-audit');showToast('KB-0052 已确认入库，挂接评分项「绕路系数」判定要点');"><i class="fa-solid fa-check"></i>确认入库</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 页面2：设计方案智能比选 ============ -->
+  <section class="view" id="v-设计方案智能比选">
+    <div class="page-head">
+      <div>
+        <div class="page-title">设计方案智能比选</div>
+        <div class="page-desc">统一上传与 OCR 解析 → 要素抽取文图互校 → 六维度逐项对比 → 分位归一加权排序 ｜ 工程部评审人</div>
+      </div>
+      <div class="flex" style="gap:8px;">
+        <button class="btn btn-glass btn-sm" onclick="showToast('上传设计说明 / 图纸 / 概算书，OCR 解析后进入要素抽取队列')"><i class="fa-solid fa-upload"></i>上传方案材料</button>
+        <button class="btn btn-primary btn-sm" onclick="showToast('重算完成：同一抽取结果 + 同一权重 W-2026.02，结果唯一（确定性计算）')"><i class="fa-solid fa-rotate"></i>重算评分</button>
+      </div>
+    </div>
+
+    <div class="glass-card soft mb-14">
+      <div class="flex-between wrap mb-14">
+        <div class="flex wrap" style="gap:10px;">
+          <span class="filter-label" style="padding-top:8px;">工程场景</span>
+          <div class="seg">
+            <button class="seg-item active" onclick="pickScenario(this,'新建道路与小区配套管道')"><i class="fa-solid fa-road"></i> 新建道路与小区配套管道</button>
+            <button class="seg-item" onclick="pickScenario(this,'工商用户接气')"><i class="fa-solid fa-industry"></i> 工商用户接气</button>
+            <button class="seg-item" onclick="pickScenario(this,'管道迁改及更新')"><i class="fa-solid fa-arrows-turn-to-dots"></i> 管道迁改及更新</button>
+          </div>
+        </div>
+        <span class="tiny">三类共用同一套解析与比选流程，仅要素字段集与评分项子集不同；新增类型登记适用子集即可</span>
+      </div>
+      <div class="flex wrap" style="gap:8px;">
+        <span class="tag tag-gray"><i class="fa-solid fa-hashtag"></i>评审编号 PS-2026-041</span>
+        <span class="tag tag-gray"><i class="fa-solid fa-folder-open"></i>杭政燃新〔2026〕天目路片区配套管道工程</span>
+        <span class="tag tag-green"><i class="fa-solid fa-file-circle-check"></i>材料 4 份 · OCR 解析完成</span>
+        <span class="tag tag-gray"><i class="fa-solid fa-user"></i>评审人：王*强（工程部）</span>
+      </div>
+    </div>
+
+    <div class="grid g-2 mb-14">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-route"></i>方案A · DN200 沿天目路</div>
+          <span class="tag tag-cyan">排序 1 · 84.6 分</span>
+        </div>
+        <div class="flex wrap" style="gap:6px;">
+          <span class="tag tag-gray">管长 2.84 km</span>
+          <span class="tag tag-gray">投资 1160 万元</span>
+          <span class="tag tag-gray">工期 90 天</span>
+          <span class="tag tag-gray">阀门井 6 座</span>
+          <span class="tag tag-orange">挂起 2 项</span>
+        </div>
+      </div>
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-route"></i>方案B · DN150 沿文一西路</div>
+          <span class="tag tag-accent">排序 2 · 84.0 分</span>
+        </div>
+        <div class="flex wrap" style="gap:6px;">
+          <span class="tag tag-gray">管长 3.12 km</span>
+          <span class="tag tag-gray">投资 980 万元</span>
+          <span class="tag tag-gray">工期 120 天</span>
+          <span class="tag tag-gray">阀门井 4 座</span>
+          <span class="tag tag-red">冲突 1 项</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid g-main-side">
+      <div>
+        <div class="glass-card mb-14">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-table-cells-large"></i>要素抽取汇总表（文图互校）</div>
+            <button class="btn btn-accent btn-sm" onclick="openModal('m-elem-confirm')"><i class="fa-solid fa-triangle-exclamation"></i>挂起项处理（3）</button>
+          </div>
+          <div class="table-scroll">
+            <table class="glass-table">
+              <thead>
+                <tr><th>要素</th><th>方案A取值</th><th>方案B取值</th><th>出处</th><th>置信度</th><th>互校结果</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>设计管径</td><td class="mono">DN200</td><td class="mono">DN150</td>
+                  <td>说明书 P8 · 图 GD-2026-041-03</td><td class="mono">0.98</td>
+                  <td><span class="tag tag-green">文图一致</span></td>
+                </tr>
+                <tr>
+                  <td>管道长度</td><td class="mono">2.84 km</td><td class="mono">3.12 km</td>
+                  <td>说明书 P9</td><td class="mono">0.97</td>
+                  <td><span class="tag tag-green">文图一致</span></td>
+                </tr>
+                <tr>
+                  <td>沿线用户用气量</td><td class="mono">4800 Nm³/h</td><td class="mono">4800 Nm³/h</td>
+                  <td>负荷计算书</td><td class="mono">0.95</td>
+                  <td><span class="tag tag-green">两案一致</span></td>
+                </tr>
+                <tr>
+                  <td>配套道路情况</td>
+                  <td>现状双向 4 车道，具备开挖条件</td>
+                  <td>规划提升双向 6 车道，需交通导改</td>
+                  <td>说明书 P14</td><td class="mono">0.91</td>
+                  <td><span class="tag tag-gray">说明类</span></td>
+                </tr>
+                <tr>
+                  <td>管线走向</td>
+                  <td>沿天目路直敷</td>
+                  <td>说明「直敷」/ 图纸示意绕行</td>
+                  <td>说明书 P11 · 图 GD-2026-041-05</td><td class="mono">0.89</td>
+                  <td><span class="tag tag-red">冲突标注</span></td>
+                </tr>
+                <tr>
+                  <td>估算投资</td><td class="mono">1160 万元</td><td class="mono">980 万元</td>
+                  <td>概算书</td><td class="mono">0.93</td>
+                  <td><span class="tag tag-green">文表一致</span></td>
+                </tr>
+                <tr>
+                  <td>施工工期</td><td class="mono">90 天</td><td class="mono">120 天</td>
+                  <td>说明书 P22</td><td class="mono">0.82</td>
+                  <td><span class="tag tag-orange">低置信挂起</span></td>
+                </tr>
+                <tr>
+                  <td>防腐等级</td>
+                  <td><span class="tag tag-yellow">未列明</span></td>
+                  <td class="mono">LPE 加强级</td>
+                  <td>方案B 说明书 P16</td><td class="mono">—</td>
+                  <td><span class="tag tag-orange">缺项</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="alert-strip orange mt-14" style="margin-bottom:0;"><i class="fa-solid fa-circle-exclamation"></i>同一要素在设计说明与图纸中均出现时两处互校，不一致只标注冲突、不自行取其一；低置信与缺项一律挂起交评审人处理；缺项不作结论依据、不折算分值、不以默认值代替。</div>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-chart-simple"></i>六维度逐项对比</div>
+            <div class="flex" style="gap:6px;">
+              <span class="tag tag-cyan"><i class="fa-solid fa-square"></i>方案A</span>
+              <span class="tag tag-accent"><i class="fa-solid fa-square"></i>方案B</span>
+            </div>
+          </div>
+          <div class="tiny mb-8">数值型要素按同类历史工程分布分位归一；判断型按判定要点逐条计分（挂接知识库条目）。</div>
+          <div class="dim-row">
+            <div>
+              <div style="font-weight:600;font-size:12.5px;">技术可行性</div>
+              <div class="tiny mono">权重 0.20</div>
+            </div>
+            <div>
+              <div class="bar-line"><span class="bar-tag a">A</span><div class="compare-bar"><div class="compare-fill fill-a" style="width:92%;"></div></div><span class="bar-val mono">0.92</span></div>
+              <div class="bar-line"><span class="bar-tag b">B</span><div class="compare-bar"><div class="compare-fill fill-b" style="width:85%;"></div></div><span class="bar-val mono">0.85</span></div>
+            </div>
+            <div><span class="tag tag-green">A 优</span></div>
+          </div>
+          <div class="dim-row">
+            <div>
+              <div style="font-weight:600;font-size:12.5px;">投资经济性</div>
+              <div class="tiny mono">权重 0.20</div>
+            </div>
+            <div>
+              <div class="bar-line"><span class="bar-tag a">A</span><div class="compare-bar"><div class="compare-fill fill-a" style="width:74%;"></div></div><span class="bar-val mono">0.74</span></div>
+              <div class="bar-line"><span class="bar-tag b">B</span><div class="compare-bar"><div class="compare-fill fill-b" style="width:90%;"></div></div><span class="bar-val mono">0.90</span></div>
+            </div>
+            <div><span class="tag tag-accent">B 优</span></div>
+          </div>
+          <div class="dim-row">
+            <div>
+              <div style="font-weight:600;font-size:12.5px;">施工难度</div>
+              <div class="tiny mono">权重 0.15</div>
+            </div>
+            <div>
+              <div class="bar-line"><span class="bar-tag a">A</span><div class="compare-bar"><div class="compare-fill fill-a" style="width:90%;"></div></div><span class="bar-val mono">0.90</span></div>
+              <div class="bar-line"><span class="bar-tag b">B</span><div class="compare-bar"><div class="compare-fill fill-b" style="width:70%;"></div></div><span class="bar-val mono">0.70</span></div>
+            </div>
+            <div><span class="tag tag-green">A 优</span></div>
+          </div>
+          <div class="dim-row">
+            <div>
+              <div style="font-weight:600;font-size:12.5px;">安全风险</div>
+              <div class="tiny mono">权重 0.15</div>
+            </div>
+            <div>
+              <div class="bar-line"><span class="bar-tag a">A</span><div class="compare-bar"><div class="compare-fill fill-a" style="width:90%;"></div></div><span class="bar-val mono">0.90</span></div>
+              <div class="bar-line"><span class="bar-tag b">B</span><div class="compare-bar"><div class="compare-fill fill-b" style="width:82%;"></div></div><span class="bar-val mono">0.82</span></div>
+            </div>
+            <div><span class="tag tag-cyan">A 略优</span></div>
+          </div>
+          <div class="dim-row">
+            <div>
+              <div style="font-weight:600;font-size:12.5px;">运行维护便利性</div>
+              <div class="tiny mono">权重 0.10</div>
+            </div>
+            <div>
+              <div class="bar-line"><span class="bar-tag a">A</span><div class="compare-bar"><div class="compare-fill fill-a" style="width:84%;"></div></div><span class="bar-val mono">0.84</span></div>
+              <div class="bar-line"><span class="bar-tag b">B</span><div class="compare-bar"><div class="compare-fill fill-b" style="width:78%;"></div></div><span class="bar-val mono">0.78</span></div>
+            </div>
+            <div><span class="tag tag-cyan">A 略优</span></div>
+          </div>
+          <div class="dim-row">
+            <div>
+              <div style="font-weight:600;font-size:12.5px;">规划符合性</div>
+              <div class="tiny mono">权重 0.20</div>
+            </div>
+            <div>
+              <div class="bar-line"><span class="bar-tag a">A</span><div class="compare-bar"><div class="compare-fill fill-a" style="width:80%;"></div></div><span class="bar-val mono">0.80</span></div>
+              <div class="bar-line"><span class="bar-tag b">B</span><div class="compare-bar"><div class="compare-fill fill-b" style="width:92%;"></div></div><span class="bar-val mono">0.92</span></div>
+            </div>
+            <div><span class="tag tag-accent">B 优</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="glass-card mb-14">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-ranking-star"></i>分位归一加权评分排序</div>
+            <span class="tag tag-gray">权重版本 W-2026.02</span>
+          </div>
+          <div class="flex-between mb-8"><span class="tiny">方案A · DN200 沿天目路</span><span class="mono" style="font-weight:700;color:var(--c-primary);font-size:15px;">84.6</span></div>
+          <div class="meter mb-14"><div class="meter-fill" style="width:84.6%;"></div></div>
+          <div class="flex-between mb-8"><span class="tiny">方案B · DN150 沿文一西路</span><span class="mono" style="font-weight:700;color:var(--c-accent);font-size:15px;">84.0</span></div>
+          <div class="meter"><div class="meter-fill" style="width:84%;background:linear-gradient(90deg,#FF9F0A,#FFB340);"></div></div>
+          <div class="alert-strip orange mt-14" style="margin-bottom:0;"><i class="fa-solid fa-scale-unbalanced"></i>两方案得分差 0.6 分（显著阈值 5 分内）：<b>差异不显著</b>，请结合权重敏感性试算与评审会讨论综合判断。</div>
+        </div>
+
+        <div class="glass-card mb-14">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-sliders"></i>权重敏感性试算</div>
+            <button class="btn btn-glass btn-sm" onclick="showToast('敏感性试算：对六维权重做 ±10% 扰动重算排序，结果将随报告输出')"><i class="fa-solid fa-vial"></i>批量扰动试算</button>
+          </div>
+          <div class="table-scroll">
+            <table class="glass-table">
+              <thead><tr><th>权重情形</th><th>方案A</th><th>方案B</th><th>排序结论</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td>当前 W-2026.02</td>
+                  <td class="mono">84.6</td><td class="mono">84.0</td>
+                  <td><span class="tag tag-cyan">A 第一</span></td>
+                </tr>
+                <tr>
+                  <td>投资经济性 0.20→0.25 施工难度 0.15→0.10</td>
+                  <td class="mono">83.8</td><td class="mono">85.0</td>
+                  <td><span class="tag tag-accent">B 反超</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="alert-strip red mt-14" style="margin-bottom:0;"><i class="fa-solid fa-rotate"></i>排序随权重轻微调整即翻转——建议评审会重点讨论权重设定后再形成结论。</div>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-lock"></i>计算口径</div>
+          </div>
+          <ul class="icon-list">
+            <li><i class="fa-solid fa-circle-check"></i>除向量检索与理由生成外全部为确定性计算，同一抽取结果 + 同一权重重算结果唯一</li>
+            <li><i class="fa-solid fa-ban"></i>缺项不作结论依据、不折算分值、不以默认值代替</li>
+            <li><i class="fa-solid fa-code-branch"></i>文图互校不一致仅标注冲突，不自行取其一</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-mask" id="m-elem-confirm" onclick="if(event.target===this)closeModal('m-elem-confirm')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-triangle-exclamation"></i>挂起要素处理 · 管线走向（方案B）</div>
+          <button class="modal-close" onclick="closeModal('m-elem-confirm')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <dl class="kv">
+            <dt>冲突说明</dt><dd>设计说明 P11 记载「沿文一西路直敷接入」，图纸 GD-2026-041-05 示意绕行接入，两处互校不一致</dd>
+            <dt>置信度</dt><dd class="mono">0.89</dd>
+            <dt>处理规则</dt><dd>系统不自行取其一，挂起后由评审人选择处理路径</dd>
+          </dl>
+          <div class="alert-strip blue mt-14" style="margin-bottom:0;"><i class="fa-solid fa-circle-info"></i>三路径：确认取值 / 要求补充 / 标记缺项。标记缺项后该项不作结论依据、不折算分值、不以默认值代替。</div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost" onclick="closeModal('m-elem-confirm');showToast('已标记缺项：不作结论依据、不折算分值、不以默认值代替');">标记缺项</button>
+          <button class="btn btn-glass" onclick="closeModal('m-elem-confirm');showToast('已向设计单位发出补充说明函（3 个工作日内反馈）');">要求补充</button>
+          <button class="btn btn-primary" onclick="closeModal('m-elem-confirm');showToast('已确认取值：以设计说明为准，冲突标注保留并随报告输出');">确认取值</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 页面3：推荐方案与对比意见输出 ============ -->
+  <section class="view" id="v-推荐方案与对比意见输出">
+    <div class="page-head">
+      <div>
+        <div class="page-title">推荐方案与对比意见输出</div>
+        <div class="page-desc">推荐理由强制引用 + 四项事实校验 + 技术负责人复核 + 七章节报告与结论回流 ｜ 技术负责人 · 评审人 · 建设单位</div>
+      </div>
+      <div class="flex" style="gap:8px;">
+        <button class="btn btn-glass btn-sm" onclick="openModal('m-review')"><i class="fa-solid fa-user-pen"></i>技术负责人复核</button>
+        <button class="btn btn-primary btn-sm" onclick="openModal('m-report')"><i class="fa-solid fa-file-arrow-down"></i>报告预览与导出</button>
+      </div>
+    </div>
+
+    <div class="alert-strip cyan"><i class="fa-solid fa-circle-info"></i><div><b>输出口径：</b>输出推荐意见而非决定，最终由建设单位按既有程序决策；未经技术负责人复核的推荐意见不生成正式报告、不对外提供；连续两次校验不通过转人工撰写。</div></div>
+
+    <div class="grid g-main-side mb-14">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-wand-magic-sparkles"></i>大模型推荐理由 · 推荐方案A（DN200 沿天目路）</div>
+          <span class="tag tag-accent"><i class="fa-solid fa-robot"></i>生成输入限定本次材料与知识库条目</span>
+        </div>
+        <div class="reason-item">
+          <div class="flex-between wrap mb-8">
+            <div style="font-weight:600;font-size:12.5px;">1 · 技术可行性：DN200 水力裕度满足远期负荷</div>
+            <div class="flex wrap" style="gap:5px;">
+              <span class="tag tag-cyan">引用 KB-0017</span>
+              <span class="tag tag-blue">要素：设计管径 DN200</span>
+            </div>
+          </div>
+          <div class="tiny">方案A 抽取管径 DN200（说明书 P8 · 置信度 0.98），远期负荷 4800 Nm³/h 工况下流速处于经济区间；知识库条目 KB-0017「管径选择按远期负荷留有余量」（现行 · 引用 12 次）判定要点逐条计分通过。</div>
+        </div>
+        <div class="reason-item">
+          <div class="flex-between wrap mb-8">
+            <div style="font-weight:600;font-size:12.5px;">2 · 施工难度：现状道路具备开挖条件，无需交通导改</div>
+            <div class="flex wrap" style="gap:5px;">
+              <span class="tag tag-cyan">引用 KB-0070 / KB-0076</span>
+              <span class="tag tag-blue">要素：配套道路情况</span>
+            </div>
+          </div>
+          <div class="tiny">抽取要素显示天目路现状双向 4 车道、具备开挖条件（置信度 0.91）；依据 KB-0070「跨现状道路穿越优先非开挖」与 KB-0076「随道路同步施工避免二次开挖」，本维度方案A 计分 0.90、方案B 0.70。</div>
+        </div>
+        <div class="reason-item">
+          <div class="flex-between wrap mb-8">
+            <div style="font-weight:600;font-size:12.5px;">3 · 投资经济性：方案A 造价偏高为本维度短板</div>
+            <div class="flex wrap" style="gap:5px;">
+              <span class="tag tag-cyan">引用 KB-0052</span>
+              <span class="tag tag-blue">要素：估算投资 1160 / 980 万元</span>
+            </div>
+          </div>
+          <div class="tiny">方案A 估算投资 1160 万元高于方案B 180 万元（概算书 · 置信度 0.93）；依据 KB-0052「绕行单公里造价超同类 P75 需说明理由」，方案B 绕行 0.28 km 未附造价说明，经济性优势应审慎采信（该条目状态：待审）。</div>
+        </div>
+        <div class="grid g-2">
+          <div class="reason-item" style="border:1px solid rgba(255,149,0,.35);background:var(--c-warn-soft);">
+            <div style="font-weight:600;font-size:12.5px;" class="mb-8"><i class="fa-solid fa-thumbs-down" style="color:var(--c-warn);"></i> 推荐方案A短板（同时写明）</div>
+            <div class="tiny">估算投资高 180 万元；工期受天目路地铁保护区核实影响存在不确定性（KB-0024）；防腐等级未列明，已挂起待补、不作结论依据。</div>
+          </div>
+          <div class="reason-item" style="border:1px solid rgba(52,199,89,.35);background:var(--c-ok-soft);">
+            <div style="font-weight:600;font-size:12.5px;" class="mb-8"><i class="fa-solid fa-thumbs-up" style="color:var(--c-ok);"></i> 备选方案B优势（同时写明）</div>
+            <div class="tiny">造价低 180 万元；与文一西路远期双向 6 车道规划协同更好（KB-0041）；劣势：绕行 0.28 km、DN150 远期扩容受限、需交通导改。</div>
+          </div>
+        </div>
+        <div class="flex mt-14">
+          <button class="btn btn-ghost btn-sm" onclick="showToast('引用清单：KB-0017 / 0024 / 0041 / 0052 / 0070 / 0076，均已回链知识库条目')"><i class="fa-solid fa-link"></i>查看完整引用清单</button>
+        </div>
+      </div>
+
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-shield-halved"></i>四项事实校验结果</div>
+          <span class="tag tag-green"><i class="fa-solid fa-check"></i>第 1 次校验全部通过</span>
+        </div>
+        <div class="table-scroll">
+          <table class="glass-table">
+            <thead><tr><th>校验项</th><th>结果</th><th>明细</th></tr></thead>
+            <tbody>
+              <tr><td>引用条目存在性</td><td><span class="tag tag-green">通过</span></td><td>6 处引用均存在于知识库（KB-0052 为待审，引用时状态已标注）</td></tr>
+              <tr><td>数值一致性</td><td><span class="tag tag-green">通过</span></td><td>引用数值与抽取结果一致（DN200 · 2.84 km · 1160 万元）</td></tr>
+              <tr><td>缺项未被当作结论</td><td><span class="tag tag-green">通过</span></td><td>方案A 防腐等级缺项未参与评分与结论表述</td></tr>
+              <tr><td>用语合规</td><td><span class="tag tag-green">通过</span></td><td>无「必须 / 绝对」类决定性用语，符合推荐意见口径</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="tiny mt-8"><i class="fa-solid fa-circle-info"></i> 连续两次校验不通过将转人工撰写推荐理由。</div>
+      </div>
+    </div>
+
+    <div class="grid g-4 mb-14">
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-user-pen"></i>技术负责人复核</div>
+        <div class="stat-value" style="font-size:20px;">修改措辞</div>
+        <div class="stat-sub">郑*明 · 2026-10-27 14:32 · 已生效</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-shield-halved"></i>事实校验</div>
+        <div class="stat-value green">4/4</div>
+        <div class="stat-sub">第 1 次通过 · 无转人工情形</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-book-bookmark"></i>报告章节</div>
+        <div class="stat-value blue">7</div>
+        <div class="stat-sub">固定七章节 · 随附知识库与权重版本</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-code-compare"></i>结论一致性</div>
+        <div class="stat-value green">一致</div>
+        <div class="stat-sub">评审最终采用方案与推荐方案一致</div>
+      </div>
+    </div>
+
+    <div class="grid g-3">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-list-ol"></i>比选推荐报告 · 固定七章节</div>
+        </div>
+        <div class="chap-item"><span class="chap-num">1</span><span>工程概况与评审范围</span></div>
+        <div class="chap-item"><span class="chap-num">2</span><span>方案概述（方案A / 方案B）</span></div>
+        <div class="chap-item"><span class="chap-num">3</span><span>要素抽取与文图互校结果</span></div>
+        <div class="chap-item"><span class="chap-num">4</span><span>六维度逐项对比分析</span></div>
+        <div class="chap-item"><span class="chap-num">5</span><span>加权评分与敏感性试算</span></div>
+        <div class="chap-item"><span class="chap-num">6</span><span>推荐意见与理由（附引用清单）</span></div>
+        <div class="chap-item"><span class="chap-num">7</span><span>风险提示与遗留问题</span></div>
+        <div class="tiny mt-8"><i class="fa-solid fa-fingerprint"></i> 随附知识库版本 KB-2026.10 · 权重版本 W-2026.02</div>
+        <div class="flex mt-14" style="gap:8px;">
+          <button class="btn btn-primary btn-sm" onclick="showToast('比选推荐报告已按 Word 格式导出并归档（RPT-2026-041）')"><i class="fa-solid fa-file-word"></i>Word</button>
+          <button class="btn btn-glass btn-sm" onclick="showToast('比选推荐报告已按 PDF 格式导出并归档（RPT-2026-041）')"><i class="fa-solid fa-file-pdf"></i>PDF</button>
+          <button class="btn btn-glass btn-sm" onclick="showToast('比选推荐报告已按 HTML 格式导出并归档（RPT-2026-041）')"><i class="fa-solid fa-file-code"></i>HTML</button>
+        </div>
+      </div>
+
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-code-compare"></i>评审结论比对与意见回流</div>
+          <button class="btn btn-glass btn-sm" onclick="showToast('评审结论已录入：最终采用方案A，与推荐一致')"><i class="fa-solid fa-pen-to-square"></i>录入结论</button>
+        </div>
+        <dl class="kv mb-14">
+          <dt>评审时间</dt><dd>2026-10-28 09:30 · 天目路片区评审会</dd>
+          <dt>最终采用</dt><dd><span class="tag tag-green">方案A · 与推荐一致</span></dd>
+        </dl>
+        <div class="tiny mb-8">历史不一致样本（记录原因）：</div>
+        <div class="reason-item">
+          <div class="tiny">PS-2026-036 · 转塘片区迁改：推荐方案A，最终采用方案B；原因：建设单位预算约束（记录人：王*强）</div>
+        </div>
+        <hr class="divider">
+        <div class="tiny mb-8"><i class="fa-solid fa-rotate"></i> 本次评审新意见回流队列：</div>
+        <ul class="icon-list">
+          <li><i class="fa-solid fa-inbox"></i>「天目路地铁保护区核实应前置到方案评审之前」→ 建议维度：安全风险 · 待技术管理岗确认入库</li>
+          <li><i class="fa-solid fa-inbox"></i>「工商用户用气量核实增加供气意向协议校验」→ 建议维度：技术可行性 · 待确认入库</li>
+        </ul>
+        <button class="btn btn-primary btn-sm mt-14" onclick="showToast('回流意见已批量转待入库队列，已通知技术管理岗逐条确认')"><i class="fa-solid fa-database"></i>批量转待入库</button>
+      </div>
+
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-coins"></i>竣工造价回访修正</div>
+          <button class="btn btn-glass btn-sm" onclick="showToast('回访任务已下发：竣工后 6 个月采集实际造价')"><i class="fa-solid fa-paper-plane"></i>下发回访任务</button>
+        </div>
+        <ul class="icon-list">
+          <li><i class="fa-solid fa-arrow-rotate-left"></i>2023 仓前高压管迁改：回访实际造价 1030 万元（概算 980 万元），单公里造价分位基线上修 0.4 分位</li>
+          <li><i class="fa-solid fa-chart-line"></i>回访修正同类历史工程分布，下次比选投资经济性分位归一基线随之更新</li>
+          <li><i class="fa-solid fa-calendar-check"></i>天目路片区工程已列入回访计划（预计 2027-04 竣工回访）</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="modal-mask" id="m-review" onclick="if(event.target===this)closeModal('m-review')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-user-pen"></i>技术负责人复核 · 推荐意见</div>
+          <button class="modal-close" onclick="closeModal('m-review')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="tiny mb-8">推荐方案A（DN200 沿天目路）· 综合得分 84.6 · 差异不显著提示已随附</div>
+          <div class="reason-item">
+            <div class="tiny">第 2 条推荐理由当前表述「方案A 施工条件明显优于方案B」，建议改为「综合略优」以符合推荐意见口径（用语合规校验项关联）。</div>
+          </div>
+          <div class="alert-strip orange mt-14" style="margin-bottom:0;"><i class="fa-solid fa-lock"></i>未经复核的推荐意见不生成正式报告、不对外提供；驳回理由按季度归集，用于优化生成约束。</div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-danger" onclick="closeModal('m-review');showToast('复核结论：整体驳回。理由已按季度归集，用于优化生成约束');">整体驳回</button>
+          <button class="btn btn-accent" onclick="closeModal('m-review');showToast('复核结论：修改措辞。「明显优于」→「综合略优」已修正并归档');">修改措辞</button>
+          <button class="btn btn-primary" onclick="closeModal('m-review');showToast('复核结论：采纳。推荐意见解锁正式报告导出');">采纳</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-mask" id="m-report" onclick="if(event.target===this)closeModal('m-report')">
+      <div class="glass-modal wide">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-file-arrow-down"></i>比选推荐报告预览 · RPT-2026-041</div>
+          <button class="modal-close" onclick="closeModal('m-report')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="tiny mb-8">固定七章节 · 随附知识库版本 KB-2026.10 与权重版本 W-2026.02 · 复核结论：修改措辞（已生效）</div>
+          <div class="chap-item"><span class="chap-num">1</span><span>工程概况与评审范围</span></div>
+          <div class="chap-item"><span class="chap-num">2</span><span>方案概述（方案A / 方案B）</span></div>
+          <div class="chap-item"><span class="chap-num">3</span><span>要素抽取与文图互校结果</span></div>
+          <div class="chap-item"><span class="chap-num">4</span><span>六维度逐项对比分析</span></div>
+          <div class="chap-item"><span class="chap-num">5</span><span>加权评分与敏感性试算</span></div>
+          <div class="chap-item"><span class="chap-num">6</span><span>推荐意见与理由（附引用清单）</span></div>
+          <div class="chap-item"><span class="chap-num">7</span><span>风险提示与遗留问题</span></div>
+          <div class="alert-strip cyan mt-14" style="margin-bottom:0;"><i class="fa-solid fa-circle-info"></i>报告为推荐意见，最终由建设单位按既有程序决策；导出后自动归档。</div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-glass" onclick="showToast('报告已按 HTML 格式导出并归档（RPT-2026-041）')"><i class="fa-solid fa-file-code"></i>导出 HTML</button>
+          <button class="btn btn-glass" onclick="showToast('报告已按 PDF 格式导出并归档（RPT-2026-041）')"><i class="fa-solid fa-file-pdf"></i>导出 PDF</button>
+          <button class="btn btn-primary" onclick="showToast('报告已按 Word 格式导出并归档（RPT-2026-041）')"><i class="fa-solid fa-file-word"></i>导出 Word</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+function switchView(vid){
+  document.querySelectorAll('.view').forEach(function(v){v.classList.remove('active');});
+  var el=document.getElementById(vid); if(el){el.classList.add('active');}
+  document.querySelectorAll('.seg-item[data-view]').forEach(function(b){
+    b.classList.toggle('active', b.getAttribute('data-view')===vid);
+  });
+  try{history.replaceState(null,'','#'+encodeURIComponent(vid));}catch(e){}
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function openModal(id){var m=document.getElementById(id); if(m){m.classList.add('open');}}
+function closeModal(id){var m=document.getElementById(id); if(m){m.classList.remove('open');}}
+function showToast(msg){
+  var t=document.getElementById('app-toast');
+  if(!t){t=document.createElement('div');t.id='app-toast';t.className='toast';document.body.appendChild(t);}
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._tm);t._tm=setTimeout(function(){t.classList.remove('show');},2200);
+}
+function pickScenario(btn,label){
+  btn.parentElement.querySelectorAll('.seg-item').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  showToast('已切换场景：'+label+'（要素字段集与评分项子集已联动加载）');
+}
+window.addEventListener('hashchange',function(){
+  var h=decodeURIComponent(location.hash.replace('#',''));
+  if(h&&document.getElementById(h)){switchView(h);}
+});
+(function(){
+  var h=decodeURIComponent(location.hash.replace('#',''));
+  if(h&&document.getElementById(h)){switchView(h);}
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M11 员工工作效能统计与提升 · 杭州燃气管网运营智能体平台</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="../styles/liquid-glass.css">
+<style>
+/* ===== M11 模块私有样式（仅布局扩展，配色全部走 liquid-glass tokens）===== */
+.ef-hero{display:flex;gap:20px;align-items:center;flex-wrap:wrap;}
+.ef-avatar{width:58px;height:58px;border-radius:50%;background:var(--c-primary-soft);color:var(--c-primary);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;}
+.ef-hero-main{flex:1;min-width:240px;}
+.ef-hero-name{font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.ef-score-box{text-align:center;padding:2px 26px;border-left:1px solid var(--c-line);border-right:1px solid var(--c-line);}
+.ef-score-big{font-family:'DM Mono','Outfit',monospace;font-size:44px;font-weight:700;color:var(--c-primary);line-height:1.05;letter-spacing:-1px;}
+.ef-minis{display:flex;gap:10px;flex-wrap:wrap;}
+.ef-mini{background:var(--glass-bg-soft);border:1px solid var(--c-line);border-radius:var(--radius-md);padding:10px 14px;min-width:128px;}
+.ef-mini .t{font-size:11px;color:var(--c-text-2);display:flex;align-items:center;gap:6px;}
+.ef-mini .t i{font-size:10px;}
+.ef-mini .v{font-family:'DM Mono','Outfit',monospace;font-size:18px;font-weight:700;margin-top:3px;}
+.ef-mini .v.green{color:var(--c-ok);}
+.ef-mini .v.red{color:var(--c-danger);}
+
+.ef-bars{display:flex;flex-direction:column;gap:13px;}
+.ef-bar-row{display:grid;grid-template-columns:86px 1fr 172px;gap:12px;align-items:center;}
+.ef-bar-label{font-size:12.5px;font-weight:600;}
+.ef-bar-track{position:relative;height:24px;background:rgba(22,50,60,.06);border-radius:8px;box-shadow:inset 0 1px 2px rgba(22,50,60,.05);}
+.ef-bar-fill{position:absolute;left:0;top:0;bottom:0;border-radius:8px;background:linear-gradient(90deg,var(--c-primary),var(--c-primary-hi));transition:width .4s ease;}
+.ef-bar-fill.warn{background:linear-gradient(90deg,#FF9500,#FFB340);}
+.ef-bar-fill.bad{background:linear-gradient(90deg,#FF3B30,#FF7A5C);}
+.ef-bar-ref{position:absolute;top:-5px;bottom:-5px;width:2px;background:rgba(100,116,139,.6);border-radius:2px;}
+.ef-bar-val{font-size:11px;color:var(--c-text-2);line-height:1.4;}
+.ef-bar-val b{font-family:'DM Mono','Outfit',monospace;font-size:13.5px;color:var(--c-text);}
+.ef-bar-val b.red{color:var(--c-danger);}
+.ef-bar-row.clickable{cursor:pointer;padding:4px 6px;margin:0 -6px;border-radius:10px;transition:background .15s ease;}
+.ef-bar-row.clickable:hover{background:rgba(255,255,255,.65);}
+
+.bar-legend{display:flex;gap:18px;flex-wrap:wrap;font-size:11px;color:var(--c-text-2);margin-bottom:12px;align-items:center;}
+.bar-legend .sw{width:18px;height:8px;border-radius:4px;display:inline-block;margin-right:5px;vertical-align:middle;}
+.bar-legend .ln{width:2px;height:14px;background:rgba(100,116,139,.6);display:inline-block;margin-right:5px;vertical-align:middle;border-radius:2px;}
+.bar-legend .lnh{width:18px;height:0;border-top:2px dashed #94A3B8;display:inline-block;margin-right:5px;vertical-align:middle;}
+
+.rule-card{background:var(--glass-bg-soft);border:1px solid var(--c-line);border-radius:var(--radius-md);padding:14px 16px;height:100%;}
+.rule-head{display:flex;align-items:center;gap:9px;font-weight:700;font-size:13px;margin-bottom:10px;}
+.rule-head i{color:var(--c-primary);}
+.rule-num{width:20px;height:20px;border-radius:50%;background:var(--c-primary-soft);color:var(--c-primary);font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;margin-right:8px;flex-shrink:0;font-family:'DM Mono','Outfit',monospace;}
+.rule-list{list-style:none;}
+.rule-list li{display:flex;gap:2px;padding:6px 0;font-size:12px;border-bottom:1px dashed var(--c-line);line-height:1.5;}
+.rule-list li:last-child{border-bottom:none;}
+.rule-list b{color:var(--c-primary);}
+
+.sug-card{border:1px solid var(--glass-border);border-left:4px solid var(--c-accent);border-radius:var(--radius-md);background:var(--glass-bg-soft);padding:16px 18px;margin-bottom:14px;}
+.sug-card:last-child{margin-bottom:0;}
+.sug-quote{background:var(--c-primary-soft);border-radius:10px;padding:10px 14px;font-size:12px;margin:9px 0;}
+.sug-quote .mono{color:var(--c-primary);font-weight:600;}
+.sug-act{background:var(--c-accent-soft);border-radius:10px;padding:10px 14px;font-size:12px;}
+.check-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center;}
+
+.formula-box{background:var(--c-primary-soft);border-radius:10px;padding:12px 16px;font-family:'DM Mono','Outfit',monospace;font-size:12.5px;color:var(--c-primary);font-weight:600;text-align:center;}
+
+.glass-table td.cat-cell{font-weight:700;color:var(--c-primary);background:rgba(255,255,255,.38);text-align:center;vertical-align:middle;}
+
+.p-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.p-title{font-size:15px;font-weight:700;}
+.p-card{background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:14px;padding:12px;margin-bottom:10px;}
+.p-score{width:92px;height:92px;border-radius:50%;margin:8px auto 2px;background:conic-gradient(var(--c-primary) 0 82.6%, rgba(22,50,60,.08) 82.6% 100%);display:flex;align-items:center;justify-content:center;}
+.p-score-inner{width:70px;height:70px;border-radius:50%;background:#F0F6FA;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.p-row{display:flex;align-items:center;justify-content:space-between;font-size:11.5px;padding:5px 0;border-bottom:1px dashed var(--c-line);gap:8px;}
+.p-row:last-child{border-bottom:none;}
+.p-row b{font-family:'DM Mono','Outfit',monospace;}
+</style>
+</head>
+<body>
+<div class="ambient-blob"></div>
+<div class="module-wrap">
+
+  <div class="module-top">
+    <div class="module-title">员工工作效能统计与提升</div>
+    <span class="badge badge-mid"><i class="fa-solid fa-flag"></i>优先级 中</span>
+    <div class="module-sub" style="flex-basis:100%;margin-top:-6px;">七类18项统一口径指标 · 每日六路自动归集 · 公示-异议-快照锁定 · AI提升建议（强制引用 + 四项事实校验 + 人工复核）｜对应条款 5.4.9</div>
+  </div>
+
+  <div class="seg" style="margin-bottom:18px;">
+    <button class="seg-item active" data-view="v-效能指标体系与数据归集-指标定义与口径配置" onclick="switchView('v-效能指标体系与数据归集-指标定义与口径配置')">指标定义与口径</button>
+    <button class="seg-item" data-view="v-员工效能图表-个人效能明细" onclick="switchView('v-员工效能图表-个人效能明细')">个人效能明细</button>
+    <button class="seg-item" data-view="v-员工效能图表-班组横向对比与排名" onclick="switchView('v-员工效能图表-班组横向对比与排名')">班组对比与排名</button>
+    <button class="seg-item" data-view="v-员工效能图表-能力雷达与考核报表" onclick="switchView('v-员工效能图表-能力雷达与考核报表')">能力雷达与考核报表</button>
+    <button class="seg-item" data-view="v-AI能力提升建议与培训推荐" onclick="switchView('v-AI能力提升建议与培训推荐')">AI建议与培训推荐</button>
+  </div>
+
+  <!-- ============================================================
+       视图1：效能指标体系与数据归集 · 指标定义与口径配置
+       ============================================================ -->
+  <section class="view active" id="v-效能指标体系与数据归集-指标定义与口径配置">
+    <div class="page-head">
+      <div>
+        <div class="page-title">效能指标体系与数据归集 · 指标定义与口径配置</div>
+        <div class="page-desc">七类18项指标定义维护 · 六路数据每日02:00自动归集与清洗剔除 · 出账校验-公示-快照锁定｜使用角色：运行部、人力资源部</div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="openModal('modal-koujing')"><i class="fa-solid fa-pen-to-square"></i>发起口径变更（需会签）</button>
+    </div>
+
+    <div class="alert-strip cyan">
+      <i class="fa-solid fa-magnifying-glass-chart"></i>
+      <div><b>调研口径：</b>现状考核以任务完成情况为主、工作量未量化；抢修工单未与人员关联且无统计功能，需<b>二次开发统计接口</b>；巡查任务审核为人工抽查、<b>未录入系统</b>；效能统计以现有任务记录为底、<b>不新增填报环节</b>（工作量计入考核的权重由各运行站自行确定）。</div>
+    </div>
+
+    <div class="grid g-4 mb-14">
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-list-check"></i>效能指标总数</div>
+        <div class="stat-value">18<span style="font-size:14px;color:var(--c-text-2);"> 项</span></div>
+        <div class="stat-sub">七类 · 全平台唯一定义</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-database"></i>数据归集路数</div>
+        <div class="stat-value">6<span style="font-size:14px;color:var(--c-text-2);"> 路</span></div>
+        <div class="stat-sub">每日 02:00 自动归集与清洗</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-cloud-arrow-down"></i>昨日归集记录</div>
+        <div class="stat-value">103,096</div>
+        <div class="stat-sub">剔除 664 条 · 挂起 27 条</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-triangle-exclamation"></i>挂起核实待办</div>
+        <div class="stat-value orange">27<span style="font-size:14px;color:var(--c-text-2);"> 条</span></div>
+        <div class="stat-sub">身份/字段对不齐 · 核实前不计入</div>
+      </div>
+    </div>
+
+    <div class="glass-card mb-14">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-table-list"></i>七类 18 项效能指标定义表</div>
+        <span class="tag tag-cyan"><i class="fa-solid fa-stamp"></i>定义唯一 · 任何报表不得另立口径</span>
+      </div>
+      <div class="table-scroll">
+        <table class="glass-table">
+          <thead>
+            <tr><th>类别</th><th>指标名</th><th>计算公式</th><th>数据来源</th><th>周期</th><th>维度</th></tr>
+          </thead>
+          <tbody>
+            <tr><td rowspan="3" class="cat-cell">巡线巡检<br><span class="tiny">3项</span></td><td><b>巡线覆盖率</b></td><td>实际巡线完成km ÷ 计划巡线km × 100%</td><td>巡检APP轨迹</td><td>月</td><td>人 / 班组</td></tr>
+            <tr><td><b>轨迹合规率</b></td><td>合规轨迹km（允许偏距内）÷ 实际巡线km × 100%</td><td>巡检APP轨迹</td><td>月</td><td>人 / 班组</td></tr>
+            <tr><td><b>巡检计划按期执行率</b></td><td>按期完成计划数 ÷ 应执行计划数 × 100%</td><td>巡检模块（总数/完成数/百分比）</td><td>周 / 月</td><td>人 / 班组</td></tr>
+            <tr><td rowspan="2" class="cat-cell">设备管理<br><span class="tiny">2项</span></td><td><b>新增设备纳入率</b></td><td>纳入台账数 ÷ 新增设备数 × 100%</td><td>设备台账 + 工程移交单</td><td>月</td><td>班组</td></tr>
+            <tr><td><b>设备台账完整率</b></td><td>关键字段完整条数 ÷ 台账总条数 × 100%</td><td>设备台账</td><td>月</td><td>班组</td></tr>
+            <tr><td rowspan="2" class="cat-cell">泄漏自查<br><span class="tiny">2项</span></td><td><b>泄漏自查率</b></td><td>自查覆盖点数 ÷ 应自查点数 × 100%</td><td>巡检模块自查记录</td><td>月</td><td>人</td></tr>
+            <tr><td><b>自查作业完成率</b></td><td>按期完成自查作业数 ÷ 应完成数 × 100%</td><td>巡检模块</td><td>周 / 月</td><td>人</td></tr>
+            <tr><td rowspan="1" class="cat-cell">施工防护<br><span class="tiny">1项</span></td><td><b>在施工点位巡查到位率</b></td><td>到位巡查点次 ÷ 应巡查点次 × 100%</td><td>巡查任务审核 <span class="tag tag-red">未录入系统</span></td><td>周 / 月</td><td>人 / 班组</td></tr>
+            <tr><td rowspan="1" class="cat-cell">单据质量<br><span class="tiny">1项</span></td><td><b>上报单据一次合规率</b></td><td>一次合规单据数 ÷ 上报单据总数 × 100%</td><td>巡检 / 隐患单据流</td><td>月</td><td>人</td></tr>
+            <tr><td rowspan="6" class="cat-cell">维保维修<br><span class="tiny">6项</span></td><td><b>维保计划按期执行率</b></td><td>按期执行数 ÷ 维保计划数 × 100%</td><td>维保模块</td><td>月</td><td>人 / 班组</td></tr>
+            <tr><td><b>维保凭证一次合格率</b></td><td>一次合格凭证数 ÷ 凭证总数 × 100%</td><td>维保模块凭证审核</td><td>月</td><td>人</td></tr>
+            <tr><td><b>中修按期完成率</b></td><td>按期完成数 ÷ 中修计划数 × 100%</td><td>中修工单</td><td>月 / 季</td><td>班组</td></tr>
+            <tr><td><b>首次响应时间（中位数 / 90分位）</b></td><td>派单至首次到场时间的 P50 / P90 分档统计</td><td>抢修工单 <span class="tag tag-orange">需二次开发统计接口</span></td><td>月</td><td>人 / 班组</td></tr>
+            <tr><td><b>一次修复率</b></td><td>一次完成修复单数 ÷ 维修单总数 × 100%</td><td>抢修 / 报修工单</td><td>月</td><td>人</td></tr>
+            <tr><td><b>重复上门率</b>（反向）</td><td>重复上门单数 ÷ 维修单总数 × 100%</td><td>抢修 / 报修工单</td><td>月</td><td>人</td></tr>
+            <tr><td rowspan="3" class="cat-cell">隐患管理<br><span class="tiny">3项</span></td><td><b>隐患转化率</b></td><td>核定转隐患数 ÷ 上报异常数 × 100%</td><td>隐患管理模块</td><td>月</td><td>人</td></tr>
+            <tr><td><b>隐患整改闭环率</b></td><td>按期闭环数 ÷ 应闭环隐患数 × 100%</td><td>隐患管理模块</td><td>月</td><td>人 / 班组</td></tr>
+            <tr><td><b>隐患误报率</b>（反向）</td><td>核定误报数 ÷ 上报隐患数 × 100%</td><td>隐患核定记录</td><td>月</td><td>人</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="grid g-2 mb-14">
+      <div class="rule-card">
+        <div class="rule-head"><i class="fa-solid fa-scale-balanced"></i>口径五规则</div>
+        <ul class="rule-list">
+          <li><span><span class="rule-num">1</span></span><span><b>定义唯一</b>：每项指标全平台唯一公式与分母定义，任何报表不得另立口径。</span></li>
+          <li><span><span class="rule-num">2</span></span><span><b>跨期归属</b>：跨日、跨月完成的任务按派单时间归属统计期。</span></li>
+          <li><span><span class="rule-num">3</span></span><span><b>分子扣减</b>：剔除记录同时从分子与分母扣减，无效记录不入分母。</span></li>
+          <li><span><span class="rule-num">4</span></span><span><b>分档统计</b>：时间类指标按 P50 / P90 分档呈现，不用平均值掩盖分布。</span></li>
+          <li><span><span class="rule-num">5</span></span><span><b>变更受控</b>：变更须运行部与人力资源部会签、留版本，生效后不追溯已出账月份。</span></li>
+        </ul>
+      </div>
+      <div class="rule-card">
+        <div class="rule-head"><i class="fa-solid fa-broom"></i>清洗剔除五规则</div>
+        <ul class="rule-list">
+          <li><span><span class="rule-num">1</span></span><span><b>身份对不齐</b>：工号与派单人员不一致的记录挂起，生成核实待办。</span></li>
+          <li><span><span class="rule-num">2</span></span><span><b>关键字段缺失</b>：无时间、无定位的记录挂起，核实前不计入分子分母。</span></li>
+          <li><span><span class="rule-num">3</span></span><span><b>重复记录</b>：同一工单多次上报仅计一次。</span></li>
+          <li><span><span class="rule-num">4</span></span><span><b>演练与测试</b>：标记为演练、测试的记录整体剔除。</span></li>
+          <li><span><span class="rule-num">5</span></span><span><b>跨期补录</b>：次日补录按原派单时间归期，不重复计。</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="grid g-main-side mb-14">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-database"></i>六路业务数据归集情况（昨日）</div>
+          <span class="tag tag-gray"><i class="fa-solid fa-clock"></i>每日 02:00 自动执行</span>
+        </div>
+        <div class="table-scroll">
+          <table class="glass-table">
+            <thead>
+              <tr><th>数据路</th><th>来源系统</th><th>记录数</th><th>剔除数</th><th>挂起</th><th>状态</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>① 巡线轨迹与定位</td><td>巡检APP</td><td class="mono">42,187</td><td class="mono">312</td><td class="mono">11</td><td><span class="tag tag-green">正常</span></td></tr>
+              <tr><td>② 巡检计划与自查</td><td>巡检模块</td><td class="mono">18,564</td><td class="mono">126</td><td class="mono">6</td><td><span class="tag tag-green">正常</span></td></tr>
+              <tr><td>③ 抢修报修工单</td><td>抢修工单台账</td><td class="mono">8,942</td><td class="mono">96</td><td class="mono">5</td><td><span class="tag tag-orange">统计接口二次开发中</span></td></tr>
+              <tr><td>④ 巡查任务审核</td><td>人工抽查</td><td class="muted">—</td><td class="muted">—</td><td class="muted">—</td><td><span class="tag tag-red">未录入系统 · 不新增填报</span></td></tr>
+              <tr><td>⑤ 设备台账与维保凭证</td><td>设备台账 · 维保模块</td><td class="mono">32,195</td><td class="mono">112</td><td class="mono">4</td><td><span class="tag tag-green">正常</span></td></tr>
+              <tr><td>⑥ 隐患管理</td><td>隐患管理模块</td><td class="mono">1,208</td><td class="mono">18</td><td class="mono">1</td><td><span class="tag tag-green">正常</span></td></tr>
+            </tbody>
+            <tfoot>
+              <tr><td><b>合计</b></td><td class="muted">—</td><td class="mono"><b>103,096</b></td><td class="mono"><b>664</b></td><td class="mono"><b>27</b></td><td class="muted">人员统一到工号 · 时间统一到日 · 状态统一枚举</td></tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+      <div class="glass-card">
+        <div class="card-head"><div class="card-title"><i class="fa-solid fa-calculator"></i>分位归一与综合得分</div></div>
+        <div class="formula-box">综合得分 = Σ（同岗位序列分位归一化得分 × 权重）</div>
+        <ul class="icon-list mt-14">
+          <li><i class="fa-solid fa-circle-info"></i><span>某类当期无任务：不计入并<b>重新归一权重</b>，不按零分计。</span></li>
+          <li><i class="fa-solid fa-diagram-project"></i><span>每个得分可逐层钻取：得分 → 指标明细 → 原始工单。</span></li>
+          <li><i class="fa-solid fa-hourglass-half"></i><span>未出账指标存在时，综合得分标注「待完整」，不参与排名。</span></li>
+        </ul>
+        <button class="btn btn-glass btn-sm mt-14" onclick="showToast('已打开挂起核实待办：27条（原型演示）')"><i class="fa-solid fa-list-check"></i>查看挂起核实待办</button>
+      </div>
+    </div>
+
+    <div class="glass-card mb-14">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-stamp"></i>出账流程：校验 → 公示 → 异议 → 快照锁定</div>
+        <span class="tag tag-blue"><i class="fa-solid fa-lock"></i>快照 = 考核唯一版本</span>
+      </div>
+      <div class="steps">
+        <div class="step done"><span class="dot"><i class="fa-solid fa-check"></i></span>每日02:00自动归集</div>
+        <div class="step done"><span class="dot"><i class="fa-solid fa-check"></i></span>清洗剔除 · 挂起待办</div>
+        <div class="step active"><span class="dot">3</span>出账前五项口径一致性校验</div>
+        <div class="step"><span class="dot">4</span>试算公示 3 个工作日 · 可提异议</div>
+        <div class="step"><span class="dot">5</span>快照锁定 · 考核唯一版本</div>
+      </div>
+      <div class="tiny muted mt-8">校验不通过的指标本月不出账，待修正后次月并入；公示期满生成数据快照并锁定，任何报表与导出均以快照为准。</div>
+      <hr class="divider">
+      <div class="alert-strip blue" style="margin-bottom:0;">
+        <i class="fa-solid fa-file-signature"></i>
+        <div><b>口径变更管控：</b>口径变更须经<b>运行部与人力资源部会签</b>、留存版本；变更自生效当月起用，<b>不追溯</b>已出账月份。对不齐记录挂起生成核实待办，核实前不计入。</div>
+      </div>
+    </div>
+
+    <div class="tiny muted"><i class="fa-solid fa-circle-info"></i> 待明确事项：效能考核的指标构成与权重（工作量计入考核的权重由各运行站自行确定）；稽核结果是否纳入考核。</div>
+
+    <!-- 口径变更会签弹窗 -->
+    <div class="modal-mask" id="modal-koujing" onclick="if(event.target===this)closeModal('modal-koujing')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-pen-to-square"></i>发起口径变更（双部门会签）</div>
+          <button class="modal-close" onclick="closeModal('modal-koujing')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="steps mb-14">
+            <div class="step active"><span class="dot">1</span>运行部发起</div>
+            <div class="step"><span class="dot">2</span>人力资源部会签</div>
+            <div class="step"><span class="dot">3</span>版本留存（V2026R3）</div>
+            <div class="step"><span class="dot">4</span>生效当月起用 · 不追溯</div>
+          </div>
+          <div class="form-row">
+            <div>
+              <label class="form-label">变更指标 <span class="req">*</span></label>
+              <select class="form-select" style="width:100%;">
+                <option>重复上门率（维保维修类）</option>
+                <option>轨迹合规率（巡线巡检类）</option>
+                <option>隐患误报率（隐患管理类）</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label">生效月份</label>
+              <select class="form-select" style="width:100%;">
+                <option>2026-12（当月起用）</option>
+                <option>2027-01</option>
+              </select>
+            </div>
+          </div>
+          <div class="mt-14">
+            <label class="form-label">变更说明 <span class="req">*</span></label>
+            <textarea class="form-textarea" rows="3" placeholder="示例：重复上门率分母中剔除标记为演练的维修工单（对应剔除规则第4条），避免演练任务拉高分母。">重复上门率分母中剔除标记为演练的维修工单（剔除规则第4条），避免演练任务拉低真实水平。</textarea>
+          </div>
+          <div class="alert-strip cyan mt-14" style="margin-bottom:0;">
+            <i class="fa-solid fa-circle-info"></i>
+            <div>已出账月份（2026-10 及之前）按原口径版本 V2026R2 执行，变更不追溯；历史月份导出沿用当时口径版本。</div>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost" onclick="closeModal('modal-koujing')">取消</button>
+          <button class="btn btn-primary" onclick="showToast('口径变更已提交：待运行部与人力资源部会签，版本生效后不追溯');closeModal('modal-koujing')"><i class="fa-solid fa-file-signature"></i>提交会签申请</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       视图2：员工效能图表 · 个人效能明细
+       ============================================================ -->
+  <section class="view" id="v-员工效能图表-个人效能明细">
+    <div class="page-head">
+      <div>
+        <div class="page-title">员工效能图表 · 个人效能明细</div>
+        <div class="page-desc">综合得分与最强最弱项 · 七类得分与班组均值并排对照 · 得分 → 指标明细 → 原始工单逐层钻取｜使用角色：员工本人、班组长｜PC端 + APP</div>
+      </div>
+      <div class="flex">
+        <select class="filter-select"><option>统计期：2026-10</option><option>统计期：2026-09</option></select>
+        <select class="filter-select"><option>人员：王*强（XJ-0347）</option><option>人员：李*（XJ-0355）</option></select>
+      </div>
+    </div>
+
+    <div class="grid g-pc-phone">
+      <div>
+        <div class="glass-card mb-14">
+          <div class="ef-hero">
+            <div class="ef-avatar"><i class="fa-solid fa-user"></i></div>
+            <div class="ef-hero-main">
+              <div class="ef-hero-name">王*强 <span class="mono muted" style="font-size:12px;">XJ-0347</span> <span class="tag tag-cyan">巡检员 · 抢修兼岗</span> <span class="tag tag-gray">运行一站 · 巡检三班</span></div>
+              <div class="tiny muted mt-8">在岗 24 / 26 工作日 · 本期巡线 218km · 处置工单 47 单 · 自查点 63 个 · 同岗位序列（巡检员178人）第 12 名</div>
+              <div class="flex mt-14" style="gap:8px;">
+                <button class="btn btn-primary btn-sm" onclick="openModal('drawer-cat')"><i class="fa-solid fa-diagram-project"></i>查看得分构成（钻取）</button>
+                <button class="btn btn-glass btn-sm" onclick="openModal('modal-objection')"><i class="fa-solid fa-comment-dots"></i>提交异议</button>
+              </div>
+            </div>
+            <div class="ef-score-box">
+              <div class="ef-score-big">82.6</div>
+              <div class="tiny muted">综合得分</div>
+              <div class="mt-8"><span class="tag tag-green"><i class="fa-solid fa-lock"></i>完整出账 · 班组第 7/31</span></div>
+            </div>
+            <div class="ef-minis">
+              <div class="ef-mini">
+                <div class="t"><i class="fa-solid fa-arrow-trend-up" style="color:var(--c-ok);"></i>最强项 · 单据质量</div>
+                <div class="v green">94.2</div>
+                <div class="tiny">超出均值 +5.6</div>
+              </div>
+              <div class="ef-mini">
+                <div class="t"><i class="fa-solid fa-arrow-trend-down" style="color:var(--c-danger);"></i>最弱项 · 维保维修</div>
+                <div class="v red">68.5</div>
+                <div class="tiny"><span class="tag tag-red">低于阈值 70</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-chart-simple"></i>七类得分与班组均值并排对照</div>
+            <button class="btn btn-glass btn-sm" onclick="openModal('drawer-cat')"><i class="fa-solid fa-diagram-project"></i>三级钻取演示</button>
+          </div>
+          <div class="bar-legend">
+            <span><span class="sw" style="background:linear-gradient(90deg,#0E7490,#0891B2);"></span>本人得分（实心条）</span>
+            <span><span class="ln"></span>班组均值（灰色参照线）</span>
+            <span class="muted">点击条目钻取：得分 → 指标明细 → 原始工单</span>
+          </div>
+          <div class="ef-bars">
+            <div class="ef-bar-row clickable" onclick="showToast('原型演示：请点击「维保维修」条目体验三级钻取')">
+              <div class="ef-bar-label">巡线巡检</div>
+              <div class="ef-bar-track"><div class="ef-bar-fill" style="width:88.4%;"></div><div class="ef-bar-ref" style="left:85.2%;"></div></div>
+              <div class="ef-bar-val"><b>88.4</b> / 均值 85.2 · <span style="color:var(--c-ok);">+3.2</span></div>
+            </div>
+            <div class="ef-bar-row clickable" onclick="showToast('原型演示：请点击「维保维修」条目体验三级钻取')">
+              <div class="ef-bar-label">设备管理</div>
+              <div class="ef-bar-track"><div class="ef-bar-fill" style="width:81.6%;"></div><div class="ef-bar-ref" style="left:79.8%;"></div></div>
+              <div class="ef-bar-val"><b>81.6</b> / 均值 79.8 · <span style="color:var(--c-ok);">+1.8</span></div>
+            </div>
+            <div class="ef-bar-row clickable" onclick="showToast('原型演示：请点击「维保维修」条目体验三级钻取')">
+              <div class="ef-bar-label">泄漏自查</div>
+              <div class="ef-bar-track"><div class="ef-bar-fill" style="width:85.3%;"></div><div class="ef-bar-ref" style="left:83%;"></div></div>
+              <div class="ef-bar-val"><b>85.3</b> / 均值 83.0 · <span style="color:var(--c-ok);">+2.3</span></div>
+            </div>
+            <div class="ef-bar-row clickable" onclick="showToast('原型演示：请点击「维保维修」条目体验三级钻取')">
+              <div class="ef-bar-label">施工防护</div>
+              <div class="ef-bar-track"><div class="ef-bar-fill warn" style="width:79.8%;"></div><div class="ef-bar-ref" style="left:82.4%;"></div></div>
+              <div class="ef-bar-val"><b>79.8</b> / 均值 82.4 · <span style="color:var(--c-warn);">-2.6</span></div>
+            </div>
+            <div class="ef-bar-row clickable" onclick="showToast('原型演示：请点击「维保维修」条目体验三级钻取')">
+              <div class="ef-bar-label">单据质量</div>
+              <div class="ef-bar-track"><div class="ef-bar-fill" style="width:94.2%;"></div><div class="ef-bar-ref" style="left:88.6%;"></div></div>
+              <div class="ef-bar-val"><b>94.2</b> / 均值 88.6 · <span style="color:var(--c-ok);">+5.6</span></div>
+            </div>
+            <div class="ef-bar-row clickable" onclick="openModal('drawer-cat')">
+              <div class="ef-bar-label">维保维修<br><span class="tag tag-red" style="margin-top:3px;">低于阈值</span></div>
+              <div class="ef-bar-track"><div class="ef-bar-fill bad" style="width:68.5%;"></div><div class="ef-bar-ref" style="left:76.3%;"></div></div>
+              <div class="ef-bar-val"><b class="red">68.5</b> / 均值 76.3 · <span style="color:var(--c-danger);">-7.8</span><br><span class="tiny">点击进入指标明细（抽屉）</span></div>
+            </div>
+            <div class="ef-bar-row clickable" onclick="showToast('原型演示：请点击「维保维修」条目体验三级钻取')">
+              <div class="ef-bar-label">隐患管理</div>
+              <div class="ef-bar-track"><div class="ef-bar-fill" style="width:82.7%;"></div><div class="ef-bar-ref" style="left:80.9%;"></div></div>
+              <div class="ef-bar-val"><b>82.7</b> / 均值 80.9 · <span style="color:var(--c-ok);">+1.8</span></div>
+            </div>
+          </div>
+          <hr class="divider">
+          <div class="steps">
+            <div class="step active"><span class="dot">1</span>类别得分</div>
+            <div class="step"><span class="dot">2</span>指标明细（原值 + 分位得分）</div>
+            <div class="step"><span class="dot">3</span>原始工单清单（逐条核对）</div>
+          </div>
+        </div>
+
+        <div class="alert-strip blue mt-14">
+          <i class="fa-solid fa-circle-info"></i>
+          <div>未出账指标存在时，综合得分标注<b>「待完整」</b>且不参与排名（本期无未出账指标）；有异议可提交说明，随快照留存并推送班组长核实。</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="phone-frame">
+          <div class="phone-screen">
+            <div class="phone-notch"></div>
+            <div class="phone-statusbar"><span>9:41</span><span><i class="fa-solid fa-signal"></i> <i class="fa-solid fa-wifi"></i> <i class="fa-solid fa-battery-three-quarters"></i></span></div>
+            <div class="phone-body">
+              <div class="p-head">
+                <div><div class="p-title">我的效能</div><div class="tiny">2026-10 期 · 已出账</div></div>
+                <span class="tag tag-green"><i class="fa-solid fa-lock"></i>快照锁定</span>
+              </div>
+              <div class="p-card" style="text-align:center;">
+                <div class="p-score"><div class="p-score-inner"><span class="mono" style="font-size:20px;font-weight:700;">82.6</span><span class="tiny">综合得分</span></div></div>
+                <div class="tiny" style="margin-top:6px;">班组第 <b class="mono">7</b>/31 · 同岗位序列第 <b class="mono">12</b>/178</div>
+              </div>
+              <div class="p-card">
+                <div class="tiny muted" style="margin-bottom:4px;">七类得分（点击可钻取至原始工单）</div>
+                <div class="p-row"><span>巡线巡检</span><b>88.4</b></div>
+                <div class="p-row"><span>设备管理</span><b>81.6</b></div>
+                <div class="p-row"><span>泄漏自查</span><b>85.3</b></div>
+                <div class="p-row"><span>施工防护</span><b style="color:var(--c-warn);">79.8</b></div>
+                <div class="p-row"><span>单据质量</span><b style="color:var(--c-ok);">94.2</b></div>
+                <div class="p-row"><span>维保维修</span><b style="color:var(--c-danger);">68.5</b></div>
+                <div class="p-row"><span>隐患管理</span><b>82.7</b></div>
+              </div>
+              <div class="p-card">
+                <div class="p-row"><span><i class="fa-solid fa-arrow-trend-up" style="color:var(--c-ok);"></i> 最强项</span><b style="color:var(--c-ok);">单据质量 94.2</b></div>
+                <div class="p-row"><span><i class="fa-solid fa-arrow-trend-down" style="color:var(--c-danger);"></i> 最弱项</span><b style="color:var(--c-danger);">维保维修 68.5</b></div>
+              </div>
+              <div class="flex" style="gap:8px;">
+                <button class="btn btn-primary btn-sm" style="flex:1;" onclick="openModal('drawer-cat')"><i class="fa-solid fa-diagram-project"></i>查看构成明细</button>
+                <button class="btn btn-glass btn-sm" style="flex:1;" onclick="openModal('modal-objection')"><i class="fa-solid fa-comment-dots"></i>提交异议</button>
+              </div>
+              <div class="tiny muted" style="margin-top:10px;text-align:center;">员工 APP / Web 随时查看本人当期明细</div>
+            </div>
+            <div class="phone-tabbar">
+              <div class="phone-tab" onclick="showToast('APP 演示：切换至首页')"><i class="fa-solid fa-house"></i>首页</div>
+              <div class="phone-tab" onclick="showToast('APP 演示：切换至巡检')"><i class="fa-solid fa-route"></i>巡检</div>
+              <div class="phone-tab active"><i class="fa-solid fa-chart-simple"></i>效能</div>
+              <div class="phone-tab" onclick="showToast('APP 演示：切换至我的')"><i class="fa-solid fa-user"></i>我的</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 二级钻取抽屉：指标明细 -->
+    <div class="glass-drawer" id="drawer-cat">
+      <div class="modal-head">
+        <div class="modal-title"><i class="fa-solid fa-diagram-project"></i>维保维修类 · 指标明细（第 2 级钻取）</div>
+        <button class="modal-close" onclick="closeModal('drawer-cat')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <dl class="kv mb-14">
+          <dt>类别得分</dt><dd class="mono" style="color:var(--c-danger);font-weight:700;">68.5（低于阈值 70）</dd>
+          <dt>班组均值</dt><dd class="mono">76.3 · 班组第 27/31</dd>
+          <dt>类别权重</dt><dd class="mono">20%（同岗位序列归一）</dd>
+          <dt>口径版本</dt><dd class="mono">V2026R2 · 快照 SNAP-202610-A03</dd>
+        </dl>
+        <div class="table-scroll">
+          <table class="glass-table">
+            <thead><tr><th>指标</th><th>原值</th><th>分位得分</th><th>环比</th><th>操作</th></tr></thead>
+            <tbody>
+              <tr><td>维保计划按期执行率</td><td class="mono">92.3%</td><td class="mono">71.5</td><td style="color:var(--c-warn);">-1.2</td><td><button class="btn btn-ghost btn-xs" onclick="showToast('原型演示：请从「一次修复率 / 重复上门率」查看原始工单清单')"><i class="fa-solid fa-eye"></i>查看工单</button></td></tr>
+              <tr><td>维保凭证一次合格率</td><td class="mono">88.5%</td><td class="mono">66.2</td><td style="color:var(--c-warn);">-0.8</td><td><button class="btn btn-ghost btn-xs" onclick="showToast('原型演示：请从「一次修复率 / 重复上门率」查看原始工单清单')"><i class="fa-solid fa-eye"></i>查看工单</button></td></tr>
+              <tr><td>中修按期完成率</td><td class="mono">100%</td><td class="mono">90.1</td><td class="muted">—（仅1单）</td><td><button class="btn btn-ghost btn-xs" onclick="showToast('原型演示：请从「一次修复率 / 重复上门率」查看原始工单清单')"><i class="fa-solid fa-eye"></i>查看工单</button></td></tr>
+              <tr><td>首次响应时间中位数</td><td class="mono">26 分</td><td class="mono">60.8</td><td style="color:var(--c-warn);">+3 分</td><td><button class="btn btn-ghost btn-xs" onclick="showToast('原型演示：请从「一次修复率 / 重复上门率」查看原始工单清单')"><i class="fa-solid fa-eye"></i>查看工单</button></td></tr>
+              <tr><td>一次修复率</td><td class="mono">84.2%</td><td class="mono">68.9</td><td style="color:var(--c-danger);">-2.9pct</td><td><button class="btn btn-primary btn-xs" onclick="openModal('modal-orders')"><i class="fa-solid fa-eye"></i>查看工单</button></td></tr>
+              <tr><td>重复上门率（反向）</td><td class="mono" style="color:var(--c-danger);">11.8%</td><td class="mono">62.4</td><td style="color:var(--c-danger);">+2.3pct</td><td><button class="btn btn-primary btn-xs" onclick="openModal('modal-orders')"><i class="fa-solid fa-eye"></i>查看工单</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="tiny muted mt-14">明细指标原值与分位得分并列展示；每条明细可继续钻取至构成该指标的原始工单清单逐条核对。</div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-glass btn-sm" onclick="closeModal('drawer-cat')"><i class="fa-solid fa-arrow-left"></i>返回上一层</button>
+        <button class="btn btn-ghost btn-sm" onclick="openModal('modal-objection')"><i class="fa-solid fa-comment-dots"></i>对本类指标提异议</button>
+      </div>
+    </div>
+
+    <!-- 三级钻取弹窗：原始工单清单 -->
+    <div class="modal-mask" id="modal-orders" onclick="if(event.target===this)closeModal('modal-orders')">
+      <div class="glass-modal wide">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-file-invoice"></i>原始工单清单（第 3 级钻取）</div>
+          <button class="modal-close" onclick="closeModal('modal-orders')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert-strip cyan" style="margin-bottom:14px;">
+            <i class="fa-solid fa-calculator"></i>
+            <div>维修工单池（剔除后分母 17 单）：<b>一次修复率</b> = 一次修复 14 单 ÷ 17 = <span class="mono">84.2%</span>；<b>重复上门率</b> = 重复上门 2 单 ÷ 17 = <span class="mono">11.8%</span>。演练工单已按剔除规则第 4 条剔除，不入分母。</div>
+          </div>
+          <div class="table-scroll">
+            <table class="glass-table">
+              <thead><tr><th>工单号</th><th>类型</th><th>管段 · 地址</th><th>派单时间</th><th>结果</th><th>口径备注</th></tr></thead>
+              <tbody>
+                <tr><td class="mono">QX-20261012-0347</td><td>抢修</td><td>GD-2207 · 拱墅区XX路</td><td class="mono">10-12 14:32</td><td><span class="tag tag-green">一次修复</span></td><td class="muted">—</td></tr>
+                <tr><td class="mono">QX-20261015-0412</td><td>报修</td><td>GD-1183 · 上城区XX街</td><td class="mono">10-15 09:18</td><td><span class="tag tag-green">一次修复</span></td><td class="muted">—</td></tr>
+                <tr><td class="mono">QX-20261019-0455</td><td>报修</td><td>GD-3356 · 西湖区XX巷</td><td class="mono">10-19 16:47</td><td><span class="tag tag-red">二次上门</span></td><td>重复上门分子 +1（部件不匹配）</td></tr>
+                <tr><td class="mono">QX-20261022-0489</td><td>抢修</td><td>GD-0742 · 滨江区XX路</td><td class="mono">10-22 11:05</td><td><span class="tag tag-green">一次修复</span></td><td class="muted">—</td></tr>
+                <tr><td class="mono">QX-20261026-0521</td><td>报修</td><td>GD-4491 · 萧山区XX镇</td><td class="mono">10-26 08:54</td><td><span class="tag tag-orange">响应超时</span></td><td>首次响应超 P90（计入响应分档）</td></tr>
+                <tr><td class="mono">QX-20261027-0518</td><td>报修</td><td>GD-0871 · 拱墅区XX路</td><td class="mono">10-27 09:32</td><td><span class="tag tag-red">二次上门</span></td><td>重复上门分子 +1（跨期归属本期）</td></tr>
+                <tr><td class="mono">QX-20260930-0298</td><td>报修</td><td>GD-4491 · 萧山区XX镇</td><td class="mono">09-30 15:41</td><td><span class="tag tag-gray">演练标记</span></td><td>已剔除（剔除规则第 4 条）</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="tiny muted mt-14">演示为当期维修工单节选；每条工单可继续核对电子凭证、轨迹与到场照片，溯源到人到时点。</div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost" onclick="closeModal('modal-orders')">关闭</button>
+          <button class="btn btn-glass btn-sm" onclick="showToast('核对指引：工单详情支持查看电子凭证、轨迹与到场照片')"><i class="fa-solid fa-eye"></i>逐条核对指引</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 异议提交通道弹窗 -->
+    <div class="modal-mask" id="modal-objection" onclick="if(event.target===this)closeModal('modal-objection')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-comment-dots"></i>提交数据异议</div>
+          <button class="modal-close" onclick="closeModal('modal-objection')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="form-row">
+            <div>
+              <label class="form-label">异议指标 <span class="req">*</span></label>
+              <select class="form-select" style="width:100%;">
+                <option>重复上门率 11.8%（维保维修类）</option>
+                <option>一次修复率 84.2%（维保维修类）</option>
+                <option>轨迹合规率 86.4%（巡线巡检类）</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label">关联工单（选填）</label>
+              <select class="form-select" style="width:100%;">
+                <option>QX-20261019-0455（GD-3356）</option>
+                <option>QX-20261027-0518（GD-0871）</option>
+                <option>不关联具体工单</option>
+              </select>
+            </div>
+          </div>
+          <div class="mt-14">
+            <label class="form-label">异议说明 <span class="req">*</span></label>
+            <textarea class="form-textarea" rows="4" placeholder="示例：QX-20261027-0518 实为同一故障 10-19 未彻底修复的延续处置，建议合并计算重复上门。">QX-20261027-0518 与 QX-20261019-0455 为同一故障的延续处置，建议合并计算重复上门次数。</textarea>
+          </div>
+          <div class="alert-strip blue mt-14" style="margin-bottom:0;">
+            <i class="fa-solid fa-circle-info"></i>
+            <div>异议在公示期（3 个工作日）内提出有效；异议说明<b>随快照留存</b>，并自动<b>推送班组长核实</b>，核实结论一并归档。</div>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost" onclick="closeModal('modal-objection')">取消</button>
+          <button class="btn btn-primary" onclick="showToast('异议已提交：随快照留存并推送班组长核实');closeModal('modal-objection')"><i class="fa-solid fa-paper-plane"></i>提交异议</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       视图3：员工效能图表 · 班组横向对比与排名
+       ============================================================ -->
+  <section class="view" id="v-员工效能图表-班组横向对比与排名">
+    <div class="page-head">
+      <div>
+        <div class="page-title">员工效能图表 · 班组横向对比与排名</div>
+        <div class="page-desc">同口径 · 同周期 · 同分母的班组综合与分类得分排名｜使用角色：运行站长、运行部｜PC端</div>
+      </div>
+      <div class="flex">
+        <select class="filter-select"><option>统计期：2026-10</option><option>统计期：2026-09</option></select>
+        <select class="filter-select"><option>岗位序列：全部</option><option>岗位序列：巡检员</option><option>岗位序列：抢修员</option></select>
+      </div>
+    </div>
+
+    <div class="alert-strip blue">
+      <i class="fa-solid fa-shield-halved"></i>
+      <div><b>防误读说明：</b>排名旁固定展示三项背景数据（班组人数 / 辖区业务量 / 新入职占比）并标注缺项，防止把<b>业务构成差异</b>误读为<b>努力程度差异</b>；系统只给出事实与差异，评价与激励由考核办法决定；跨站查看姓名按脱敏规则处理。</div>
+    </div>
+
+    <div class="grid g-4 mb-14">
+      <div class="rule-card">
+        <div class="rule-head"><i class="fa-solid fa-equals"></i>并列同名次顺延</div>
+        <div class="tiny">得分相同列同名次，后续名次<b>顺延不跳号</b>。</div>
+        <div class="mt-8"><span class="tag tag-cyan">示例：两站并列第1，下一站为第2</span></div>
+      </div>
+      <div class="rule-card">
+        <div class="rule-head"><i class="fa-solid fa-user-clock"></i>在岗不足单列</div>
+        <div class="tiny">当期在岗 &lt; 10 日的人员<b>不参与排名</b>，单列展示。</div>
+        <div class="mt-8"><span class="tag tag-gray">示例：临平站 3 人单列</span></div>
+      </div>
+      <div class="rule-card">
+        <div class="rule-head"><i class="fa-solid fa-scale-balanced"></i>缺项重新归一</div>
+        <div class="tiny">某类缺项时<b>重新归一权重</b>，不按零分计。</div>
+        <div class="mt-8"><span class="tag tag-yellow">示例：余杭站维保维修缺项</span></div>
+      </div>
+      <div class="rule-card">
+        <div class="rule-head"><i class="fa-solid fa-clock-rotate-left"></i>变更不追溯</div>
+        <div class="tiny">口径变更自当月起用，<b>不追溯</b>已出账月份。</div>
+        <div class="mt-8"><span class="tag tag-blue">版本 V2026R2 起</span></div>
+      </div>
+    </div>
+
+    <div class="grid g-main-side mb-14">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-ranking-star"></i>班组综合得分排名（2026-10 期）</div>
+          <span class="tag tag-green"><i class="fa-solid fa-lock"></i>快照 SNAP-202610-A03 · 已锁定</span>
+        </div>
+        <div class="table-scroll">
+          <table class="glass-table">
+            <thead><tr><th>名次</th><th>班组</th><th>综合得分</th><th>较上期</th><th>弱项类别</th><th>备注</th><th>操作</th></tr></thead>
+            <tbody>
+              <tr><td class="mono"><b>1</b></td><td>运行一站</td><td class="mono"><b>84.2</b></td><td style="color:var(--c-ok);">+1</td><td class="muted">—</td><td class="muted">—</td><td><button class="btn btn-glass btn-xs" onclick="openModal('modal-team')"><i class="fa-solid fa-users"></i>成员明细</button></td></tr>
+              <tr><td class="mono"><b>1</b></td><td>滨江站</td><td class="mono"><b>84.2</b></td><td style="color:var(--c-ok);">+2</td><td class="muted">—</td><td><span class="tag tag-cyan">并列第1 · 名次顺延不跳号</span></td><td><button class="btn btn-glass btn-xs" onclick="openModal('modal-team')"><i class="fa-solid fa-users"></i>成员明细</button></td></tr>
+              <tr><td class="mono"><b>2</b></td><td>运行二站</td><td class="mono"><b>81.7</b></td><td class="muted">—</td><td>隐患误报 5.6%</td><td class="muted">—</td><td><button class="btn btn-glass btn-xs" onclick="openModal('modal-team')"><i class="fa-solid fa-users"></i>成员明细</button></td></tr>
+              <tr><td class="mono"><b>3</b></td><td>下沙站</td><td class="mono"><b>79.5</b></td><td style="color:var(--c-danger);">-1</td><td class="muted">—</td><td class="muted">—</td><td><button class="btn btn-glass btn-xs" onclick="openModal('modal-team')"><i class="fa-solid fa-users"></i>成员明细</button></td></tr>
+              <tr><td class="mono"><b>4</b></td><td>萧山站</td><td class="mono"><b>77.8</b></td><td class="muted">—</td><td>施工防护 70.2</td><td class="muted">—</td><td><button class="btn btn-glass btn-xs" onclick="openModal('modal-team')"><i class="fa-solid fa-users"></i>成员明细</button></td></tr>
+              <tr><td class="mono"><b>5</b></td><td>余杭站</td><td class="mono"><b>75.6</b></td><td style="color:var(--c-ok);">+1</td><td class="muted">—</td><td><span class="tag tag-yellow">维保维修缺项 · 权重重新归一（不按零分）</span></td><td><button class="btn btn-glass btn-xs" onclick="openModal('modal-team')"><i class="fa-solid fa-users"></i>成员明细</button></td></tr>
+              <tr><td class="mono muted">单列</td><td>临平站</td><td class="mono muted">73.9</td><td class="muted">—</td><td class="muted">—</td><td><span class="tag tag-gray">不参与排名：3 人在岗 &lt; 10 日</span></td><td><button class="btn btn-glass btn-xs" onclick="openModal('modal-team')"><i class="fa-solid fa-users"></i>成员明细</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="tiny muted mt-14">分类得分排名口径与个人一致（同口径 / 同周期 / 同分母）；演示为市区 7 个运行站，全员基数：巡检员 178 人、抢修员 123 人。</div>
+      </div>
+
+      <div class="glass-card">
+        <div class="card-head"><div class="card-title"><i class="fa-solid fa-bolt"></i>弱项分布（参评 6 站）</div></div>
+        <div class="tiny muted mb-8">低于阈值的班组数 / 参评班组数</div>
+        <div class="mb-14">
+          <div class="flex-between mb-8"><span class="tiny"><b>维保维修</b>（阈值 70）</span><span class="tiny mono">5 / 6 站</span></div>
+          <div class="meter"><div class="meter-fill red" style="width:83%;"></div></div>
+        </div>
+        <div class="mb-14">
+          <div class="flex-between mb-8"><span class="tiny"><b>施工防护</b>（阈值 75）</span><span class="tiny mono">3 / 6 站</span></div>
+          <div class="meter"><div class="meter-fill orange" style="width:50%;"></div></div>
+        </div>
+        <div class="mb-14">
+          <div class="flex-between mb-8"><span class="tiny"><b>隐患误报率</b>（阈值 5%）</span><span class="tiny mono">2 / 6 站</span></div>
+          <div class="meter"><div class="meter-fill" style="width:33%;background:linear-gradient(90deg,#E8B400,#FFD84D);"></div></div>
+        </div>
+        <div class="alert-strip cyan" style="margin-bottom:0;">
+          <i class="fa-solid fa-graduation-cap"></i>
+          <div>弱项分布用于<b>培训资源投放参考</b>，不直接构成考核结论。</div>
+        </div>
+        <button class="btn btn-primary btn-sm mt-14" onclick="switchView('v-AI能力提升建议与培训推荐')"><i class="fa-solid fa-robot"></i>前往 AI 提升建议与培训推荐</button>
+      </div>
+    </div>
+
+    <div class="glass-card">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-users"></i>三项背景数据（防误读 · 与排名固定并排展示）</div>
+        <span class="tag tag-gray"><i class="fa-solid fa-circle-info"></i>标注缺项，防把业务构成差异误读为努力程度差异</span>
+      </div>
+      <div class="table-scroll">
+        <table class="glass-table">
+          <thead><tr><th>班组</th><th>班组人数</th><th>辖区管长</th><th>月均工单量</th><th>新入职占比</th><th>缺项标注</th></tr></thead>
+          <tbody>
+            <tr><td>运行一站</td><td class="mono">31</td><td class="mono">1,286 km</td><td class="mono">412 单</td><td class="mono">6.5%</td><td class="muted">—</td></tr>
+            <tr><td>滨江站</td><td class="mono">26</td><td class="mono">1,078 km</td><td class="mono">367 单</td><td class="mono">3.8%</td><td class="muted">—</td></tr>
+            <tr><td>运行二站</td><td class="mono">34</td><td class="mono">1,412 km</td><td class="mono">448 单</td><td class="mono">8.8%</td><td class="muted">—</td></tr>
+            <tr><td>下沙站</td><td class="mono">22</td><td class="mono">962 km</td><td class="mono">318 单</td><td class="mono">4.5%</td><td class="muted">—</td></tr>
+            <tr><td>萧山站</td><td class="mono">29</td><td class="mono">1,205 km</td><td class="mono">395 单</td><td class="mono">13.8%</td><td class="muted">—</td></tr>
+            <tr><td>余杭站</td><td class="mono">24</td><td class="mono">1,013 km</td><td class="mono">342 单</td><td class="mono">16.7%</td><td><span class="tag tag-yellow">维保维修缺项（接口覆盖中）</span></td></tr>
+            <tr><td>临平站</td><td class="mono">18</td><td class="mono">876 km</td><td class="mono">254 单</td><td class="mono" style="color:var(--c-warn);">22.2%</td><td><span class="tag tag-gray">3 人在岗 &lt; 10 日 · 单列</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 班组成员明细弹窗（跨站脱敏） -->
+    <div class="modal-mask" id="modal-team" onclick="if(event.target===this)closeModal('modal-team')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-users"></i>班组成员明细（示例：运行一站 · 31 人）</div>
+          <button class="modal-close" onclick="closeModal('modal-team')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert-strip cyan" style="margin-bottom:14px;">
+            <i class="fa-solid fa-user-shield"></i>
+            <div><b>跨站查看姓名按脱敏规则处理</b>；本站内（站长视角）显示完整信息。得分可逐层钻取至原始工单。</div>
+          </div>
+          <table class="glass-table">
+            <thead><tr><th>姓名（脱敏）</th><th>工号</th><th>岗位</th><th>综合得分</th><th>弱项</th></tr></thead>
+            <tbody>
+              <tr><td>王*强</td><td class="mono">XJ-0347</td><td>巡检员 · 抢修兼岗</td><td class="mono"><b>82.6</b></td><td><span class="tag tag-red">维保维修 68.5</span></td></tr>
+              <tr><td>李*</td><td class="mono">XJ-0355</td><td>巡检员</td><td class="mono"><b>86.1</b></td><td class="muted">—</td></tr>
+              <tr><td>张*</td><td class="mono">QX-0218</td><td>抢修员</td><td class="mono"><b>78.9</b></td><td><span class="tag tag-orange">首次响应 P90 超标</span></td></tr>
+              <tr><td>陈*</td><td class="mono">XJ-0288</td><td>巡检员</td><td class="mono"><b>80.2</b></td><td class="muted">—</td></tr>
+              <tr><td>赵*</td><td class="mono">QX-0233</td><td>抢修员</td><td class="mono"><b>77.6</b></td><td><span class="tag tag-orange">一次修复率 79.8%</span></td></tr>
+            </tbody>
+          </table>
+          <div class="tiny muted mt-14">在岗 &lt; 10 日人员不参与班组内排名，单列展示；演示节选 5 人。</div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-glass btn-sm" onclick="closeModal('modal-team')">关闭</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       视图4：员工效能图表 · 能力雷达与考核报表
+       ============================================================ -->
+  <section class="view" id="v-员工效能图表-能力雷达与考核报表">
+    <div class="page-head">
+      <div>
+        <div class="page-title">员工效能图表 · 能力雷达与考核报表</div>
+        <div class="page-desc">七类能力雷达（实线本人 / 虚线班组均值 / 低于阈值轴标红）· 近六期趋势 · 考核报表与五级数据权限｜使用角色：员工本人、人力资源部｜PC端</div>
+      </div>
+      <div class="flex">
+        <select class="filter-select"><option>人员：王*强（XJ-0347）· 班组长视角</option><option>人员：李*（XJ-0355）</option></select>
+        <button class="btn btn-primary btn-sm" onclick="openModal('modal-export')"><i class="fa-solid fa-file-export"></i>导出考核报表</button>
+      </div>
+    </div>
+
+    <div class="grid g-2 mb-14">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-spider"></i>七类能力雷达图</div>
+          <span class="tag tag-cyan">2026-10 期 · 快照 SNAP-202610-A03</span>
+        </div>
+        <svg viewBox="0 0 520 470" style="width:100%;height:auto;display:block;">
+          <polygon points="260,100 369.5,152.7 396.5,271.2 320.7,366.1 199.3,366.1 123.5,271.2 150.5,152.7" fill="none" stroke="rgba(22,50,60,.16)" stroke-width="1"/>
+          <polygon points="260,147 332.9,181.8 351,260.8 300.5,324.1 219.5,324.1 169,260.8 187.1,181.8" fill="none" stroke="rgba(22,50,60,.12)" stroke-width="1"/>
+          <polygon points="260,194 296.5,210.9 305.5,250.4 280.2,282.1 239.8,282.1 214.5,250.4 223.5,210.9" fill="none" stroke="rgba(22,50,60,.10)" stroke-width="1"/>
+          <g stroke="rgba(22,50,60,.10)" stroke-width="1">
+            <line x1="260" y1="240" x2="260" y2="100"/>
+            <line x1="260" y1="240" x2="369.5" y2="152.7"/>
+            <line x1="260" y1="240" x2="396.5" y2="271.2"/>
+            <line x1="260" y1="240" x2="320.7" y2="366.1"/>
+            <line x1="260" y1="240" x2="199.3" y2="366.1"/>
+            <line x1="260" y1="240" x2="123.5" y2="271.2"/>
+            <line x1="260" y1="240" x2="150.5" y2="152.7"/>
+          </g>
+          <polygon points="260,170 314.7,196.4 328.2,255.6 290.4,303.1 229.6,303.1 191.8,255.6 205.3,196.4" fill="none" stroke="#FF3B30" stroke-width="1.4" stroke-dasharray="6 5" opacity=".75"/>
+          <polygon points="260,120.7 347.3,170.3 373.3,265.9 310.1,343.9 206.2,351.8 155.9,263.8 171.5,169.4" fill="none" stroke="#94A3B8" stroke-width="1.8" stroke-dasharray="7 5"/>
+          <polygon points="260,116.2 349.3,168.8 376.4,266.6 308.5,340.6 202.8,358.8 166.5,261.3 169.5,167.8" fill="rgba(14,116,144,.16)" stroke="#0E7490" stroke-width="2.2" stroke-linejoin="round"/>
+          <g fill="#0E7490">
+            <circle cx="260" cy="116.2" r="3.6"/>
+            <circle cx="349.3" cy="168.8" r="3.6"/>
+            <circle cx="376.4" cy="266.6" r="3.6"/>
+            <circle cx="308.5" cy="340.6" r="3.6"/>
+            <circle cx="202.8" cy="358.8" r="3.6"/>
+            <circle cx="169.5" cy="167.8" r="3.6"/>
+          </g>
+          <circle cx="166.5" cy="261.3" r="5" fill="#FF3B30" stroke="#fff" stroke-width="1.5"/>
+          <g font-family="Outfit, PingFang SC, sans-serif" font-size="12.5" fill="#16323C" font-weight="600">
+            <text x="260" y="90" text-anchor="middle">巡线巡检</text>
+            <text x="374" y="150" text-anchor="start">设备管理</text>
+            <text x="402" y="276" text-anchor="start">泄漏自查</text>
+            <text x="322" y="384" text-anchor="middle">施工防护</text>
+            <text x="198" y="384" text-anchor="middle">单据质量</text>
+            <text x="118" y="276" text-anchor="end" fill="#D93025" font-weight="700">维保维修</text>
+            <text x="146" y="150" text-anchor="end">隐患管理</text>
+          </g>
+          <g font-family="DM Mono, monospace" font-size="11.5" fill="#64748B">
+            <text x="260" y="105" text-anchor="middle">88.4</text>
+            <text x="374" y="164" text-anchor="start">81.6</text>
+            <text x="402" y="290" text-anchor="start">85.3</text>
+            <text x="322" y="398" text-anchor="middle">79.8</text>
+            <text x="198" y="398" text-anchor="middle">94.2</text>
+            <text x="118" y="290" text-anchor="end" fill="#D93025" font-weight="700">68.5</text>
+            <text x="146" y="164" text-anchor="end">82.7</text>
+          </g>
+          <text x="298" y="299" font-family="Outfit, PingFang SC, sans-serif" font-size="10" fill="#D93025">阈值 70</text>
+        </svg>
+        <div class="bar-legend" style="margin-top:10px;margin-bottom:0;">
+          <span><span class="sw" style="background:linear-gradient(90deg,#0E7490,#0891B2);"></span>本人（实线）</span>
+          <span><span class="lnh"></span>班组均值（虚线）</span>
+          <span><span class="lnh" style="border-color:#FF3B30;"></span>阈值 70（红色虚线环）</span>
+          <span class="muted">低于阈值轴标红：维保维修</span>
+        </div>
+      </div>
+
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-chart-line"></i>近六期综合得分趋势</div>
+          <span class="tag tag-gray">同岗位序列分位归一</span>
+        </div>
+        <svg viewBox="0 0 560 250" style="width:100%;height:auto;display:block;">
+          <g stroke="rgba(22,50,60,.08)" stroke-width="1">
+            <line x1="60" y1="80" x2="540" y2="80"/>
+            <line x1="60" y1="104" x2="540" y2="104"/>
+            <line x1="60" y1="128" x2="540" y2="128"/>
+            <line x1="60" y1="152" x2="540" y2="152"/>
+            <line x1="60" y1="176" x2="540" y2="176"/>
+            <line x1="60" y1="200" x2="540" y2="200"/>
+          </g>
+          <g font-family="DM Mono, monospace" font-size="10.5" fill="#94A3B8">
+            <text x="50" y="84" text-anchor="end">86</text>
+            <text x="50" y="108" text-anchor="end">84</text>
+            <text x="50" y="132" text-anchor="end">82</text>
+            <text x="50" y="156" text-anchor="end">80</text>
+            <text x="50" y="180" text-anchor="end">78</text>
+            <text x="50" y="204" text-anchor="end">76</text>
+          </g>
+          <polyline points="60,141.6 148,146.4 236,136.8 324,133.2 412,127.2 500,134.4" fill="none" stroke="#94A3B8" stroke-width="1.8" stroke-dasharray="7 5"/>
+          <polyline points="60,165.2 148,147.2 236,156.8 324,130.4 412,113.6 500,120.8" fill="none" stroke="#0E7490" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+          <g fill="#94A3B8">
+            <circle cx="60" cy="141.6" r="2.6"/>
+            <circle cx="148" cy="146.4" r="2.6"/>
+            <circle cx="236" cy="136.8" r="2.6"/>
+            <circle cx="324" cy="133.2" r="2.6"/>
+            <circle cx="412" cy="127.2" r="2.6"/>
+            <circle cx="500" cy="134.4" r="2.6"/>
+          </g>
+          <g fill="#0E7490">
+            <circle cx="60" cy="165.2" r="3.6"/>
+            <circle cx="148" cy="147.2" r="3.6"/>
+            <circle cx="236" cy="156.8" r="3.6"/>
+            <circle cx="324" cy="130.4" r="3.6"/>
+            <circle cx="412" cy="113.6" r="3.6"/>
+            <circle cx="500" cy="120.8" r="4.4"/>
+          </g>
+          <g font-family="DM Mono, monospace" font-size="10.5" fill="#0E7490" font-weight="600">
+            <text x="60" y="153" text-anchor="middle">78.9</text>
+            <text x="148" y="135" text-anchor="middle">80.4</text>
+            <text x="236" y="144.8" text-anchor="middle">79.6</text>
+            <text x="324" y="118" text-anchor="middle">81.8</text>
+            <text x="412" y="101" text-anchor="middle">83.2</text>
+            <text x="500" y="108" text-anchor="middle">82.6</text>
+          </g>
+          <g font-family="Outfit, PingFang SC, sans-serif" font-size="11" fill="#64748B">
+            <text x="60" y="226" text-anchor="middle">2026-05</text>
+            <text x="148" y="226" text-anchor="middle">2026-06</text>
+            <text x="236" y="226" text-anchor="middle">2026-07</text>
+            <text x="324" y="226" text-anchor="middle">2026-08</text>
+            <text x="412" y="226" text-anchor="middle">2026-09</text>
+            <text x="500" y="226" text-anchor="middle">2026-10</text>
+          </g>
+        </svg>
+        <div class="bar-legend" style="margin-top:10px;margin-bottom:0;">
+          <span><span class="sw" style="background:#0E7490;"></span>本人综合得分</span>
+          <span><span class="lnh"></span>班组均值</span>
+          <span class="muted">近四期 89.1→86.7→82.6→84.2 为一次修复率走势（AI 建议引用）</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="glass-card mb-14">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-file-lines"></i>考核报表（六字段组）</div>
+        <span class="tag tag-cyan">身份 / 在岗 / 七类得分 / 综合得分 / 诊断 / 溯源</span>
+      </div>
+      <div class="table-scroll">
+        <table class="glass-table">
+          <thead><tr><th>工号</th><th>姓名</th><th>岗位 · 班组</th><th>在岗</th><th>七类得分</th><th>综合</th><th>诊断</th><th>溯源</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="mono">XJ-0347</td><td>王*强</td><td>巡检员 · 运行一站</td><td class="mono">24/26</td>
+              <td class="tiny">巡88.4 · 设81.6 · 查85.3 · 护79.8 · 单94.2 · <b style="color:var(--c-danger);">维68.5</b> · 隐82.7</td>
+              <td class="mono"><b>82.6</b></td>
+              <td><span class="tag tag-red">维保维修 · 低于阈值</span> <span class="tag tag-orange">施工防护 · 班组末位</span></td>
+              <td class="mono">SNAP-202610-A03</td>
+              <td><button class="btn btn-glass btn-xs" onclick="switchView('v-员工效能图表-个人效能明细')"><i class="fa-solid fa-diagram-project"></i>钻取</button></td>
+            </tr>
+            <tr>
+              <td class="mono">XJ-0355</td><td>李*</td><td>巡检员 · 运行一站</td><td class="mono">26/26</td>
+              <td class="tiny">巡91.2 · 设84.3 · 查88.7 · 护86.5 · 单95.8 · 维79.4 · 隐84.1</td>
+              <td class="mono"><b>86.1</b></td>
+              <td class="muted">—</td>
+              <td class="mono">SNAP-202610-A03</td>
+              <td><button class="btn btn-glass btn-xs" onclick="switchView('v-员工效能图表-个人效能明细')"><i class="fa-solid fa-diagram-project"></i>钻取</button></td>
+            </tr>
+            <tr>
+              <td class="mono">QX-0218</td><td>张*</td><td>抢修员 · 运行一站</td><td class="mono">22/26</td>
+              <td class="tiny">巡85.6 · 设78.2 · 查83.4 · 护81.7 · 单90.3 · 维72.8 · 隐79.5</td>
+              <td class="mono"><b>78.9</b></td>
+              <td><span class="tag tag-orange">首次响应 P90 超标</span></td>
+              <td class="mono">SNAP-202610-A03</td>
+              <td><button class="btn btn-glass btn-xs" onclick="switchView('v-员工效能图表-个人效能明细')"><i class="fa-solid fa-diagram-project"></i>钻取</button></td>
+            </tr>
+            <tr>
+              <td class="mono">XJ-0288</td><td>陈*</td><td>巡检员 · 运行一站</td><td class="mono">25/26</td>
+              <td class="tiny">巡87.9 · 设80.8 · 查84.6 · 护83.2 · 单92.7 · 维75.1 · 隐81.3</td>
+              <td class="mono"><b>80.2</b></td>
+              <td class="muted">—</td>
+              <td class="mono">SNAP-202610-A03</td>
+              <td><button class="btn btn-glass btn-xs" onclick="switchView('v-员工效能图表-个人效能明细')"><i class="fa-solid fa-diagram-project"></i>钻取</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="tiny muted mt-14">历史月份报表沿用<b>当时口径版本</b>；跨站视角姓名已按脱敏规则处理（人力资源部考核用途视角显示完整姓名）。</div>
+    </div>
+
+    <div class="grid g-main-side mb-14">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-user-lock"></i>五级数据权限矩阵</div>
+          <span class="tag tag-red"><i class="fa-solid fa-ban"></i>超范围导出直接拒绝 · 不静默截断</span>
+        </div>
+        <div class="table-scroll">
+          <table class="glass-table">
+            <thead><tr><th>角色</th><th>本人明细</th><th>班组明细</th><th>跨站查看</th><th>原始工单钻取</th><th>导出</th><th>姓名处理</th></tr></thead>
+            <tbody>
+              <tr><td><b>员工本人</b></td><td><i class="fa-solid fa-check" style="color:var(--c-ok);"></i></td><td><i class="fa-solid fa-minus" style="color:var(--c-text-3);"></i></td><td><i class="fa-solid fa-minus" style="color:var(--c-text-3);"></i></td><td>仅本人</td><td>仅本人 PDF</td><td>明文</td></tr>
+              <tr><td><b>班组长</b></td><td><i class="fa-solid fa-check" style="color:var(--c-ok);"></i></td><td><i class="fa-solid fa-check" style="color:var(--c-ok);"></i></td><td><i class="fa-solid fa-minus" style="color:var(--c-text-3);"></i></td><td>本班组</td><td>班组 Excel / PDF</td><td>本组明文 · 跨站脱敏</td></tr>
+              <tr><td><b>运行站长</b></td><td><i class="fa-solid fa-check" style="color:var(--c-ok);"></i></td><td><i class="fa-solid fa-check" style="color:var(--c-ok);"></i></td><td>脱敏</td><td>本站</td><td>三种格式</td><td>跨站脱敏</td></tr>
+              <tr><td><b>运行部</b></td><td><i class="fa-solid fa-check" style="color:var(--c-ok);"></i></td><td><i class="fa-solid fa-check" style="color:var(--c-ok);"></i></td><td>脱敏</td><td>全部</td><td>三种格式 + 明细数据包</td><td>脱敏</td></tr>
+              <tr><td><b>人力资源部</b></td><td><i class="fa-solid fa-check" style="color:var(--c-ok);"></i></td><td><i class="fa-solid fa-check" style="color:var(--c-ok);"></i></td><td>考核用途</td><td>全部</td><td>三种格式 + 明细数据包</td><td>考核用途明文</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="tiny muted mt-14">全部查看与导出行为记入日志，可追溯到人到时点。</div>
+      </div>
+
+      <div class="glass-card">
+        <div class="card-head"><div class="card-title"><i class="fa-solid fa-file-export"></i>三种导出格式</div></div>
+        <div class="grid" style="gap:10px;">
+          <div class="rule-card" style="height:auto;">
+            <div class="rule-head"><i class="fa-solid fa-file-excel" style="color:var(--c-ok);"></i>Excel 工作簿</div>
+            <div class="tiny">数据页（六字段组报表）+ <b>口径定义页</b>（18 项公式与版本）+ <b>剔除记录页</b>（664 条含规则标注）</div>
+            <button class="btn btn-glass btn-xs mt-8" onclick="openModal('modal-export')"><i class="fa-solid fa-download"></i>导出 Excel</button>
+          </div>
+          <div class="rule-card" style="height:auto;">
+            <div class="rule-head"><i class="fa-solid fa-file-pdf" style="color:var(--c-danger);"></i>PDF 报表</div>
+            <div class="tiny">每页水印：<b>口径版本 V2026R2 · 快照 SNAP-202610-A03</b>；适合公示与归档</div>
+            <button class="btn btn-glass btn-xs mt-8" onclick="openModal('modal-export')"><i class="fa-solid fa-download"></i>导出 PDF</button>
+          </div>
+          <div class="rule-card" style="height:auto;">
+            <div class="rule-head"><i class="fa-solid fa-box-archive" style="color:var(--c-info);"></i>明细数据包</div>
+            <div class="tiny">原始工单级记录 + 剔除明细 + 字段字典；用于异议核对与延伸分析</div>
+            <button class="btn btn-glass btn-xs mt-8" onclick="openModal('modal-export')"><i class="fa-solid fa-download"></i>生成数据包</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="alert-strip blue">
+      <i class="fa-solid fa-fingerprint"></i>
+      <div><b>导出一致性：</b>同一月份任何时候导出结果<b>完全一致</b>；导出历史月份沿用当时口径版本；全部查看与导出行为记入日志、可追溯到人到时点；超出角色可见范围的导出请求<b>直接拒绝、不静默截断</b>。</div>
+    </div>
+
+    <!-- 导出确认弹窗 -->
+    <div class="modal-mask" id="modal-export" onclick="if(event.target===this)closeModal('modal-export')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-file-export"></i>导出确认（随附口径与快照版本）</div>
+          <button class="modal-close" onclick="closeModal('modal-export')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <dl class="kv mb-14">
+            <dt>导出范围</dt><dd>运行一站 · 2026-10 期 · 31 人</dd>
+            <dt>数据版本</dt><dd class="mono">快照 SNAP-202610-A03（已锁定）</dd>
+            <dt>口径版本</dt><dd class="mono">V2026R2（随附口径定义页）</dd>
+            <dt>权限校验</dt><dd><span class="tag tag-green"><i class="fa-solid fa-check"></i>通过</span> 当前角色：站长（本站全员 · 跨站脱敏）</dd>
+          </dl>
+          <label class="form-label">导出格式 <span class="req">*</span></label>
+          <select class="form-select" style="width:100%;">
+            <option>Excel 工作簿（数据页 + 口径定义页 + 剔除记录页）</option>
+            <option>PDF 报表（每页带口径与快照版本水印）</option>
+            <option>明细数据包（原始工单 + 剔除明细 + 字段字典）</option>
+          </select>
+          <div class="alert-strip cyan mt-14" style="margin-bottom:0;">
+            <i class="fa-solid fa-circle-info"></i>
+            <div>历史月份导出沿用<b>当时口径版本</b>，与首次导出结果完全一致；本次导出行为将记入日志（操作人、时点、范围、格式）。</div>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost" onclick="closeModal('modal-export')">取消</button>
+          <button class="btn btn-primary" onclick="showToast('导出任务已生成：随附口径定义页与快照版本，行为已记入日志');closeModal('modal-export')"><i class="fa-solid fa-download"></i>确认导出</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       视图5：AI能力提升建议与培训推荐
+       ============================================================ -->
+  <section class="view" id="v-AI能力提升建议与培训推荐">
+    <div class="page-head">
+      <div>
+        <div class="page-title">AI 能力提升建议与培训推荐</div>
+        <div class="page-desc">三规则短板识别 · 强制引用生成 · 四项事实校验 · 班组长人工复核 · 课程标签匹配 · 培训后复评闭环｜使用角色：班组长、培训管理岗、员工｜PC端</div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="showToast('已按输入受限范围重新识别：命中短板 3 条 → 生成建议 3 条（每人每期上限）')"><i class="fa-solid fa-robot"></i>生成本期建议</button>
+    </div>
+
+    <div class="grid g-3 mb-14">
+      <div class="rule-card">
+        <div class="rule-head"><i class="fa-solid fa-arrow-down-short-wide"></i>规则一 · 低于阈值</div>
+        <div class="tiny">类别得分或指标原值低于设定阈值。</div>
+        <div class="mt-8"><span class="tag tag-red">命中：维保维修 68.5 &lt; 阈值 70</span></div>
+      </div>
+      <div class="rule-card">
+        <div class="rule-head"><i class="fa-solid fa-arrow-trend-down"></i>规则二 · 同比下降</div>
+        <div class="tiny">指标同比 / 环比连续下降。</div>
+        <div class="mt-8"><span class="tag tag-orange">命中：一次修复率近四期 89.1→86.7→82.6→84.2</span></div>
+      </div>
+      <div class="rule-card">
+        <div class="rule-head"><i class="fa-solid fa-users-line"></i>规则三 · 班组末位且低于均值</div>
+        <div class="tiny">班组内末位且低于班组均值。</div>
+        <div class="mt-8"><span class="tag tag-yellow">命中：施工防护 79.8 · 均值 82.4</span></div>
+      </div>
+    </div>
+
+    <div class="alert-strip blue">
+      <i class="fa-solid fa-key"></i>
+      <div><b>输入受限：</b>大模型输入限定在<b>本人近四期指标、命中短板、相关工单摘要与课程目录</b>之内；无依据不生成；禁止评价性用语与推断未提供信息；诊断结果只作<b>能力补强</b>，不直接等同考核结论。</div>
+    </div>
+
+    <div class="glass-card mb-14">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-robot"></i>本期建议（3 条 · 每人每期上限 3 条）</div>
+        <span class="tag tag-accent">对象：王*强（XJ-0347）· 2026-10 期</span>
+      </div>
+
+      <div class="sug-card">
+        <div class="flex-between wrap">
+          <div class="flex" style="gap:8px;"><span class="tag tag-cyan">SUG-202610-001</span><b>维保维修 · 一次修复率</b></div>
+          <span class="tag tag-orange"><i class="fa-solid fa-eye-slash"></i>待班组长复核 · 员工不可见</span>
+        </div>
+        <div class="sug-quote">
+          <b>依据（强制引用）：</b>近四期一次修复率 <span class="mono">89.1% → 86.7% → 82.6% → 84.2%</span>（环比 <span class="mono">-2.9pct</span>）；工单 <span class="mono">QX-20261019-0455</span>（GD-3356 · 西湖区XX巷）更换部件与故障类型不匹配，二次上门；工单 <span class="mono">QX-20260928-0316</span>（GD-2207 · 拱墅区XX路）同类原因重复上门。
+        </div>
+        <div class="sug-act">
+          <b>措施：</b>参加课程《燃气计量表具故障诊断与一次修复规范》（能力标签：一次修复 · 部件识别）；后续同类型工单派单前对照「故障-部件」预检表核对备件。
+        </div>
+        <div class="check-row">
+          <span class="tag tag-green"><i class="fa-solid fa-check"></i>工单编号存在</span>
+          <span class="tag tag-green"><i class="fa-solid fa-check"></i>指标数值一致</span>
+          <span class="tag tag-green"><i class="fa-solid fa-check"></i>课程存在</span>
+          <span class="tag tag-green"><i class="fa-solid fa-check"></i>用语合规</span>
+          <button class="btn btn-primary btn-sm" onclick="openModal('modal-review')"><i class="fa-solid fa-user-check"></i>进入班组长复核</button>
+        </div>
+      </div>
+
+      <div class="sug-card" style="margin-top:14px;border-left-color:var(--c-ok);">
+        <div class="flex-between wrap">
+          <div class="flex" style="gap:8px;"><span class="tag tag-cyan">SUG-202610-002</span><b>施工防护 · 在施工点位巡查到位率</b></div>
+          <span class="tag tag-green"><i class="fa-solid fa-check"></i>已复核 · 修改措辞后采纳</span>
+        </div>
+        <div class="sug-quote">
+          <b>依据（强制引用）：</b>到位率 <span class="mono">79.8%</span>（班组末位 · 均值 <span class="mono">82.4%</span>）；工单 <span class="mono">XC-20261008-012</span>、<span class="mono">XC-20261016-027</span> 夜间时段两处点位未按周期到位。
+        </div>
+        <div class="sug-act">
+          <b>措施：</b>课程目录中无「施工协同」能力标签课程——<b>不勉强匹配</b>，转入待补充清单；安排内部带教 1 次（第三方施工点位管控要点 · 现场跟评）。
+        </div>
+        <div class="check-row">
+          <span class="tag tag-green"><i class="fa-solid fa-check"></i>工单编号存在</span>
+          <span class="tag tag-green"><i class="fa-solid fa-check"></i>指标数值一致</span>
+          <span class="tag tag-yellow"><i class="fa-solid fa-rotate-left"></i>课程存在：首次未通过 → 退回重新生成 → 二次通过</span>
+          <span class="tag tag-green"><i class="fa-solid fa-check"></i>用语合规</span>
+          <button class="btn btn-glass btn-sm" onclick="showToast('复核记录：10-27 班组长 周* 修改措辞后采纳（原措辞含评价性用语，已退回重写）')"><i class="fa-solid fa-clock-rotate-left"></i>查看复核记录</button>
+        </div>
+      </div>
+
+      <div class="sug-card" style="margin-top:14px;">
+        <div class="flex-between wrap">
+          <div class="flex" style="gap:8px;"><span class="tag tag-cyan">SUG-202610-003</span><b>隐患管理 · 隐患误报率</b></div>
+          <span class="tag tag-orange"><i class="fa-solid fa-eye-slash"></i>待班组长复核 · 员工不可见</span>
+        </div>
+        <div class="sug-quote">
+          <b>依据（强制引用）：</b>误报率 <span class="mono">6.8%</span>（阈值 <span class="mono">5.0%</span>）；工单 <span class="mono">YH-20261011-0089</span>、<span class="mono">YH-20261021-0104</span> 现场核定误报（第三方水表井误判为燃气泄漏）。
+        </div>
+        <div class="sug-act">
+          <b>措施：</b>参加课程《燃气隐患辨识与现场核定要点》（能力标签：隐患辨识 · 现场核定），10-31 班次，历史改善度 +3.9pct。
+        </div>
+        <div class="check-row">
+          <span class="tag tag-green"><i class="fa-solid fa-check"></i>工单编号存在</span>
+          <span class="tag tag-green"><i class="fa-solid fa-check"></i>指标数值一致</span>
+          <span class="tag tag-green"><i class="fa-solid fa-check"></i>课程存在</span>
+          <span class="tag tag-green"><i class="fa-solid fa-check"></i>用语合规</span>
+          <button class="btn btn-primary btn-sm" onclick="openModal('modal-review')"><i class="fa-solid fa-user-check"></i>进入班组长复核</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="glass-card mb-14">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-clipboard-check"></i>四项事实校验结果</div>
+        <span class="tag tag-gray">校验不通过自动退回重新生成</span>
+      </div>
+      <div class="table-scroll">
+        <table class="glass-table">
+          <thead><tr><th>建议编号</th><th>短板项</th><th>引用条目存在性</th><th>数值一致性</th><th>课程存在</th><th>用语合规</th><th>结论</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">SUG-202610-001</td><td>一次修复率</td><td><span class="tag tag-green">通过</span></td><td><span class="tag tag-green">通过</span></td><td><span class="tag tag-green">通过</span></td><td><span class="tag tag-green">通过</span></td><td>允许下发复核</td></tr>
+            <tr><td class="mono">SUG-202610-002</td><td>在施工点位巡查到位率</td><td><span class="tag tag-green">通过</span></td><td><span class="tag tag-green">通过</span></td><td><span class="tag tag-yellow">首次未通过 → 退回 → 二次通过</span></td><td><span class="tag tag-green">通过</span></td><td>允许下发复核</td></tr>
+            <tr><td class="mono">SUG-202610-003</td><td>隐患误报率</td><td><span class="tag tag-green">通过</span></td><td><span class="tag tag-green">通过</span></td><td><span class="tag tag-green">通过</span></td><td><span class="tag tag-green">通过</span></td><td>允许下发复核</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="tiny muted mt-14">校验不通过的建议退回重新生成；<b>未复核的建议员工不可见</b>；驳回理由按季度归集，用于优化生成约束。</div>
+    </div>
+
+    <div class="grid g-main-side mb-14">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-graduation-cap"></i>课程匹配与开课安排</div>
+          <span class="tag tag-cyan">按能力标签匹配 · 非关键词</span>
+        </div>
+        <div class="table-scroll">
+          <table class="glass-table">
+            <thead><tr><th>短板项</th><th>匹配课程</th><th>能力标签</th><th>历史改善度</th><th>开课安排</th><th>操作</th></tr></thead>
+            <tbody>
+              <tr><td>一次修复率</td><td>燃气计量表具故障诊断与一次修复规范</td><td><span class="tag tag-cyan">一次修复 · 部件识别</span></td><td class="mono">+4.2pct</td><td>10-31 · 余 6 席</td><td><button class="btn btn-glass btn-xs" onclick="showToast('已报名：10-31《燃气计量表具故障诊断与一次修复规范》（余6席）')"><i class="fa-solid fa-pen-to-square"></i>报名</button></td></tr>
+              <tr><td>隐患误报率</td><td>燃气隐患辨识与现场核定要点</td><td><span class="tag tag-cyan">隐患辨识 · 现场核定</span></td><td class="mono">+3.9pct</td><td>11-02 · 余 11 席</td><td><button class="btn btn-glass btn-xs" onclick="showToast('已报名：11-02《燃气隐患辨识与现场核定要点》（余11席）')"><i class="fa-solid fa-pen-to-square"></i>报名</button></td></tr>
+              <tr><td>在施工点位巡查到位率</td><td class="muted">—（无对应标签课程）</td><td><span class="tag tag-gray">施工协同</span></td><td class="muted">—</td><td><span class="tag tag-yellow">待补充清单 · 不勉强匹配</span></td><td><button class="btn btn-ghost btn-xs" onclick="showToast('已入待补充清单：标签「施工协同」课程列入下季度补充计划')"><i class="fa-solid fa-circle-plus"></i>加入待补充</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div>
+        <div class="glass-card mb-14">
+          <div class="card-head"><div class="card-title"><i class="fa-solid fa-list-ul"></i>课程待补充清单</div></div>
+          <ul class="icon-list">
+            <li><i class="fa-solid fa-circle-plus"></i><span><b>第三方施工协同管理</b>（标签：施工协同）——已提交培训管理岗，列入下季度课程补充计划。</span></li>
+            <li><i class="fa-solid fa-circle-info"></i><span>无对应课程时<b>不勉强匹配</b>，先以带教 / 现场跟评补位。</span></li>
+          </ul>
+        </div>
+        <div class="glass-card">
+          <div class="card-head"><div class="card-title"><i class="fa-solid fa-circle-check"></i>本期无需生成</div></div>
+          <div class="empty-state" style="padding:18px 12px;">
+            <i class="fa-solid fa-mug-hot"></i>
+            <div>陈*（XJ-0288）本期无命中短板</div>
+            <div class="tiny mt-8">输出「<b>本期无需生成</b>」，不产生建议</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="glass-card mb-14">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-rotate"></i>培训后复评闭环</div>
+        <span class="tag tag-blue">下一统计期自动复评</span>
+      </div>
+      <div class="steps mb-14">
+        <div class="step done"><span class="dot"><i class="fa-solid fa-check"></i></span>参训完成</div>
+        <div class="step active"><span class="dot">2</span>下一统计期自动复评</div>
+        <div class="step"><span class="dot">3</span>改善 → 退出短板清单</div>
+        <div class="step"><span class="dot">4</span>未改善 → 不重复推同一门课 · 转带教 / 现场跟评</div>
+      </div>
+      <div class="table-scroll">
+        <table class="glass-table">
+          <thead><tr><th>员工</th><th>短板项（2026-09 期）</th><th>参训课程</th><th>复评结果（2026-10 期）</th><th>处置</th></tr></thead>
+          <tbody>
+            <tr><td>李*（XJ-0355）</td><td>一次修复率 <span class="mono">76.8%</span></td><td>燃气计量表具故障诊断与一次修复规范</td><td class="mono">85.2%（阈值以上）</td><td><span class="tag tag-green"><i class="fa-solid fa-check"></i>改善 · 退出短板清单</span></td></tr>
+            <tr><td>张*（QX-0218）</td><td>首次响应 P90 <span class="mono">38 分</span></td><td>抢修首次响应规范</td><td class="mono">39 分（未改善）</td><td><span class="tag tag-orange">不重复推同一门课 · 转带教 + 现场跟评</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="tiny muted mt-14">驳回理由按季度归集，优化下一季度生成约束；待明确事项：培训平台名称与接口形式（建议以能力标签接口对接）。</div>
+    </div>
+
+    <!-- 班组长复核弹窗 -->
+    <div class="modal-mask" id="modal-review" onclick="if(event.target===this)closeModal('modal-review')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-user-check"></i>班组长复核（示例：SUG-202610-001）</div>
+          <button class="modal-close" onclick="closeModal('modal-review')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <dl class="kv mb-14">
+            <dt>待复核建议</dt><dd class="mono">SUG-202610-001 · 维保维修 · 一次修复率</dd>
+            <dt>员工</dt><dd>王*强（XJ-0347）· 运行一站 巡检三班</dd>
+            <dt>事实校验</dt><dd><span class="tag tag-green"><i class="fa-solid fa-check"></i>四项全部通过</span></dd>
+            <dt>生成时间</dt><dd class="mono">2026-10-28 02:15</dd>
+          </dl>
+          <div class="sug-quote">
+            近四期一次修复率 <span class="mono">89.1% → 86.7% → 82.6% → 84.2%</span>（环比 <span class="mono">-2.9pct</span>）；工单 <span class="mono">QX-20261019-0455</span>（GD-3356）部件不匹配二次上门；工单 <span class="mono">QX-20260928-0316</span>（GD-2207）同类原因重复上门。建议参加《燃气计量表具故障诊断与一次修复规范》，同类型工单派单前对照「故障-部件」预检表核对备件。
+          </div>
+          <div class="flex wrap mt-14" style="gap:10px;">
+            <button class="btn btn-primary btn-sm" onclick="showToast('已采纳：建议下发至员工端可见，复核记录留存');closeModal('modal-review');"><i class="fa-solid fa-check"></i>采纳并下发</button>
+            <button class="btn btn-glass btn-sm" onclick="document.getElementById('review-edit').style.display='block';document.getElementById('review-reject').style.display='none';"><i class="fa-solid fa-pen"></i>修改措辞</button>
+            <button class="btn btn-danger btn-sm" onclick="document.getElementById('review-reject').style.display='block';document.getElementById('review-edit').style.display='none';"><i class="fa-solid fa-ban"></i>驳回</button>
+          </div>
+          <div id="review-edit" style="display:none;">
+            <hr class="divider">
+            <label class="form-label">修改后措辞 <span class="req">*</span></label>
+            <textarea class="form-textarea" rows="3">近四期一次修复率下降（84.2%），其中 2 单为部件与故障类型不匹配（QX-20261019-0455、QX-20260928-0316）。建议参加表具故障诊断课程，并在派单前核对备件预检表。</textarea>
+            <button class="btn btn-primary btn-sm mt-8" onclick="showToast('措辞已修改并留存修改记录，下发员工端');closeModal('modal-review');"><i class="fa-solid fa-check"></i>确认修改</button>
+          </div>
+          <div id="review-reject" style="display:none;">
+            <hr class="divider">
+            <label class="form-label">驳回理由（必填） <span class="req">*</span></label>
+            <textarea class="form-textarea" id="review-reject-text" rows="3" placeholder="示例：QX-20260928-0316 已在 9 月带教中覆盖，重复引用，建议改引本期工单。">QX-20260928-0316 已在 9 月带教中覆盖，重复引用，建议改引本期工单。</textarea>
+            <button class="btn btn-danger btn-sm mt-8" onclick="var r=document.getElementById('review-reject-text');if(r.value.trim()){showToast('已驳回：理由随季度归集，用于优化生成约束');closeModal('modal-review');}else{showToast('请填写驳回理由后再确认');}"><i class="fa-solid fa-ban"></i>确认驳回</button>
+          </div>
+          <div class="tiny muted mt-14">未复核的建议员工不可见；驳回理由按季度归集，用于优化下一季度生成约束。</div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-glass btn-sm" onclick="closeModal('modal-review')">关闭</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+function switchView(vid){
+  document.querySelectorAll('.view').forEach(function(v){v.classList.remove('active');});
+  var el=document.getElementById(vid); if(el){el.classList.add('active');}
+  document.querySelectorAll('.seg-item[data-view]').forEach(function(b){
+    b.classList.toggle('active', b.getAttribute('data-view')===vid);
+  });
+  try{history.replaceState(null,'','#'+encodeURIComponent(vid));}catch(e){}
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function openModal(id){var m=document.getElementById(id); if(m){m.classList.add('open');}}
+function closeModal(id){var m=document.getElementById(id); if(m){m.classList.remove('open');}}
+function showToast(msg){
+  var t=document.getElementById('app-toast');
+  if(!t){t=document.createElement('div');t.id='app-toast';t.className='toast';document.body.appendChild(t);}
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._tm);t._tm=setTimeout(function(){t.classList.remove('show');},2200);
+}
+window.addEventListener('hashchange',function(){
+  var h=decodeURIComponent(location.hash.replace('#',''));
+  if(h&&document.getElementById(h)){switchView(h);}
+});
+(function(){
+  var h=decodeURIComponent(location.hash.replace('#',''));
+  if(h&&document.getElementById(h)){switchView(h);}
+})();
+</script>
+</body>
+</html>

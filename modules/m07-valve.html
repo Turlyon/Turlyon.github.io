@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M07 关阀方案推荐智能体 · 杭州燃气管网运营智能体平台</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="../styles/liquid-glass.css">
+<style>
+/* ---- M07 模块级样式（基于 liquid-glass 变量，不另起配色体系） ---- */
+.scheme-card{cursor:pointer;border:1.5px solid transparent;transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease;}
+.scheme-card:hover{transform:translateY(-3px);}
+.scheme-card.selected{border-color:var(--c-primary);box-shadow:0 0 0 3px var(--c-primary-soft),var(--glass-shadow),var(--glass-inner);}
+.scheme-card.recommend.selected{border-color:var(--c-accent);box-shadow:0 0 0 3px var(--c-accent-soft),var(--glass-shadow),var(--glass-inner);}
+.score-big{font-family:'DM Mono','Outfit',monospace;font-size:30px;font-weight:700;line-height:1.1;letter-spacing:-1px;}
+.weight-row{margin-bottom:13px;}
+.weight-row:last-child{margin-bottom:0;}
+.map-node{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:3px;z-index:4;}
+.map-node .nd{width:13px;height:13px;border-radius:50%;border:2.5px solid #fff;box-shadow:0 2px 6px rgba(22,50,60,.28);flex-shrink:0;}
+.nd.remote{background:var(--c-ok);}
+.nd.field{background:var(--c-info);}
+.nd.intro{background:var(--c-accent);}
+.map-node .lb{font-size:10px;font-weight:600;color:var(--c-text);background:rgba(255,255,255,.8);padding:1px 6px;border-radius:6px;white-space:nowrap;box-shadow:0 1px 3px rgba(22,50,60,.12);}
+.pin-dot{width:16px;height:16px;border-radius:50%;background:var(--c-danger);border:3px solid #fff;animation:pinPulse 1.6s ease-out infinite;flex-shrink:0;}
+@keyframes pinPulse{0%{box-shadow:0 0 0 4px rgba(255,59,48,.35);}70%{box-shadow:0 0 0 13px rgba(255,59,48,0);}100%{box-shadow:0 0 0 4px rgba(255,59,48,0);}}
+.ch-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:17px;color:#fff;flex-shrink:0;}
+</style>
+</head>
+<body>
+<div class="ambient-blob"></div>
+<div class="module-wrap">
+
+  <div class="module-top">
+    <div class="module-title">关阀方案推荐智能体</div>
+    <span class="badge badge-mid"><i class="fa-solid fa-flag"></i>优先级 中</span>
+    <div class="module-sub">自一张图关阀能力单列深化 · 调研报告智能体7</div>
+    <div class="seg" style="margin-left:auto;">
+      <button class="seg-item active" data-view="v-关阀方案生成与多方案排序" onclick="switchView('v-关阀方案生成与多方案排序')">方案生成与排序</button>
+      <button class="seg-item" data-view="v-停气影响测算与通知名单输出" onclick="switchView('v-停气影响测算与通知名单输出')">停气影响与通知</button>
+      <button class="seg-item" data-view="v-关阀审批权限与执行记录" onclick="switchView('v-关阀审批权限与执行记录')">审批与执行记录</button>
+    </div>
+  </div>
+
+  <!-- ================= View 1：关阀方案生成与多方案排序 ================= -->
+  <section class="view active" id="v-关阀方案生成与多方案排序">
+    <div class="page-head">
+      <div>
+        <div class="page-title">关阀方案生成与多方案排序</div>
+        <div class="page-desc">终端：PC端 + 指挥大屏 · 角色：应急指挥人员 / 调度员 · 爆管事件触发后沿管网拓扑回溯自动生成候选方案集</div>
+      </div>
+      <button class="btn btn-glass btn-sm" onclick="showToast('已按当前拓扑快照重新回溯生成 3 套候选方案')"><i class="fa-solid fa-rotate"></i>重新生成方案</button>
+    </div>
+
+    <!-- 事件卡 -->
+    <div class="glass-card strong mb-14">
+      <div class="flex-between wrap">
+        <div class="flex wrap">
+          <span class="tag tag-red"><i class="fa-solid fa-burst"></i>爆管事件 · 一级</span>
+          <span class="mono" style="font-size:17px;font-weight:700;color:var(--c-primary);">GD-2025-0871</span>
+          <span class="tag tag-cyan">中压管道</span>
+          <span class="tag tag-orange">抢修工单 QX-2025-0613</span>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="openModal('modal-scheme-confirm')"><i class="fa-solid fa-paper-plane"></i>确认执行方案A（推荐）</button>
+      </div>
+      <dl class="kv mt-14">
+        <dt>事发位置</dt><dd>滨江区江南大道与江陵路交叉口北侧</dd>
+        <dt>关联管段</dt><dd class="mono">GD-M-2317（中压干管 DN300 · PE管）</dd>
+        <dt>报警时间</dt><dd class="mono">2025-08-14 09:42:17（SCADA 流量压降 + 群众上报双触发）</dd>
+        <dt>事件状态</dt><dd>已生成 3 套候选关阀方案 · 待指挥确认</dd>
+      </dl>
+    </div>
+
+    <!-- 概览统计 -->
+    <div class="grid g-4 mb-14">
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-layer-group"></i>候选方案</div>
+        <div class="stat-value">3 <span style="font-size:14px;font-weight:500;">套</span></div>
+        <div class="stat-sub">拓扑回溯自动生成 · 并列展示</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-users"></i>推荐方案停气</div>
+        <div class="stat-value orange">1,870 <span style="font-size:14px;font-weight:500;">户</span></div>
+        <div class="stat-sub">方案A · 居民 1,847 + 非居 23</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-users-slash"></i>最少停气方案</div>
+        <div class="stat-value green">623 <span style="font-size:14px;font-weight:500;">户</span></div>
+        <div class="stat-sub">方案B · 关阀 6 座 · 影响最小</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-tower-broadcast"></i>燃气舱电子智能阀</div>
+        <div class="stat-value blue">21 <span style="font-size:14px;font-weight:500;">座</span></div>
+        <div class="stat-sub">远程可控 20 / 21（95.2%）</div>
+      </div>
+    </div>
+
+    <!-- 拓扑示意 + 影响因子权重 -->
+    <div class="grid g-main-side mb-14">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-map-location-dot"></i>管网拓扑示意 · 事发点与阀门组合</div>
+          <span class="tag tag-gray">GIS 示意</span>
+        </div>
+        <div class="map-canvas" style="height:430px;">
+          <svg viewBox="0 0 920 400" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%;">
+            <!-- 基础管网 -->
+            <path class="pipe" d="M40,150 L880,150" stroke="#0E7490" stroke-width="8"/>
+            <path class="pipe" d="M130,150 L130,290" stroke="#0891B2" stroke-width="5"/>
+            <path class="pipe" d="M280,150 L280,330" stroke="#0891B2" stroke-width="5"/>
+            <path class="pipe" d="M520,150 L520,330" stroke="#0891B2" stroke-width="5"/>
+            <path class="pipe" d="M700,150 L700,320" stroke="#0891B2" stroke-width="5"/>
+            <path class="pipe" d="M520,240 L700,240" stroke="#22B8CF" stroke-width="4"/>
+            <path class="pipe" d="M280,240 L440,240" stroke="#22B8CF" stroke-width="4"/>
+            <!-- 方案A 隔离区段（默认高亮） -->
+            <g id="hl-A">
+              <path d="M430,150 L620,150" stroke="#FF3B30" stroke-width="9" fill="none" stroke-linecap="round" opacity=".9"/>
+              <path d="M520,150 L520,330" stroke="#FF3B30" stroke-width="7" fill="none" stroke-linecap="round" opacity=".9"/>
+              <path d="M520,240 L700,240" stroke="#FF3B30" stroke-width="7" fill="none" stroke-linecap="round" opacity=".9"/>
+            </g>
+            <!-- 方案B 隔离区段 -->
+            <g id="hl-B" style="display:none;">
+              <path d="M520,150 L620,150" stroke="#FF9500" stroke-width="9" fill="none" stroke-linecap="round" opacity=".9"/>
+              <path d="M520,150 L520,240" stroke="#FF9500" stroke-width="7" fill="none" stroke-linecap="round" opacity=".9"/>
+              <path d="M520,240 L700,240" stroke="#FF9500" stroke-width="7" fill="none" stroke-linecap="round" opacity=".9"/>
+            </g>
+            <!-- 方案C 隔离区段 -->
+            <g id="hl-C" style="display:none;">
+              <path d="M280,150 L620,150" stroke="#FFCC00" stroke-width="9" fill="none" stroke-linecap="round" opacity=".9"/>
+              <path d="M520,150 L520,330" stroke="#FFCC00" stroke-width="7" fill="none" stroke-linecap="round" opacity=".9"/>
+              <path d="M520,240 L700,240" stroke="#FFCC00" stroke-width="7" fill="none" stroke-linecap="round" opacity=".9"/>
+              <path d="M280,150 L280,330" stroke="#FFCC00" stroke-width="7" fill="none" stroke-linecap="round" opacity=".9"/>
+            </g>
+          </svg>
+          <!-- 事发点 -->
+          <div class="map-node" style="left:54.3%;top:37.5%;z-index:6;flex-direction:column-reverse;">
+            <span class="pin-dot"></span>
+            <span class="lb" style="color:#C42B22;">事发点</span>
+          </div>
+          <!-- 阀门点位 -->
+          <div class="map-node" style="left:46.7%;top:37.5%;"><span class="nd field"></span><span class="lb">V-102 阀室井</span></div>
+          <div class="map-node" style="left:67.4%;top:37.5%;"><span class="nd field"></span><span class="lb">V-105 调压站</span></div>
+          <div class="map-node" style="left:56.5%;top:82.5%;"><span class="nd remote"></span><span class="lb">V-EL-015 电子智能阀·远程</span></div>
+          <div class="map-node" style="left:76.1%;top:60%;"><span class="nd remote"></span><span class="lb">V-EL-007 电子智能阀·远程</span></div>
+          <div class="map-node" style="left:84.8%;top:37.5%;"><span class="nd field"></span><span class="lb">V-109 阀室井</span></div>
+          <div class="map-node" style="left:14.1%;top:72.5%;"><span class="nd field"></span><span class="lb">V-121 调压箱</span></div>
+          <div class="map-node" style="left:30.4%;top:82.5%;"><span class="nd intro"></span><span class="lb">V-134 引入管阀</span></div>
+          <div class="map-legend">
+            <span><span class="sw" style="background:#FF3B30;"></span>事发点</span>
+            <span><span class="sw" style="background:#0E7490;"></span>中压干管</span>
+            <span><span class="sw" style="background:#34C759;"></span>远程阀</span>
+            <span><span class="sw" style="background:#34A8FF;"></span>现场阀</span>
+            <span><span class="sw" style="background:#FF9F0A;"></span>隔离区段</span>
+          </div>
+        </div>
+        <div class="alert-strip cyan mt-14" style="margin-bottom:0;">
+          <i class="fa-solid fa-hand-pointer"></i>
+          <div>点选下方方案卡，地图同步高亮对应隔离区段与关阀点位：<span id="map-link-note" class="mono" style="font-weight:700;">方案A · 4座（V-102 / V-105 现场 · V-EL-007 / V-EL-015 远程）· 隔离 GD-M-2317 东段 + GD-Z-0871 / 0872 / 0873</span></div>
+        </div>
+      </div>
+
+      <!-- 影响因子权重面板 -->
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-sliders"></i>排序影响因子权重</div>
+          <span class="tag tag-gray">演示默认值</span>
+        </div>
+        <div class="alert-strip orange">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <div>权重清单待甲方确认后配置化落地</div>
+        </div>
+        <div class="weight-row">
+          <div class="flex-between" style="margin-bottom:5px;"><span style="font-weight:600;font-size:12.5px;">中压干支路阀室（井）阀门</span><span class="mono" style="font-weight:700;color:var(--c-primary);">30%</span></div>
+          <div class="meter"><div class="meter-fill" style="width:30%;"></div></div>
+        </div>
+        <div class="weight-row">
+          <div class="flex-between" style="margin-bottom:5px;"><span style="font-weight:600;font-size:12.5px;">调压站（含调压箱）阀门</span><span class="mono" style="font-weight:700;color:var(--c-primary);">25%</span></div>
+          <div class="meter"><div class="meter-fill" style="width:25%;"></div></div>
+        </div>
+        <div class="weight-row">
+          <div class="flex-between" style="margin-bottom:5px;"><span style="font-weight:600;font-size:12.5px;">居民/工商户引入管阀门关联用气数</span><span class="mono" style="font-weight:700;color:var(--c-primary);">25%</span></div>
+          <div class="meter"><div class="meter-fill" style="width:25%;"></div></div>
+        </div>
+        <div class="weight-row">
+          <div class="flex-between" style="margin-bottom:5px;"><span style="font-weight:600;font-size:12.5px;">远程与现场关阀方式</span><span class="mono" style="font-weight:700;color:var(--c-primary);">20%</span></div>
+          <div class="meter"><div class="meter-fill" style="width:20%;"></div></div>
+        </div>
+        <div class="tiny mt-14"><i class="fa-solid fa-circle-info"></i> 权重支持配置化调整，调整后各方案加权得分与排序实时重算；演示分值仅供参考</div>
+      </div>
+    </div>
+
+    <!-- 数据质量标注 -->
+    <div class="alert-strip blue mb-14">
+      <i class="fa-solid fa-sitemap"></i>
+      <div>拓扑数据不精确直接影响方案准确性：GD-Z-0872 段存在 2 处拓扑断点待修复，修复前方案可靠性受数据质量影响，已在各方案中显式标注</div>
+    </div>
+
+    <!-- 方案对比三列 -->
+    <div class="grid g-3 mb-14">
+      <div class="glass-card scheme-card recommend selected" onclick="selectScheme('A',this)">
+        <div class="flex-between">
+          <div class="flex"><span style="font-size:15px;font-weight:700;">方案A</span><span class="badge badge-new"><i class="fa-solid fa-star"></i>智能推荐</span></div>
+          <div class="score-big" style="color:var(--c-accent);">92.6</div>
+        </div>
+        <div class="tiny">加权排序得分（满分 100）</div>
+        <hr class="divider">
+        <div class="kv">
+          <dt>关阀数量</dt><dd>4 座（远程 2 · 现场 2）</dd>
+          <dt>停气户数</dt><dd>1,870 户（居民 1,847 + 非居 23）</dd>
+          <dt>关阀阀门</dt><dd class="mono" style="font-size:11px;">V-102 · V-105 · V-EL-007 · V-EL-015</dd>
+          <dt>预计耗时</dt><dd>约 8 分钟（远程即时 + 现场 2 组并行）</dd>
+        </div>
+        <div class="flex mt-14">
+          <span class="tag tag-green"><i class="fa-solid fa-tower-broadcast"></i>远程 2</span>
+          <span class="tag tag-blue"><i class="fa-solid fa-helmet-safety"></i>现场 2</span>
+        </div>
+        <button class="btn btn-primary btn-sm mt-14" style="width:100%;justify-content:center;" onclick="event.stopPropagation();openModal('modal-scheme-confirm')"><i class="fa-solid fa-paper-plane"></i>选定并确认执行</button>
+      </div>
+
+      <div class="glass-card scheme-card" onclick="selectScheme('B',this)">
+        <div class="flex-between">
+          <div class="flex"><span style="font-size:15px;font-weight:700;">方案B</span><span class="tag tag-green">影响最小</span></div>
+          <div class="score-big" style="color:var(--c-primary);">88.3</div>
+        </div>
+        <div class="tiny">加权排序得分（满分 100）</div>
+        <hr class="divider">
+        <div class="kv">
+          <dt>关阀数量</dt><dd>6 座（远程 2 · 现场 4）</dd>
+          <dt>停气户数</dt><dd>623 户（居民 612 + 非居 11）</dd>
+          <dt>关阀阀门</dt><dd class="mono" style="font-size:11px;">方案A 全部 + V-121 · V-134</dd>
+          <dt>预计耗时</dt><dd>约 22 分钟（现场 4 组串并行）</dd>
+        </div>
+        <div class="flex mt-14">
+          <span class="tag tag-green"><i class="fa-solid fa-tower-broadcast"></i>远程 2</span>
+          <span class="tag tag-blue"><i class="fa-solid fa-helmet-safety"></i>现场 4</span>
+        </div>
+        <button class="btn btn-glass btn-sm mt-14" style="width:100%;justify-content:center;" onclick="event.stopPropagation();selectScheme('B',this.closest('.scheme-card'));showToast('已选定方案B（影响最小），地图已联动高亮');"><i class="fa-solid fa-hand-pointer"></i>选定此方案</button>
+      </div>
+
+      <div class="glass-card scheme-card" onclick="selectScheme('C',this)">
+        <div class="flex-between">
+          <div class="flex"><span style="font-size:15px;font-weight:700;">方案C</span><span class="tag tag-yellow">执行最快</span></div>
+          <div class="score-big" style="color:var(--c-warn);">81.5</div>
+        </div>
+        <div class="tiny">加权排序得分（满分 100）</div>
+        <hr class="divider">
+        <div class="kv">
+          <dt>关阀数量</dt><dd>3 座（远程 1 · 现场 2）</dd>
+          <dt>停气户数</dt><dd>3,155 户（居民 3,102 + 非居 53）</dd>
+          <dt>关阀阀门</dt><dd class="mono" style="font-size:11px;">V-105 · V-EL-007 · V-EL-015</dd>
+          <dt>预计耗时</dt><dd>约 6 分钟（不关 V-102 · 隔离范围西扩）</dd>
+        </div>
+        <div class="flex mt-14">
+          <span class="tag tag-green"><i class="fa-solid fa-tower-broadcast"></i>远程 1</span>
+          <span class="tag tag-blue"><i class="fa-solid fa-helmet-safety"></i>现场 2</span>
+        </div>
+        <button class="btn btn-glass btn-sm mt-14" style="width:100%;justify-content:center;" onclick="event.stopPropagation();selectScheme('C',this.closest('.scheme-card'));showToast('已选定方案C（执行最快），地图已联动高亮');"><i class="fa-solid fa-hand-pointer"></i>选定此方案</button>
+      </div>
+    </div>
+
+    <!-- 燃气舱电子智能阀实时状态 -->
+    <div class="glass-card">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-microchip"></i>燃气舱电子智能阀 · 实时开关状态（共 21 座）</div>
+        <div class="flex">
+          <span class="tag tag-green">通讯正常 20 / 21</span>
+          <button class="btn btn-glass btn-xs" onclick="showToast('已展开全部 21 座电子智能阀实时状态清单')"><i class="fa-solid fa-list"></i>展开全部</button>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table class="glass-table">
+          <thead>
+            <tr><th>阀门编号</th><th>所在舱段</th><th>口径</th><th>实时阀位</th><th>通讯状态</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="mono">V-EL-003</td><td>环城北路综合管廊 · 燃气舱一区</td><td>DN200</td><td><span class="tag tag-green">全开</span></td><td>正常</td></tr>
+            <tr><td class="mono">V-EL-007</td><td>之江东路综合管廊 · 燃气舱二区</td><td>DN150</td><td><span class="tag tag-green">全开</span></td><td>正常</td></tr>
+            <tr><td class="mono">V-EL-012</td><td>艮山路综合管廊 · 燃气舱三区</td><td>DN200</td><td><span class="tag tag-orange">检修中</span></td><td><span class="tag tag-red">通讯中断</span></td></tr>
+            <tr><td class="mono">V-EL-015</td><td>江南大道综合管廊 · 燃气舱四区</td><td>DN150</td><td><span class="tag tag-green">全开</span></td><td>正常</td></tr>
+            <tr><td class="mono">V-EL-018</td><td>下沙路综合管廊 · 燃气舱五区</td><td>DN100</td><td><span class="tag tag-gray">全关</span></td><td>正常</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="tiny mt-8">汇总：全开 18 · 全关 2 · 检修中 1（V-EL-012 已派单检修）· 管廊内阀门极少因泄漏需要操作，线上远程与线下人工关阀结合</div>
+    </div>
+
+    <!-- 弹窗：方案确认执行 -->
+    <div class="modal-mask" id="modal-scheme-confirm" onclick="if(event.target===this)closeModal('modal-scheme-confirm')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-circle-check" style="color:var(--c-primary);"></i>方案A · 确认执行下发</div>
+          <button class="modal-close" onclick="closeModal('modal-scheme-confirm')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert-strip cyan">
+            <i class="fa-solid fa-circle-info"></i>
+            <div>方案确认后区分<b>远程指令下发</b>与<b>现场人工关阀任务派发</b>，全程逐阀留痕</div>
+          </div>
+          <dl class="kv">
+            <dt>事件编号</dt><dd class="mono">GD-2025-0871（爆管 · 一级）</dd>
+            <dt>关阀清单</dt><dd>V-102、V-105（现场）· V-118 备用 · V-EL-007、V-EL-015（远程）</dd>
+            <dt>停气范围</dt><dd>1,870 户（居民 1,847 + 非居 23）</dd>
+            <dt>派发对象</dt><dd>远程：调度中心指令通道 · 现场：抢修一组 王*强 / 抢修二组 李*明</dd>
+          </dl>
+          <div class="tiny mt-14"><i class="fa-solid fa-arrow-right"></i> 确认后进入审批流：指挥确认 → 权限校验 + 二次口令 → 逐座下发 → 阀位反馈（见「审批与执行记录」页）</div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost" onclick="closeModal('modal-scheme-confirm')">取消</button>
+          <button class="btn btn-primary" onclick="closeModal('modal-scheme-confirm');showToast('方案A已确认，远程指令与现场任务已同步派发');switchView('v-关阀审批权限与执行记录')"><i class="fa-solid fa-paper-plane"></i>确认下发</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= View 2：停气影响测算与通知名单输出 ================= -->
+  <section class="view" id="v-停气影响测算与通知名单输出">
+    <div class="page-head">
+      <div>
+        <div class="page-title">停气影响测算与通知名单输出</div>
+        <div class="page-desc">终端：PC端 · 角色：调度员 / 客服·居民运营联动岗 · 方案选定后自动测算停气范围并分列用户清单</div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="openModal('modal-notify-push')"><i class="fa-solid fa-bullhorn"></i>停气通知一键推送</button>
+    </div>
+
+    <!-- 选定方案信息条 -->
+    <div class="glass-card soft mb-14">
+      <div class="flex-between wrap">
+        <div class="flex wrap">
+          <span class="tag tag-cyan"><i class="fa-solid fa-circle-check"></i>当前选定 · 方案A</span>
+          <span class="muted">事件 <span class="mono">GD-2025-0871</span> · 关阀 4 座 · 测算时间 <span class="mono">2025-08-14 09:48</span></span>
+        </div>
+        <button class="btn btn-glass btn-sm" onclick="switchView('v-关阀方案生成与多方案排序')"><i class="fa-solid fa-arrow-left"></i>返回方案对比</button>
+      </div>
+      <div class="tiny mt-8">测算结果与一张图爆管关阀页面共用同一份数据（隔离区段：GD-M-2317 东段 / GD-Z-0871 / GD-Z-0872 / GD-Z-0873）</div>
+    </div>
+
+    <!-- 受影响用户分列统计 -->
+    <div class="grid g-4 mb-14">
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-house-user"></i>居民用户</div>
+        <div class="stat-value">1,847 <span style="font-size:14px;font-weight:500;">户</span></div>
+        <div class="stat-sub">涉及 4 个小区：江南铭庭 612 · 阳光海岸 486 · 滨和名苑 398 · 江陵家园 351</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-building"></i>非居民用户</div>
+        <div class="stat-value blue">23 <span style="font-size:14px;font-weight:500;">户</span></div>
+        <div class="stat-sub">餐饮 12 · 工商 11 · 分列统计</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-triangle-exclamation"></i>重点用户</div>
+        <div class="stat-value red">2 <span style="font-size:14px;font-weight:500;">户</span></div>
+        <div class="stat-sub">置顶优先人工电话告知</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-clock"></i>预计停气时长</div>
+        <div class="stat-value orange">4.5 <span style="font-size:14px;font-weight:500;">小时</span></div>
+        <div class="stat-sub">以抢修修复进度实时修正</div>
+      </div>
+    </div>
+
+    <!-- 失气管段清单 + 重点用户 -->
+    <div class="grid g-main-side mb-14">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-gas-pump"></i>失气管段清单（方案A 隔离区段）</div>
+          <span class="tag tag-red">失气中 4 段</span>
+        </div>
+        <div class="table-scroll">
+          <table class="glass-table">
+            <thead>
+              <tr><th>管段编号</th><th>管别</th><th>管径</th><th>长度</th><th>敷设道路</th><th>边界阀门</th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="mono">GD-M-2317</td><td>中压干管</td><td>DN300</td><td>412 m</td><td>江南大道（江陵路—通惠路）</td><td class="mono">V-102 / V-105</td></tr>
+              <tr><td class="mono">GD-Z-0871</td><td>中压支管</td><td>DN200</td><td>186 m</td><td>江陵路（江南大道—滨和路）</td><td class="mono">V-105 / V-EL-015</td></tr>
+              <tr><td class="mono">GD-Z-0872</td><td>中压支管</td><td>DN150</td><td>143 m</td><td>滨和路（江陵路—西兴路）</td><td class="mono">V-EL-015 / V-109</td></tr>
+              <tr><td class="mono">GD-Z-0873</td><td>庭院管</td><td>DN110</td><td>96 m</td><td>江南铭庭小区内</td><td class="mono">V-105 / V-EL-007</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="tiny mt-8">失气管段集合与关阀方案联动生成，方案切换时清单同步刷新</div>
+      </div>
+
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-triangle-exclamation"></i>重点用户 · 置顶优先</div>
+        </div>
+        <ul class="icon-list">
+          <li>
+            <i class="fa-solid fa-hospital"></i>
+            <div><b>杭州市第一人民医院（滨江院区）</b><div class="tiny">医疗机构 · 生命线用户 · 优先人工电话告知 · 联系人 陈*芳（后勤科）</div></div>
+          </li>
+          <li>
+            <i class="fa-solid fa-utensils"></i>
+            <div><b>滨江食堂（集中供餐点）</b><div class="tiny">大型集中餐饮 · 日供餐约 3,000 份 · 优先人工电话告知 · 联系人 周*华</div></div>
+          </li>
+        </ul>
+        <div class="alert-strip red mt-14" style="margin-bottom:0;">
+          <i class="fa-solid fa-phone-volume"></i>
+          <div>重点非居民用户优先人工电话告知，确认停气知晓后方可开始关阀操作</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 通知渠道三通道 -->
+    <div class="grid g-3 mb-14">
+      <div class="glass-card">
+        <div class="flex" style="gap:12px;">
+          <div class="ch-icon" style="background:linear-gradient(135deg,#0E7490,#0891B2);"><i class="fa-solid fa-comment-sms"></i></div>
+          <div>
+            <div style="font-weight:700;">短信通道</div>
+            <div class="tiny">覆盖 1,870 户 · 模板《停气通知-计划抢修》</div>
+          </div>
+        </div>
+        <div class="kv mt-14">
+          <dt>历史送达率</dt><dd class="mono">98.2%</dd>
+          <dt>发送批次</dt><dd>一次性全量 · 重点用户加发 2 次</dd>
+        </div>
+        <button class="btn btn-glass btn-sm mt-14" style="width:100%;justify-content:center;" onclick="showToast('停气通知短信已提交发送队列，覆盖 1,870 户')"><i class="fa-solid fa-paper-plane"></i>发送短信</button>
+      </div>
+
+      <div class="glass-card">
+        <div class="flex" style="gap:12px;">
+          <div class="ch-icon" style="background:linear-gradient(135deg,#34C759,#6ED88F);"><i class="fa-brands fa-weixin"></i></div>
+          <div>
+            <div style="font-weight:700;">公众号推送</div>
+            <div class="tiny">绑定用户 1,236 户 · 图文 + 服务通知</div>
+          </div>
+        </div>
+        <div class="kv mt-14">
+          <dt>预计阅读率</dt><dd class="mono">46%</dd>
+          <dt>推送形式</dt><dd>停气通告图文 + 进度订阅提醒</dd>
+        </div>
+        <button class="btn btn-glass btn-sm mt-14" style="width:100%;justify-content:center;" onclick="showToast('公众号停气图文已推送至 1,236 名绑定用户')"><i class="fa-solid fa-paper-plane"></i>推送图文</button>
+      </div>
+
+      <div class="glass-card">
+        <div class="flex" style="gap:12px;">
+          <div class="ch-icon" style="background:linear-gradient(135deg,#FF9F0A,#FFB340);"><i class="fa-solid fa-headset"></i></div>
+          <div>
+            <div style="font-weight:700;">客服工单</div>
+            <div class="tiny">外呼工单 34 项 · 95530 坐席预备</div>
+          </div>
+        </div>
+        <div class="kv mt-14">
+          <dt>外呼范围</dt><dd>重点用户 2 + 投诉历史 32</dd>
+          <dt>工单时效</dt><dd>30 分钟内完成首呼</dd>
+        </div>
+        <button class="btn btn-glass btn-sm mt-14" style="width:100%;justify-content:center;" onclick="showToast('已生成 34 项客服外呼工单并分派至 95530 坐席')"><i class="fa-solid fa-paper-plane"></i>生成工单</button>
+      </div>
+    </div>
+
+    <!-- 数据缺口待办 -->
+    <div class="alert-strip orange">
+      <i class="fa-solid fa-database"></i>
+      <div><b>用户-管段关联数据缺口待办：</b>GD-Z-0873（江南铭庭庭院管）约 112 户的入户关联关系待与居民运营场景确认，已列入数据治理待办清单（待办号 ZL-2025-0231）；测算期间不以估算值直接代替，暂以小区级关联兜底并标注覆盖率 93.9%</div>
+    </div>
+
+    <!-- 弹窗：一键推送 -->
+    <div class="modal-mask" id="modal-notify-push" onclick="if(event.target===this)closeModal('modal-notify-push')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-bullhorn" style="color:var(--c-primary);"></i>停气通知 · 一键推送确认</div>
+          <button class="modal-close" onclick="closeModal('modal-notify-push')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert-strip orange">
+            <i class="fa-solid fa-database"></i>
+            <div>GD-Z-0873 段约 112 户存在关联数据缺口，缺口用户以小区级兜底通知覆盖，不以估算值直接代替</div>
+          </div>
+          <ul class="icon-list">
+            <li><i class="fa-solid fa-comment-sms"></i><div>短信通道 · 覆盖 1,870 户 · 模板《停气通知-计划抢修 GD-2025-0871》</div></li>
+            <li><i class="fa-brands fa-weixin"></i><div>公众号推送 · 覆盖 1,236 名绑定用户 · 图文 + 服务通知</div></li>
+            <li><i class="fa-solid fa-headset"></i><div>客服工单 · 34 项外呼任务（重点用户置顶优先）</div></li>
+          </ul>
+          <div class="tiny mt-8"><i class="fa-solid fa-circle-info"></i> 推送后实时记录各渠道送达状态，未送达用户自动转人工外呼</div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost" onclick="closeModal('modal-notify-push')">取消</button>
+          <button class="btn btn-primary" onclick="closeModal('modal-notify-push');showToast('停气通知已一键推送三通道，送达状态跟踪已开启')"><i class="fa-solid fa-paper-plane"></i>一键推送</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= View 3：关阀审批权限与执行记录 ================= -->
+  <section class="view" id="v-关阀审批权限与执行记录">
+    <div class="page-head">
+      <div>
+        <div class="page-title">关阀审批权限与执行记录</div>
+        <div class="page-desc">终端：PC端 · 角色：应急指挥人员 / 分公司管理层 · 远程关阀分级授权 + 二次确认，执行过程逐阀留痕</div>
+      </div>
+      <button class="btn btn-glass btn-sm" onclick="showToast('执行记录已按工单 QX-2025-0613 导出归档')"><i class="fa-solid fa-file-export"></i>导出执行记录</button>
+    </div>
+
+    <!-- 审批流 -->
+    <div class="glass-card mb-14">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-stamp"></i>关阀审批流 · 方案A 执行进度</div>
+        <div class="flex">
+          <span class="tag tag-red">一级事件 · 分公司应急指挥</span>
+          <button class="btn btn-glass btn-sm" onclick="openModal('modal-second-auth')"><i class="fa-solid fa-key"></i>演示二次口令确认</button>
+        </div>
+      </div>
+      <div class="steps">
+        <div class="step done"><span class="dot"><i class="fa-solid fa-check"></i></span>指挥确认（调度长 张*军 09:50）</div>
+        <div class="step done"><span class="dot"><i class="fa-solid fa-check"></i></span>权限校验 + 二次口令（09:50:41）</div>
+        <div class="step active"><span class="dot">3</span>逐座下发（2 / 4 座）</div>
+        <div class="step"><span class="dot">4</span>阀位反馈（2 / 4 到位）</div>
+      </div>
+      <div class="alert-strip red mt-14" style="margin-bottom:0;">
+        <i class="fa-solid fa-circle-exclamation"></i>
+        <div><b>以阀位反馈到位为唯一成功判据</b>：指令下发成功 ≠ 关阀成功；阀位超时或未到位自动告警，并即时转现场人工关阀任务</div>
+      </div>
+    </div>
+
+    <!-- 执行记录 + 跨级协调 -->
+    <div class="grid g-main-side">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-list-check"></i>逐阀执行记录 · 工单 QX-2025-0613</div>
+          <span class="tag tag-cyan">反馈到位 2 / 4</span>
+        </div>
+        <div class="table-scroll">
+          <table class="glass-table">
+            <thead>
+              <tr><th>阀门编号</th><th>阀门类型</th><th>执行方式</th><th>下发时间</th><th>阀位反馈</th><th>执行人</th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="mono">V-EL-007</td><td>燃气舱电子智能阀</td><td><span class="tag tag-green"><i class="fa-solid fa-tower-broadcast"></i>远程</span></td><td class="mono">09:51:12</td><td><span class="tag tag-green">已关到位 · 开度 0%</span></td><td>系统 · 自动</td></tr>
+              <tr><td class="mono">V-EL-015</td><td>燃气舱电子智能阀</td><td><span class="tag tag-green"><i class="fa-solid fa-tower-broadcast"></i>远程</span></td><td class="mono">09:51:15</td><td><span class="tag tag-green">已关到位 · 开度 0%</span></td><td>系统 · 自动</td></tr>
+              <tr><td class="mono">V-102</td><td>中压阀室井阀门</td><td><span class="tag tag-blue"><i class="fa-solid fa-helmet-safety"></i>现场</span></td><td class="mono">09:53:00</td><td><span class="tag tag-green">已关到位 · 照片回传</span></td><td>抢修一组 王*强</td></tr>
+              <tr><td class="mono">V-105</td><td>调压站阀门</td><td><span class="tag tag-blue"><i class="fa-solid fa-helmet-safety"></i>现场</span></td><td class="mono">09:56:41</td><td><span class="tag tag-orange">执行中 · 预计 10:05</span></td><td>抢修二组 李*明</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="tiny mt-8">全部执行记录随工单留痕（含二次口令记录、下发与反馈时间戳），供事后复盘与责任追溯</div>
+      </div>
+
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-scale-balanced"></i>重大事故跨级协调</div>
+        </div>
+        <ul class="icon-list">
+          <li><i class="fa-solid fa-arrow-up-right-dots"></i><div>重大事故或片区内并发多起事件，上报公司领导后协调跨区域抢修力量支援</div></li>
+          <li><i class="fa-solid fa-layer-group"></i><div>审批链路按事件等级自动升级：一级事件直达公司应急指挥部</div></li>
+          <li><i class="fa-solid fa-clock-rotate-left"></i><div>跨级协调记录与执行记录统一归档，纳入事后复盘材料</div></li>
+        </ul>
+        <div class="alert-strip blue mt-14" style="margin-bottom:0;">
+          <i class="fa-solid fa-circle-info"></i>
+          <div><b>关阀决策主体与审批权限待甲方明确</b>：系统按可配置审批流预留，分公司层级远程关阀口径以调研确认为准</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 弹窗：二次口令确认 -->
+    <div class="modal-mask" id="modal-second-auth" onclick="if(event.target===this)closeModal('modal-second-auth')">
+      <div class="glass-modal blocking">
+        <div class="blocking-strip"><i class="fa-solid fa-shield-halved"></i>远程关阀 · 权限校验与二次口令</div>
+        <div class="modal-head">
+          <div class="modal-title">二次口令确认</div>
+          <button class="modal-close" onclick="closeModal('modal-second-auth')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <dl class="kv">
+            <dt>操作对象</dt><dd class="mono">V-EL-007 / V-EL-015（燃气舱电子智能阀）</dd>
+            <dt>操作人</dt><dd>调度长 张*军</dd>
+            <dt>权限级别</dt><dd><span class="tag tag-cyan">L2 · 远程关阀授权</span></dd>
+            <dt>权限校验</dt><dd><span class="tag tag-green">已通过</span>（应急指挥岗 · 在岗校验 OK）</dd>
+          </dl>
+          <div class="mt-14">
+            <label class="form-label">二次口令 <span class="req">*</span></label>
+            <input class="form-input" type="password" placeholder="请输入动态口令（口令牌 6 位数）" style="width:100%;">
+          </div>
+          <div class="tiny mt-8"><i class="fa-solid fa-triangle-exclamation" style="color:var(--c-danger);"></i> 口令连续错误 3 次将锁定远程操作权限并自动上报安全岗</div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost" onclick="closeModal('modal-second-auth')">取消</button>
+          <button class="btn btn-danger" onclick="closeModal('modal-second-auth');showToast('二次口令校验通过，远程关阀指令已逐座下发')"><i class="fa-solid fa-unlock-keyhole"></i>校验并下发</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+/* ---- M07 模块交互：方案点选与地图联动 ---- */
+function selectScheme(s, el){
+  document.querySelectorAll('.scheme-card').forEach(function(c){c.classList.remove('selected');});
+  if(el){el.classList.add('selected');}
+  ['A','B','C'].forEach(function(k){
+    var g=document.getElementById('hl-'+k);
+    if(g){g.style.display=(k===s)?'':'none';}
+  });
+  var note=document.getElementById('map-link-note');
+  var notes={
+    'A':'方案A · 4座（V-102 / V-105 现场 · V-EL-007 / V-EL-015 远程）· 隔离 GD-M-2317 东段 + GD-Z-0871 / 0872 / 0873',
+    'B':'方案B · 6座（方案A 全部 + V-121 / V-134）· 隔离范围收窄至 GD-Z-0871 北段与 GD-Z-0873',
+    'C':'方案C · 3座（不关 V-102）· 隔离范围西扩至江陵路支线 GD-Z-0870 一带'
+  };
+  if(note&&notes[s]){note.textContent=notes[s];}
+}
+</script>
+<script>
+function switchView(vid){
+  document.querySelectorAll('.view').forEach(function(v){v.classList.remove('active');});
+  var el=document.getElementById(vid); if(el){el.classList.add('active');}
+  document.querySelectorAll('.seg-item[data-view]').forEach(function(b){
+    b.classList.toggle('active', b.getAttribute('data-view')===vid);
+  });
+  try{history.replaceState(null,'','#'+encodeURIComponent(vid));}catch(e){}
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function openModal(id){var m=document.getElementById(id); if(m){m.classList.add('open');}}
+function closeModal(id){var m=document.getElementById(id); if(m){m.classList.remove('open');}}
+function showToast(msg){
+  var t=document.getElementById('app-toast');
+  if(!t){t=document.createElement('div');t.id='app-toast';t.className='toast';document.body.appendChild(t);}
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._tm);t._tm=setTimeout(function(){t.classList.remove('show');},2200);
+}
+window.addEventListener('hashchange',function(){
+  var h=decodeURIComponent(location.hash.replace('#',''));
+  if(h&&document.getElementById(h)){switchView(h);}
+});
+(function(){
+  var h=decodeURIComponent(location.hash.replace('#',''));
+  if(h&&document.getElementById(h)){switchView(h);}
+})();
+</script>
+</body>
+</html>

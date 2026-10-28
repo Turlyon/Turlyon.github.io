@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M05 · 管道保护语音校验助手</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="../styles/liquid-glass.css">
+<style>
+/* —— 模块局部：交互动画与示意（不另起配色体系） —— */
+@keyframes recPulse { 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:.3;transform:scale(.82);} }
+@keyframes waveBar { 0%,100%{height:18%;} 50%{height:95%;} }
+.wave-bar { width:4px; border-radius:4px; background:linear-gradient(180deg,#FF6B60,#FF9500); animation:waveBar 1s ease-in-out infinite; }
+.rec-dot { width:10px; height:10px; border-radius:50%; background:#FF3B30; box-shadow:0 0 0 4px rgba(255,59,48,.15); animation:recPulse 1.1s ease-in-out infinite; flex-shrink:0; }
+.utter-row { display:flex; gap:10px; padding:9px 12px; border-radius:10px; margin-bottom:6px; background:rgba(255,255,255,.55); border:1px solid var(--c-line); align-items:flex-start; }
+.utter-row.low { background:var(--c-caution-soft); border:1px solid rgba(255,204,0,.5); }
+.utter-ts { font-family:'DM Mono',monospace; font-size:11px; font-weight:500; color:var(--c-primary); white-space:nowrap; margin-top:2px; }
+.rank-num { width:22px; height:22px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; background:rgba(100,116,139,.18); color:var(--c-text-2); flex-shrink:0; }
+.rank-num.red { background:var(--c-danger-soft); color:#D93025; }
+.trend-bar { flex:1; border-radius:4px 4px 0 0; background:linear-gradient(180deg, var(--c-primary-hi), var(--c-primary)); min-height:6px; }
+.trend-bar.low { background:linear-gradient(180deg,#FF9500,#FFC148); }
+.trend-bar.hi { background:linear-gradient(180deg,#34C759,#6ED88F); }
+.phone-card { background:var(--glass-bg-strong); border:1px solid var(--glass-border); border-radius:14px; padding:12px 14px; margin-top:10px; box-shadow:var(--glass-inner); }
+</style>
+</head>
+<body>
+<div class="ambient-blob"></div>
+
+<div class="module-wrap">
+  <div class="module-top">
+    <div>
+      <div class="flex wrap" style="gap:10px;">
+        <span class="module-title">管道保护语音校验助手</span>
+        <span class="badge badge-new"><i class="fa-solid fa-star"></i> 新增 · 需求概要</span>
+      </div>
+      <div class="module-sub">需求概要·四（二）5 ｜ 移动端工单伴随录音与交底提纲提示词 · 复杂噪音环境高精度转写与语义质检规则 · 逐单质检成绩单与效能统计看板</div>
+    </div>
+    <div class="seg">
+      <button class="seg-item active" data-view="v-移动端伴随录音采集" onclick="switchView('v-移动端伴随录音采集')">移动端伴随录音采集</button>
+      <button class="seg-item" data-view="v-AI质检中枢-语音转写与语义质检规则配置" onclick="switchView('v-AI质检中枢-语音转写与语义质检规则配置')">AI质检中枢 · 规则配置</button>
+      <button class="seg-item" data-view="v-质检成绩单与效能统计看板" onclick="switchView('v-质检成绩单与效能统计看板')">质检成绩单与效能看板</button>
+    </div>
+  </div>
+
+  <!-- ================= 页面1：移动端伴随录音采集（外勤APP） ================= -->
+  <section class="view active" id="v-移动端伴随录音采集">
+    <div class="page-head">
+      <div>
+        <div class="page-title">移动端伴随录音采集 · 外勤APP</div>
+        <div class="page-desc">需求概要·四（二）5（1）｜ 工单执行期间自动伴随录音，交底提纲提示词照读引导；办结自动结束上传，不新增独立录音操作</div>
+      </div>
+      <span class="tag tag-cyan"><i class="fa-solid fa-user-tie"></i> 现场作业人员 / 巡检工人</span>
+    </div>
+
+    <div class="grid g-pc-phone">
+      <!-- 左侧：PC 说明与工单上下文 -->
+      <div class="grid" style="align-content:start;">
+        <div class="glass-card">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-microphone-lines"></i>伴随录音机制说明</div>
+            <span class="tag tag-gray"><i class="fa-solid fa-shield-halved"></i> 录音与工单强关联</span>
+          </div>
+          <ul class="icon-list">
+            <li><i class="fa-solid fa-play"></i><span>工单开始执行即<strong>自动启动</strong>伴随录音，无需人工开启；作业中可暂停、续录</span></li>
+            <li><i class="fa-solid fa-list-check"></i><span>录音界面<strong>固定展示交底提纲提示词</strong>（按工单类型配置），引导现场按规范话术逐条照读交底</span></li>
+            <li><i class="fa-solid fa-flag-checkered"></i><span>工单办结<strong>自动结束录音并上传</strong>，全程无需人工干预；上传后自动进入 AI 质检队列</span></li>
+            <li><i class="fa-solid fa-wifi"></i><span>弱网环境<strong>本地加密暂存</strong>，网络恢复后自动补传，并保留续传记录</span></li>
+            <li><i class="fa-solid fa-link"></i><span>录音与工单<strong>强关联，不可跨单挂接</strong>；录音文件含起止时间与时长元数据</span></li>
+          </ul>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-clipboard-list"></i>当前工单上下文</div>
+            <span class="tag tag-orange"><i class="fa-solid fa-helmet-safety"></i> 执行中 · 伴随录音</span>
+          </div>
+          <dl class="kv">
+            <dt>工单号</dt><dd class="mono">GD-20261028-0713</dd>
+            <dt>工单类型</dt><dd>第三方施工监护</dd>
+            <dt>关联管段</dt><dd class="mono">GD-7204（莫干山路段）</dd>
+            <dt>作业人员</dt><dd>王*强（巡检一班）</dd>
+            <dt>开始执行</dt><dd>今日 09:12 · 自动启动录音</dd>
+            <dt>当前片段</dt><dd>第 3 片段 · 已录制 12:36</dd>
+          </dl>
+          <hr class="divider">
+          <div class="flex-between">
+            <span class="tiny"><i class="fa-solid fa-cloud-arrow-up"></i> 弱网续传记录：今日已自动补传 2 条，待传 0 条</span>
+            <span class="tag tag-green"><i class="fa-solid fa-lock"></i> 本地加密</span>
+          </div>
+        </div>
+
+        <div class="alert-strip cyan">
+          <i class="fa-solid fa-circle-info"></i>
+          <span>交底提纲话术模板由质检管理员在后台按工单类型维护（见「AI质检中枢 · 规则配置」页），APP 端自动同步最新版本。</span>
+        </div>
+      </div>
+
+      <!-- 右侧：外勤APP 手机框 -->
+      <div class="phone-frame">
+        <div class="phone-screen">
+          <div class="phone-notch"></div>
+          <div class="phone-statusbar">
+            <span class="mono">09:24</span>
+            <span><i class="fa-solid fa-signal"></i> <i class="fa-solid fa-wifi" style="color:var(--c-warn);"></i> <i class="fa-solid fa-battery-half"></i></span>
+          </div>
+          <div class="phone-body">
+
+            <!-- 工单头 -->
+            <div class="phone-card">
+              <div class="flex-between">
+                <span class="tag tag-orange"><i class="fa-solid fa-helmet-safety"></i> 第三方施工监护</span>
+                <span class="tiny mono">GD-20261028-0713</span>
+              </div>
+              <div class="tiny mt-8"><i class="fa-solid fa-location-dot"></i> 管段 GD-7204 · 拱墅区莫干山路（大关路—香积寺路段）</div>
+            </div>
+
+            <!-- 录音中状态 -->
+            <div style="background:linear-gradient(160deg,rgba(255,59,48,.10),rgba(255,149,0,.08)); border:1px solid rgba(255,59,48,.28); border-radius:14px; padding:13px 14px; margin-top:10px;">
+              <div class="flex-between">
+                <div class="flex" style="gap:8px;">
+                  <span class="rec-dot"></span>
+                  <span style="font-weight:700; font-size:13px; color:#C42B22;">伴随录音中 · 第 3 片段</span>
+                </div>
+                <span class="tag tag-red"><i class="fa-solid fa-microphone"></i> REC</span>
+              </div>
+              <div style="display:flex; align-items:center; justify-content:center; gap:5px; height:60px; margin:10px 0 4px;">
+                <div class="wave-bar" style="animation-delay:0s;"></div>
+                <div class="wave-bar" style="animation-delay:.12s;"></div>
+                <div class="wave-bar" style="animation-delay:.24s;"></div>
+                <div class="wave-bar" style="animation-delay:.06s;"></div>
+                <div class="wave-bar" style="animation-delay:.3s;"></div>
+                <div class="wave-bar" style="animation-delay:.18s;"></div>
+                <div class="wave-bar" style="animation-delay:.42s;"></div>
+                <div class="wave-bar" style="animation-delay:.09s;"></div>
+                <div class="wave-bar" style="animation-delay:.27s;"></div>
+                <div class="wave-bar" style="animation-delay:.36s;"></div>
+                <div class="wave-bar" style="animation-delay:.15s;"></div>
+                <div class="wave-bar" style="animation-delay:.45s;"></div>
+              </div>
+              <div style="text-align:center;">
+                <span class="mono" style="font-size:30px; font-weight:700; letter-spacing:1px;">12:36</span>
+                <div class="tiny">本地暂存 1.8MB · 已存 3 段 · 起始 09:12</div>
+              </div>
+            </div>
+
+            <!-- 交底提纲提示词 -->
+            <div style="background:var(--glass-bg-strong); border:1px solid rgba(255,159,10,.4); border-radius:14px; padding:12px 14px; margin-top:10px; box-shadow:var(--glass-inner);">
+              <div class="flex-between">
+                <span style="font-weight:700; font-size:12.5px; color:#C77700;"><i class="fa-solid fa-list-check"></i> 交底提纲 · 照读提示词</span>
+                <span class="tag tag-accent">监护交底 v3</span>
+              </div>
+              <ul class="icon-list" style="margin-top:4px;">
+                <li><i class="fa-solid fa-circle-check" style="color:var(--c-ok);"></i><span>告知施工方管道位置、走向与埋深（GD-7204，埋深约 1.2m）</span></li>
+                <li><i class="fa-solid fa-circle-check" style="color:var(--c-ok);"></i><span>管道两侧各 5 米为保护范围，范围内禁止机械开挖</span></li>
+                <li><i class="fa-solid fa-circle-check" style="color:var(--c-ok);"></i><span>告知破坏燃气管道需承担的法律责任</span></li>
+                <li><i class="fa-solid fa-circle-xmark" style="color:var(--c-danger);"></i><span>播报燃气应急抢险电话，并确认施工方签认安全告知书（未照读）</span></li>
+              </ul>
+              <div class="tiny" style="margin-top:4px;"><i class="fa-solid fa-hand-point-right" style="color:#C77700;"></i> 逐条照读后勾选，录音同步进入 AI 质检比对</div>
+            </div>
+
+            <!-- 暂停 / 续录 -->
+            <div class="flex" style="gap:10px; margin-top:12px;">
+              <button class="btn btn-glass" style="flex:1; justify-content:center;" onclick="showToast('录音已暂停，交底提纲仍可查看，随时可续录')"><i class="fa-solid fa-pause"></i> 暂停</button>
+              <button class="btn btn-primary" style="flex:1; justify-content:center;" onclick="showToast('演示：录音已续录，继续当前片段采集')"><i class="fa-solid fa-play"></i> 续录</button>
+            </div>
+
+            <!-- 办结自动上传 -->
+            <div style="background:var(--c-ok-soft); border:1px solid rgba(52,199,89,.32); border-radius:14px; padding:10px 14px; margin-top:10px;" class="flex">
+              <i class="fa-solid fa-cloud-arrow-up" style="color:var(--c-ok); margin-top:2px;"></i>
+              <div>
+                <div style="font-size:12px; font-weight:700; color:#1E9E44;">工单办结将自动结束录音并上传</div>
+                <div class="tiny">上传后自动进入 AI 质检队列，无需人工干预</div>
+              </div>
+            </div>
+
+            <!-- 弱网暂存提示 -->
+            <div class="alert-strip orange" style="margin:10px 0 0;">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+              <span>当前网络较弱：录音已本地加密暂存，网络恢复后自动补传，不影响现场作业</span>
+            </div>
+
+            <button class="btn btn-glass" style="width:100%; justify-content:center; margin-top:10px;" onclick="showToast('演示：工单办结，录音自动结束并上传 AI 质检队列')"><i class="fa-solid fa-flag-checkered"></i> 模拟工单办结（自动上传）</button>
+          </div>
+
+          <div class="phone-tabbar">
+            <div class="phone-tab"><i class="fa-solid fa-house"></i><span>首页</span></div>
+            <div class="phone-tab active"><i class="fa-solid fa-clipboard-list"></i><span>工单</span></div>
+            <div class="phone-tab"><i class="fa-solid fa-chart-simple"></i><span>看板</span></div>
+            <div class="phone-tab"><i class="fa-solid fa-user"></i><span>我的</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 页面2：AI质检中枢 · 语音转写与语义质检规则配置（PC后台） ================= -->
+  <section class="view" id="v-AI质检中枢-语音转写与语义质检规则配置">
+    <div class="page-head">
+      <div>
+        <div class="page-title">AI质检中枢 · 语音转写与语义质检规则配置</div>
+        <div class="page-desc">需求概要·四（二）5（2）｜ 复杂噪音环境高精度转写；自定义语义质检规则（关键词 / 意图 / 必检动作），按工单类型挂接，版本化管理</div>
+      </div>
+      <div class="flex" style="gap:8px;">
+        <span class="tag tag-cyan"><i class="fa-solid fa-user-gear"></i> 质检管理员 / 管道保护专职</span>
+        <span class="tag tag-accent"><i class="fa-solid fa-robot"></i> PC 端后台</span>
+      </div>
+    </div>
+
+    <div class="grid g-4">
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-scale-balanced"></i>生效规则总数</div>
+        <div class="stat-value">38 <span style="font-size:13px; font-weight:500; color:var(--c-text-2);">条</span></div>
+        <div class="stat-sub">关键词 16 · 意图 11 · 必检动作 11</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-wave-square"></i>转写平均置信度</div>
+        <div class="stat-value green">94.2<span style="font-size:14px;">%</span></div>
+        <div class="stat-sub">复杂噪音环境（施工场地）优化模型</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-headphones"></i>待人工抽听片段</div>
+        <div class="stat-value orange">6 <span style="font-size:13px; font-weight:500; color:var(--c-text-2);">段</span></div>
+        <div class="stat-sub">低置信片段不直接计分</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-file-circle-check"></i>今日完成质检</div>
+        <div class="stat-value blue">47 <span style="font-size:13px; font-weight:500; color:var(--c-text-2);">单</span></div>
+        <div class="stat-sub">全部自动出分，无人工填报</div>
+      </div>
+    </div>
+
+    <!-- 规则集表格 -->
+    <div class="glass-card mt-14">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-sliders"></i>语义质检规则集（按工单类型挂接）</div>
+        <div class="flex" style="gap:8px;">
+          <button class="btn btn-glass btn-sm" onclick="showToast('演示：规则集已按「工单类型」筛选')"><i class="fa-solid fa-filter"></i> 按类型筛选</button>
+          <button class="btn btn-primary btn-sm" onclick="openModal('modal-rule-new')"><i class="fa-solid fa-plus"></i> 新增规则</button>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table class="glass-table">
+          <thead>
+            <tr>
+              <th>规则名称</th><th>规则类型</th><th>命中判定方式</th><th>扣分权重</th><th>挂接工单类型</th><th>版本</th><th>状态</th><th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>管道位置与埋深告知</strong></td>
+              <td><span class="tag tag-red">必检动作类</span></td>
+              <td class="muted">转写全文须出现「管道位置」「埋深」表述，近义语义可命中</td>
+              <td class="mono" style="color:var(--c-danger);">-8 分</td>
+              <td>第三方施工监护</td>
+              <td><button class="btn btn-ghost btn-xs mono" onclick="openModal('modal-rule-version')">v3.2</button></td>
+              <td><span class="tag tag-green"><i class="fa-solid fa-check"></i> 启用</span></td>
+              <td>
+                <button class="btn btn-ghost btn-xs" onclick="showToast('演示：进入规则「管道位置与埋深告知」编辑')"><i class="fa-solid fa-pen"></i> 编辑</button>
+                <button class="btn btn-ghost btn-xs" onclick="showToast('演示：规则已停用，新工单不再命中判定')"><i class="fa-solid fa-ban"></i> 停用</button>
+              </td>
+            </tr>
+            <tr>
+              <td><strong>保护范围（5米）告知</strong></td>
+              <td><span class="tag tag-blue">关键词类</span></td>
+              <td class="muted">命中关键词「保护范围」且含「5 米 / 五米」距离表述</td>
+              <td class="mono" style="color:var(--c-danger);">-5 分</td>
+              <td>第三方施工监护</td>
+              <td><button class="btn btn-ghost btn-xs mono" onclick="openModal('modal-rule-version')">v2.0</button></td>
+              <td><span class="tag tag-green"><i class="fa-solid fa-check"></i> 启用</span></td>
+              <td>
+                <button class="btn btn-ghost btn-xs" onclick="showToast('演示：进入规则「保护范围告知」编辑')"><i class="fa-solid fa-pen"></i> 编辑</button>
+                <button class="btn btn-ghost btn-xs" onclick="showToast('演示：规则已停用，新工单不再命中判定')"><i class="fa-solid fa-ban"></i> 停用</button>
+              </td>
+            </tr>
+            <tr>
+              <td><strong>法律责任告知意图</strong></td>
+              <td><span class="tag tag-accent">意图类</span></td>
+              <td class="muted">意图语义识别：检出法律责任警示表述（模型准确率 96.4%）</td>
+              <td class="mono" style="color:var(--c-danger);">-6 分</td>
+              <td>第三方施工监护 / 违章占压处置</td>
+              <td><button class="btn btn-ghost btn-xs mono" onclick="openModal('modal-rule-version')">v1.5</button></td>
+              <td><span class="tag tag-green"><i class="fa-solid fa-check"></i> 启用</span></td>
+              <td>
+                <button class="btn btn-ghost btn-xs" onclick="showToast('演示：进入规则「法律责任告知意图」编辑')"><i class="fa-solid fa-pen"></i> 编辑</button>
+                <button class="btn btn-ghost btn-xs" onclick="showToast('演示：规则已停用，新工单不再命中判定')"><i class="fa-solid fa-ban"></i> 停用</button>
+              </td>
+            </tr>
+            <tr>
+              <td><strong>应急电话播报</strong></td>
+              <td><span class="tag tag-blue">关键词类</span></td>
+              <td class="muted">命中「应急电话 / 抢险电话」且含 8 位以上号码串</td>
+              <td class="mono" style="color:var(--c-danger);">-4 分</td>
+              <td>全部工单类型</td>
+              <td><button class="btn btn-ghost btn-xs mono" onclick="openModal('modal-rule-version')">v4.1</button></td>
+              <td><span class="tag tag-green"><i class="fa-solid fa-check"></i> 启用</span></td>
+              <td>
+                <button class="btn btn-ghost btn-xs" onclick="showToast('演示：进入规则「应急电话播报」编辑')"><i class="fa-solid fa-pen"></i> 编辑</button>
+                <button class="btn btn-ghost btn-xs" onclick="showToast('演示：规则已停用，新工单不再命中判定')"><i class="fa-solid fa-ban"></i> 停用</button>
+              </td>
+            </tr>
+            <tr>
+              <td><strong>开挖前监护确认动作</strong></td>
+              <td><span class="tag tag-red">必检动作类</span></td>
+              <td class="muted">转写中须出现「确认 / 签认」语义及施工方签认动作描述</td>
+              <td class="mono" style="color:var(--c-danger);">-8 分</td>
+              <td>第三方施工监护</td>
+              <td><button class="btn btn-ghost btn-xs mono" onclick="openModal('modal-rule-version')">v1.0</button></td>
+              <td><span class="tag tag-gray"><i class="fa-solid fa-file-pen"></i> 草稿</span></td>
+              <td>
+                <button class="btn btn-ghost btn-xs" onclick="showToast('演示：进入规则「开挖前监护确认」编辑')"><i class="fa-solid fa-pen"></i> 编辑</button>
+                <button class="btn btn-ghost btn-xs" onclick="showToast('演示：草稿规则已提交版本化发布审核')"><i class="fa-solid fa-paper-plane"></i> 发布</button>
+              </td>
+            </tr>
+            <tr>
+              <td><strong>阀井检测读数播报</strong></td>
+              <td><span class="tag tag-blue">关键词类</span></td>
+              <td class="muted">命中「读数」及「PPM / %LEL」单位表述，缺项按遗漏计</td>
+              <td class="mono" style="color:var(--c-danger);">-3.5 分</td>
+              <td>阀井泄漏检测</td>
+              <td><button class="btn btn-ghost btn-xs mono" onclick="openModal('modal-rule-version')">v2.3</button></td>
+              <td><span class="tag tag-green"><i class="fa-solid fa-check"></i> 启用</span></td>
+              <td>
+                <button class="btn btn-ghost btn-xs" onclick="showToast('演示：进入规则「阀井检测读数播报」编辑')"><i class="fa-solid fa-pen"></i> 编辑</button>
+                <button class="btn btn-ghost btn-xs" onclick="showToast('演示：规则已停用，新工单不再命中判定')"><i class="fa-solid fa-ban"></i> 停用</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="alert-strip cyan mt-14" style="margin-bottom:0;">
+        <i class="fa-solid fa-circle-info"></i>
+        <span>规则变更采用<strong>版本化生效</strong>：新版本仅作用于生效后的新工单，不追溯已出账工单；规则命中结果作为质检成绩单扣分依据。</span>
+      </div>
+    </div>
+
+    <!-- 转写逐句对齐示例 -->
+    <div class="grid g-main-side mt-14">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-align-left"></i>转写文本逐句对齐 · 工单 <span class="mono">GD-20261028-0713</span></div>
+          <div class="flex" style="gap:8px;">
+            <span class="tag tag-accent"><i class="fa-solid fa-volume-high"></i> 复杂噪音环境 · 高精度转写</span>
+            <button class="btn btn-glass btn-sm" onclick="showToast('演示：从头播放原始录音（12:36）')"><i class="fa-solid fa-play"></i> 回听全程</button>
+          </div>
+        </div>
+        <div class="utter-row">
+          <span class="utter-ts">00:12–00:24</span>
+          <div style="flex:1;">我们是杭州燃气的现场监护员，今天跟你们做一个安全交底。</div>
+          <div class="flex" style="gap:6px; flex-shrink:0;">
+            <span class="tag tag-green">置信 97.8%</span>
+            <button class="icon-btn" style="width:26px;height:26px;font-size:11px;" onclick="showToast('演示：定位到原始录音 00:12 播放')"><i class="fa-solid fa-play"></i></button>
+          </div>
+        </div>
+        <div class="utter-row">
+          <span class="utter-ts">00:26–00:41</span>
+          <div style="flex:1;">这条管道编号 GD-7204，埋深大概一米二，走向跟莫干山路基本平行。</div>
+          <div class="flex" style="gap:6px; flex-shrink:0;">
+            <span class="tag tag-green">置信 98.4%</span>
+            <button class="icon-btn" style="width:26px;height:26px;font-size:11px;" onclick="showToast('演示：定位到原始录音 00:26 播放')"><i class="fa-solid fa-play"></i></button>
+          </div>
+        </div>
+        <div class="utter-row">
+          <span class="utter-ts">00:42–00:56</span>
+          <div style="flex:1;">管道两侧各五米是保护范围，保护范围内不能用挖掘机、挖沟机这类的机械开挖。</div>
+          <div class="flex" style="gap:6px; flex-shrink:0;">
+            <span class="tag tag-green">置信 96.5%</span>
+            <button class="icon-btn" style="width:26px;height:26px;font-size:11px;" onclick="showToast('演示：定位到原始录音 00:42 播放')"><i class="fa-solid fa-play"></i></button>
+          </div>
+        </div>
+        <div class="utter-row low">
+          <span class="utter-ts">01:03–01:12</span>
+          <div style="flex:1;">要是你们后面要动土的话，先跟我们说一声，我们到时候到现场来（机械噪音干扰较大）。</div>
+          <div class="flex" style="gap:6px; flex-shrink:0;">
+            <span class="tag tag-yellow"><i class="fa-solid fa-triangle-exclamation"></i> 置信 82.1%</span>
+            <button class="btn btn-accent btn-xs" onclick="showToast('演示：该句已加入人工抽听队列，暂不计入规则命中')"><i class="fa-solid fa-headphones"></i> 转人工抽听</button>
+          </div>
+        </div>
+        <div class="utter-row">
+          <span class="utter-ts">01:24–01:33</span>
+          <div style="flex:1;">现场禁止明火，动火作业要提前向燃气公司报备审批。</div>
+          <div class="flex" style="gap:6px; flex-shrink:0;">
+            <span class="tag tag-green">置信 95.2%</span>
+            <button class="icon-btn" style="width:26px;height:26px;font-size:11px;" onclick="showToast('演示：定位到原始录音 01:24 播放')"><i class="fa-solid fa-play"></i></button>
+          </div>
+        </div>
+        <div class="utter-row">
+          <span class="utter-ts">01:40–01:58</span>
+          <div style="flex:1;">这份是安全告知书，麻烦你们负责人看一下，签个字确认一下。</div>
+          <div class="flex" style="gap:6px; flex-shrink:0;">
+            <span class="tag tag-green">置信 97.2%</span>
+            <button class="icon-btn" style="width:26px;height:26px;font-size:11px;" onclick="showToast('演示：定位到原始录音 01:40 播放')"><i class="fa-solid fa-play"></i></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid" style="align-content:start;">
+        <div class="glass-card">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-gauge-high"></i>转写质量概况</div>
+          </div>
+          <div class="kv">
+            <dt>录音时长</dt><dd class="mono">12:36</dd>
+            <dt>转写句数</dt><dd>18 句（示例展示 6 句）</dd>
+            <dt>平均置信度</dt><dd class="mono" style="color:var(--c-ok);">94.6%</dd>
+            <dt>低置信片段</dt><dd style="color:#B36A00;">2 句 · 已标黄</dd>
+          </div>
+          <div class="meter mt-14"><div class="meter-fill green" style="width:94.6%;"></div></div>
+          <div class="tiny mt-8">置信度阈值 90%：低于阈值片段自动标记转人工抽听</div>
+        </div>
+        <div class="alert-strip orange">
+          <i class="fa-solid fa-headphones"></i>
+          <span>低置信片段<strong>不直接计分</strong>：由质检管理员人工抽听后判定，避免噪音误判。</span>
+        </div>
+        <div class="glass-card soft">
+          <div class="card-title" style="margin-bottom:8px;"><i class="fa-solid fa-rotate"></i>版本管理约定</div>
+          <ul class="icon-list">
+            <li><i class="fa-solid fa-code-branch"></i><span>规则每次变更生成新版本号并记录操作人</span></li>
+            <li><i class="fa-solid fa-clock-rotate-left"></i><span>新版本仅对生效后的新工单生效</span></li>
+            <li><i class="fa-solid fa-ban"></i><span>不追溯已出账工单的历史质检结果</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- 弹窗：新增规则 -->
+    <div class="modal-mask" id="modal-rule-new" onclick="if(event.target===this)closeModal('modal-rule-new')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-plus"></i>新增语义质检规则</div>
+          <button class="modal-close" onclick="closeModal('modal-rule-new')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="form-row">
+            <div>
+              <label class="form-label">规则名称 <span class="req">*</span></label>
+              <input class="form-input" style="width:100%;" placeholder="如：保护范围（5米）告知" value="">
+            </div>
+            <div>
+              <label class="form-label">规则类型 <span class="req">*</span></label>
+              <select class="form-select" style="width:100%;">
+                <option>关键词类</option>
+                <option>意图类</option>
+                <option>必检动作类</option>
+              </select>
+            </div>
+          </div>
+          <div class="mt-14">
+            <label class="form-label">命中判定方式 <span class="req">*</span></label>
+            <select class="form-select" style="width:100%;">
+              <option>关键词包含命中（支持近义扩展）</option>
+              <option>意图语义识别（大模型判定）</option>
+              <option>动作必须出现（转写全文缺失即遗漏）</option>
+            </select>
+          </div>
+          <div class="mt-14">
+            <label class="form-label">关键词 / 意图描述 <span class="req">*</span></label>
+            <textarea class="form-textarea" rows="3" placeholder="如：命中「保护范围」且含「5米/五米」距离表述"></textarea>
+          </div>
+          <div class="form-row mt-14">
+            <div>
+              <label class="form-label">扣分权重（分） <span class="req">*</span></label>
+              <input class="form-input" style="width:100%;" type="number" value="5" min="1" max="20">
+            </div>
+            <div>
+              <label class="form-label">版本说明</label>
+              <input class="form-input" style="width:100%;" placeholder="v1.0 初版" value="">
+            </div>
+          </div>
+          <div class="mt-14">
+            <label class="form-label">挂接工单类型 <span class="req">*</span></label>
+            <div class="flex wrap" style="gap:10px;">
+              <label class="flex" style="gap:6px; font-size:12.5px;"><input type="checkbox" checked> 第三方施工监护</label>
+              <label class="flex" style="gap:6px; font-size:12.5px;"><input type="checkbox"> 违章占压处置</label>
+              <label class="flex" style="gap:6px; font-size:12.5px;"><input type="checkbox"> 阀井泄漏检测</label>
+              <label class="flex" style="gap:6px; font-size:12.5px;"><input type="checkbox"> 全部工单类型</label>
+            </div>
+          </div>
+          <div class="alert-strip cyan mt-14" style="margin-bottom:0;">
+            <i class="fa-solid fa-circle-info"></i>
+            <span>保存后为<strong>草稿</strong>，发布后按版本化生效，不追溯已出账工单。</span>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-glass" onclick="closeModal('modal-rule-new')">取消</button>
+          <button class="btn btn-primary" onclick="closeModal('modal-rule-new'); showToast('规则已保存为草稿 v1.0，提交发布审核后版本化生效')"><i class="fa-solid fa-floppy-disk"></i> 保存规则</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 弹窗：规则版本记录 -->
+    <div class="modal-mask" id="modal-rule-version" onclick="if(event.target===this)closeModal('modal-rule-version')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-code-branch"></i>规则版本记录 · 应急电话播报</div>
+          <button class="modal-close" onclick="closeModal('modal-rule-version')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <table class="glass-table">
+            <thead>
+              <tr><th>版本</th><th>生效时间</th><th>变更内容</th><th>操作人</th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="mono">v4.1</td><td>2026-10-12</td><td>增加「8 位以上号码串」判定条件</td><td>质检管理员 陈*敏</td></tr>
+              <tr><td class="mono">v4.0</td><td>2026-08-30</td><td>扣分权重由 -3 调整为 -4</td><td>质检管理员 陈*敏</td></tr>
+              <tr><td class="mono">v3.9</td><td>2026-06-15</td><td>关键词增加「抢险电话」同义命中</td><td>管道保护专职 周*平</td></tr>
+            </tbody>
+          </table>
+          <div class="alert-strip cyan mt-14" style="margin-bottom:0;">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+            <span>版本化生效：新版本仅作用于生效后的新工单质检，<strong>不追溯已出账工单</strong>。</span>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-glass" onclick="closeModal('modal-rule-version')">关闭</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 页面3：质检成绩单与效能统计看板 ================= -->
+  <section class="view" id="v-质检成绩单与效能统计看板">
+    <div class="page-head">
+      <div>
+        <div class="page-title">质检成绩单与效能统计看板</div>
+        <div class="page-desc">需求概要·四（二）5（3）｜ 每笔工单办结自动出分；效能看板汇总平均得分率，高频遗漏项自动标红推送，短板回流培训</div>
+      </div>
+      <div class="flex" style="gap:8px;">
+        <span class="tag tag-cyan"><i class="fa-solid fa-user-tie"></i> 管理人员 / 班组长 / 运行站长</span>
+        <span class="tag tag-blue"><i class="fa-solid fa-desktop"></i> PC 端</span>
+      </div>
+    </div>
+
+    <div class="grid g-4">
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-percent"></i>本月平均得分率</div>
+        <div class="stat-value">88.6</div>
+        <div class="stat-sub">环比 +1.8 分 · 全部工单自动出分</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-file-circle-check"></i>已质检工单</div>
+        <div class="stat-value blue">1,247 <span style="font-size:13px; font-weight:500; color:var(--c-text-2);">单</span></div>
+        <div class="stat-sub">办结即出分，无人工填报环节</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-triangle-exclamation"></i>高频遗漏项</div>
+        <div class="stat-value red">5 <span style="font-size:13px; font-weight:500; color:var(--c-text-2);">类</span></div>
+        <div class="stat-sub">TOP3 自动标红并推送班组长</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-graduation-cap"></i>培训回流课程</div>
+        <div class="stat-value accent">3 <span style="font-size:13px; font-weight:500; color:var(--c-text-2);">门</span></div>
+        <div class="stat-sub">按能力标签匹配，口径同员工效能模块</div>
+      </div>
+    </div>
+
+    <div class="grid g-main-side mt-14">
+      <!-- 单笔工单成绩单 -->
+      <div class="glass-card strong">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-file-lines"></i>质检成绩单 · 工单 <span class="mono">GD-20261028-0713</span></div>
+          <span class="tag tag-green"><i class="fa-solid fa-bolt"></i> 办结自动出分</span>
+        </div>
+        <div class="flex wrap" style="gap:18px; align-items:stretch;">
+          <div style="text-align:center; min-width:150px; background:var(--c-primary-soft); border-radius:var(--radius-md); padding:14px 18px;">
+            <div class="stat-label"><i class="fa-solid fa-star-half-stroke"></i>总得分率</div>
+            <div class="stat-value" style="font-size:34px;">86.5</div>
+            <span class="tag tag-cyan" style="margin-top:4px;">B · 良好</span>
+          </div>
+          <div style="flex:1; min-width:260px;">
+            <dl class="kv">
+              <dt>工单类型</dt><dd>第三方施工监护（管段 GD-7204）</dd>
+              <dt>作业人员</dt><dd>王*强 · 巡检一班</dd>
+              <dt>录音时长</dt><dd class="mono">12:36（3 片段自动合并）</dd>
+              <dt>办结时间</dt><dd>今日 10:02 · 上传后自动质检</dd>
+              <dt>扣分合计</dt><dd class="mono" style="color:var(--c-danger);">-13.5 分</dd>
+            </dl>
+          </div>
+        </div>
+
+        <hr class="divider">
+        <div class="grid g-2">
+          <div>
+            <div class="card-title" style="font-size:13px; color:#1E9E44; margin-bottom:6px;"><i class="fa-solid fa-circle-check"></i>已执行动作清单（4 项）</div>
+            <ul class="icon-list">
+              <li><i class="fa-solid fa-circle-check" style="color:var(--c-ok);"></i><span>管道位置、走向与埋深告知（必检动作 · 命中 00:26–00:41）</span></li>
+              <li><i class="fa-solid fa-circle-check" style="color:var(--c-ok);"></i><span>保护范围（两侧 5 米）告知（关键词 · 命中 00:42–00:56）</span></li>
+              <li><i class="fa-solid fa-circle-check" style="color:var(--c-ok);"></i><span>明火与动火报备提醒（关键词 · 命中 01:24–01:33）</span></li>
+              <li><i class="fa-solid fa-circle-check" style="color:var(--c-ok);"></i><span>施工方签认安全告知书确认（必检动作 · 命中 01:40–01:58）</span></li>
+            </ul>
+          </div>
+          <div>
+            <div class="card-title" style="font-size:13px; color:#C42B22; margin-bottom:6px;"><i class="fa-solid fa-circle-xmark"></i>遗漏动作清单（3 项 · 标红）</div>
+            <ul class="icon-list">
+              <li>
+                <i class="fa-solid fa-circle-xmark" style="color:var(--c-danger);"></i>
+                <span style="flex:1;">法律责任告知未命中（意图类）<span class="mono" style="color:var(--c-danger);">-6</span></span>
+                <button class="btn btn-ghost btn-xs" onclick="openModal('modal-evidence')"><i class="fa-solid fa-magnifying-glass"></i> 依据</button>
+              </li>
+              <li>
+                <i class="fa-solid fa-circle-xmark" style="color:var(--c-danger);"></i>
+                <span style="flex:1;">应急电话号码未播报（关键词类）<span class="mono" style="color:var(--c-danger);">-4</span></span>
+                <button class="btn btn-ghost btn-xs" onclick="openModal('modal-evidence')"><i class="fa-solid fa-magnifying-glass"></i> 依据</button>
+              </li>
+              <li>
+                <i class="fa-solid fa-circle-xmark" style="color:var(--c-danger);"></i>
+                <span style="flex:1;">开挖前监护确认表述缺失（必检动作类）<span class="mono" style="color:var(--c-danger);">-3.5</span></span>
+                <button class="btn btn-ghost btn-xs" onclick="openModal('modal-evidence')"><i class="fa-solid fa-magnifying-glass"></i> 依据</button>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="flex wrap mt-14" style="gap:10px;">
+          <button class="btn btn-glass btn-sm" onclick="showToast('演示：回听工单全程原始录音（12:36）')"><i class="fa-solid fa-play"></i> 回听全程录音</button>
+          <button class="btn btn-glass btn-sm" onclick="showToast('演示：成绩单已导出（含逐项判定依据与转写回链）')"><i class="fa-solid fa-file-export"></i> 导出成绩单</button>
+          <button class="btn btn-glass btn-sm" onclick="showToast('演示：复核申请已提交质检管理员，暂缓计入月度得分')"><i class="fa-solid fa-rotate-left"></i> 提交复核</button>
+        </div>
+      </div>
+
+      <!-- 高频遗漏项排名 -->
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-ranking-star"></i>高频遗漏项排名（近 30 天）</div>
+          <span class="tag tag-red"><i class="fa-solid fa-arrow-trend-up"></i> TOP3 标红</span>
+        </div>
+        <ul class="icon-list">
+          <li>
+            <span class="rank-num red">1</span>
+            <span style="flex:1;"><strong style="color:#C42B22;">应急电话号码未播报</strong><span class="tiny"> · 关键词类 · 23 次/30 天</span></span>
+            <div class="meter" style="width:70px;"><div class="meter-fill red" style="width:92%;"></div></div>
+          </li>
+          <li>
+            <span class="rank-num red">2</span>
+            <span style="flex:1;"><strong style="color:#C42B22;">法律责任告知缺失</strong><span class="tiny"> · 意图类 · 17 次/30 天</span></span>
+            <div class="meter" style="width:70px;"><div class="meter-fill red" style="width:68%;"></div></div>
+          </li>
+          <li>
+            <span class="rank-num red">3</span>
+            <span style="flex:1;"><strong style="color:#C42B22;">阀井读数播报不完整</strong><span class="tiny"> · 关键词类 · 12 次/30 天</span></span>
+            <div class="meter" style="width:70px;"><div class="meter-fill red" style="width:48%;"></div></div>
+          </li>
+          <li>
+            <span class="rank-num">4</span>
+            <span style="flex:1;">签认确认表述模糊<span class="tiny"> · 必检动作类 · 8 次/30 天</span></span>
+            <div class="meter" style="width:70px;"><div class="meter-fill orange" style="width:32%;"></div></div>
+          </li>
+          <li>
+            <span class="rank-num">5</span>
+            <span style="flex:1;">保护范围表述不完整<span class="tiny"> · 关键词类 · 5 次/30 天</span></span>
+            <div class="meter" style="width:70px;"><div class="meter-fill orange" style="width:20%;"></div></div>
+          </li>
+        </ul>
+        <button class="btn btn-primary btn-sm mt-14" style="width:100%; justify-content:center;" onclick="showToast('高频遗漏项已推送相关班组长与运行站长')"><i class="fa-solid fa-paper-plane"></i> 推送班组长与站点</button>
+        <div class="alert-strip cyan mt-14" style="margin-bottom:0;">
+          <i class="fa-solid fa-graduation-cap"></i>
+          <span>TOP3 遗漏项已按能力标签匹配 3 门培训课程并回流（口径与员工效能模块一致）。</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid g-2 mt-14">
+      <!-- 按人/班组/站点平均得分率 -->
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-users"></i>平均得分率 · 按人 / 班组 / 站点</div>
+          <button class="btn btn-glass btn-sm" onclick="showToast('演示：切换统计周期（本月 / 近30天 / 本季度）')"><i class="fa-solid fa-calendar-days"></i> 本月</button>
+        </div>
+        <div class="table-scroll">
+          <table class="glass-table">
+            <thead>
+              <tr><th>维度</th><th>对象</th><th>平均得分率</th><th style="width:150px;">水平</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>人员</td><td>王*强（巡检一班）</td><td class="mono">86.5</td><td><div class="meter"><div class="meter-fill" style="width:86.5%;"></div></div></td></tr>
+              <tr><td>人员</td><td>李*明（巡检二班）</td><td class="mono">92.1</td><td><div class="meter"><div class="meter-fill green" style="width:92.1%;"></div></div></td></tr>
+              <tr><td>班组</td><td>巡检一班</td><td class="mono">91.2</td><td><div class="meter"><div class="meter-fill green" style="width:91.2%;"></div></div></td></tr>
+              <tr><td>班组</td><td>巡检二班</td><td class="mono">88.4</td><td><div class="meter"><div class="meter-fill" style="width:88.4%;"></div></div></td></tr>
+              <tr><td>班组</td><td>抢修一班</td><td class="mono" style="color:var(--c-danger);">84.6</td><td><div class="meter"><div class="meter-fill red" style="width:84.6%;"></div></div></td></tr>
+              <tr><td>站点</td><td>城西运行站</td><td class="mono">89.7</td><td><div class="meter"><div class="meter-fill" style="width:89.7%;"></div></div></td></tr>
+              <tr><td>站点</td><td>城北运行站</td><td class="mono" style="color:var(--c-warn);">85.3</td><td><div class="meter"><div class="meter-fill orange" style="width:85.3%;"></div></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="tiny mt-8"><i class="fa-solid fa-circle-info"></i> 低于 85 分自动标红并纳入共性隐患研判视角；遗漏项同步匹配培训课程。</div>
+      </div>
+
+      <!-- 近30天趋势 -->
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-chart-column"></i>近 30 天平均得分率趋势</div>
+          <span class="tag tag-green"><i class="fa-solid fa-arrow-trend-up"></i> 昨日 92.4 创新高</span>
+        </div>
+        <div style="display:flex; align-items:flex-end; gap:4px; height:150px; padding:8px 4px 0;">
+          <div class="trend-bar" style="height:33%;" title="09-29 · 85.0"></div>
+          <div class="trend-bar" style="height:39%;" title="09-30 · 85.8"></div>
+          <div class="trend-bar low" style="height:31%;" title="10-01 · 84.6"></div>
+          <div class="trend-bar" style="height:41%;" title="10-02 · 86.2"></div>
+          <div class="trend-bar" style="height:47%;" title="10-03 · 87.0"></div>
+          <div class="trend-bar" style="height:41%;" title="10-04 · 86.1"></div>
+          <div class="trend-bar" style="height:36%;" title="10-05 · 85.4"></div>
+          <div class="trend-bar" style="height:52%;" title="10-06 · 87.8"></div>
+          <div class="trend-bar" style="height:46%;" title="10-07 · 86.9"></div>
+          <div class="trend-bar" style="height:50%;" title="10-08 · 87.5"></div>
+          <div class="trend-bar" style="height:59%;" title="10-09 · 88.9"></div>
+          <div class="trend-bar" style="height:51%;" title="10-10 · 87.6"></div>
+          <div class="trend-bar" style="height:42%;" title="10-11 · 86.3"></div>
+          <div class="trend-bar" style="height:48%;" title="10-12 · 87.2"></div>
+          <div class="trend-bar" style="height:54%;" title="10-13 · 88.1"></div>
+          <div class="trend-bar" style="height:58%;" title="10-14 · 88.7"></div>
+          <div class="trend-bar" style="height:49%;" title="10-15 · 87.4"></div>
+          <div class="trend-bar" style="height:45%;" title="10-16 · 86.8"></div>
+          <div class="trend-bar" style="height:55%;" title="10-17 · 88.3"></div>
+          <div class="trend-bar" style="height:64%;" title="10-18 · 89.6"></div>
+          <div class="trend-bar" style="height:59%;" title="10-19 · 88.8"></div>
+          <div class="trend-bar" style="height:68%;" title="10-20 · 90.2"></div>
+          <div class="trend-bar" style="height:61%;" title="10-21 · 89.1"></div>
+          <div class="trend-bar" style="height:57%;" title="10-22 · 88.5"></div>
+          <div class="trend-bar" style="height:63%;" title="10-23 · 89.4"></div>
+          <div class="trend-bar" style="height:71%;" title="10-24 · 90.6"></div>
+          <div class="trend-bar" style="height:65%;" title="10-25 · 89.8"></div>
+          <div class="trend-bar" style="height:73%;" title="10-26 · 90.9"></div>
+          <div class="trend-bar hi" style="height:77%;" title="10-27 · 91.6"></div>
+          <div class="trend-bar hi" style="height:83%;" title="10-28 · 92.4"></div>
+        </div>
+        <div class="flex-between mt-8">
+          <span class="tiny mono">09-29</span>
+          <span class="tiny mono">10-08</span>
+          <span class="tiny mono">10-16</span>
+          <span class="tiny mono">10-28</span>
+        </div>
+        <div class="tiny mt-8"><i class="fa-solid fa-square" style="color:var(--c-primary); font-size:8px;"></i> 日均得分率　<i class="fa-solid fa-square" style="color:var(--c-warn); font-size:8px;"></i> 低于 85　<i class="fa-solid fa-square" style="color:var(--c-ok); font-size:8px;"></i> ≥ 91 高位</div>
+      </div>
+    </div>
+
+    <!-- 弹窗：遗漏项判定依据 -->
+    <div class="modal-mask" id="modal-evidence" onclick="if(event.target===this)closeModal('modal-evidence')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-magnifying-glass"></i>遗漏项判定依据 · 逐项回溯</div>
+          <button class="modal-close" onclick="closeModal('modal-evidence')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert-strip red">
+            <i class="fa-solid fa-circle-xmark"></i>
+            <span>遗漏项：法律责任告知未命中（意图类 · -6 分）</span>
+          </div>
+          <dl class="kv">
+            <dt>命中规则</dt><dd>法律责任告知意图 v1.5</dd>
+            <dt>判定方式</dt><dd>转写全文意图语义识别，未检出法律责任警示表述</dd>
+            <dt>识别置信</dt><dd class="mono">97.8%（高于阈值，直接计分）</dd>
+            <dt>转写原文</dt><dd>全文 18 句中无「依法 / 法律责任 / 追责」类警示语义</dd>
+          </dl>
+          <hr class="divider">
+          <div class="card-title" style="font-size:13px; margin-bottom:8px;"><i class="fa-solid fa-link"></i>转写原文回链（可回听原音定位）</div>
+          <div class="utter-row">
+            <span class="utter-ts">00:42–00:56</span>
+            <div style="flex:1;">管道两侧各五米是保护范围，保护范围内不能用挖掘机……（相邻句，可对比原音语境）</div>
+            <button class="btn btn-glass btn-xs" onclick="showToast('演示：定位到原始录音 00:42 播放')"><i class="fa-solid fa-play"></i> 回听</button>
+          </div>
+          <div class="utter-row low">
+            <span class="utter-ts">01:03–01:12</span>
+            <div style="flex:1;">该句置信度 82.1%，已转人工抽听，不计入本项判定。</div>
+            <span class="tag tag-yellow">低置信</span>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-glass" onclick="closeModal('modal-evidence')">关闭</button>
+          <button class="btn btn-primary" onclick="closeModal('modal-evidence'); showToast('复核申请已提交质检管理员，暂缓计入月度得分')"><i class="fa-solid fa-rotate-left"></i> 提交复核申请</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+function switchView(vid){
+  document.querySelectorAll('.view').forEach(function(v){v.classList.remove('active');});
+  var el=document.getElementById(vid); if(el){el.classList.add('active');}
+  document.querySelectorAll('.seg-item[data-view]').forEach(function(b){
+    b.classList.toggle('active', b.getAttribute('data-view')===vid);
+  });
+  try{history.replaceState(null,'','#'+encodeURIComponent(vid));}catch(e){}
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function openModal(id){var m=document.getElementById(id); if(m){m.classList.add('open');}}
+function closeModal(id){var m=document.getElementById(id); if(m){m.classList.remove('open');}}
+function showToast(msg){
+  var t=document.getElementById('app-toast');
+  if(!t){t=document.createElement('div');t.id='app-toast';t.className='toast';document.body.appendChild(t);}
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._tm);t._tm=setTimeout(function(){t.classList.remove('show');},2200);
+}
+window.addEventListener('hashchange',function(){
+  var h=decodeURIComponent(location.hash.replace('#',''));
+  if(h&&document.getElementById(h)){switchView(h);}
+});
+(function(){
+  var h=decodeURIComponent(location.hash.replace('#',''));
+  if(h&&document.getElementById(h)){switchView(h);}
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>关键设备管理 - 杭州燃气管网运营智能体平台</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="../styles/liquid-glass.css">
+<style>
+  /* ===== 模块内补充布局（不另起配色体系，全部沿用 liquid-glass tokens） ===== */
+  .bar-chart { display:flex; align-items:flex-end; gap:10px; height:190px; padding:12px 8px 0; position:relative; }
+  .bar-col { flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; height:100%; justify-content:flex-end; }
+  .bar-value { font-family:'DM Mono',monospace; font-size:11px; font-weight:500; color:var(--c-text-2); }
+  .bar-stick { width:100%; max-width:34px; border-radius:8px 8px 4px 4px; background:linear-gradient(180deg,var(--c-primary-hi),var(--c-primary)); box-shadow:0 3px 10px rgba(14,116,144,.22); position:relative; }
+  .bar-stick.near { background:linear-gradient(180deg,#FFB340,var(--c-warn)); box-shadow:0 3px 10px rgba(255,149,0,.28); }
+  .bar-stick.near::after { content:''; position:absolute; top:-7px; left:50%; transform:translateX(-50%); width:16px; height:4px; border-radius:4px; background:var(--c-danger); opacity:.75; }
+  .bar-label { font-size:11px; color:var(--c-text-3); font-weight:500; }
+  .bar-limit-line { position:absolute; left:8px; right:8px; border-top:2px dashed rgba(255,59,48,.45); z-index:2; pointer-events:none; }
+  .bar-limit-line span { position:absolute; right:0; top:-18px; font-size:10.5px; color:#C42B22; font-weight:600; background:var(--c-danger-soft); padding:1px 8px; border-radius:99px; }
+  .formula-card { background:linear-gradient(135deg, rgba(14,116,144,.10), rgba(255,255,255,.5)); border:1px dashed rgba(14,116,144,.35); border-radius:var(--radius-md); padding:18px 20px; text-align:center; }
+  .formula-text { font-family:'DM Mono','Outfit',monospace; font-size:16px; font-weight:500; color:var(--c-primary); letter-spacing:.3px; line-height:1.8; }
+  .formula-note { font-size:11.5px; color:var(--c-text-2); margin-top:8px; }
+  .timeline { position:relative; padding-left:26px; }
+  .timeline::before { content:''; position:absolute; left:8px; top:6px; bottom:6px; width:2px; background:linear-gradient(180deg,var(--c-info),var(--c-warn),var(--c-danger)); border-radius:2px; }
+  .tl-item { position:relative; padding:10px 0 10px 16px; }
+  .tl-item::before { content:''; position:absolute; left:-24px; top:16px; width:12px; height:12px; border-radius:50%; background:#fff; border:3px solid var(--c-info); box-shadow:0 2px 6px rgba(22,50,60,.15); }
+  .tl-item.t2::before { border-color:var(--c-warn); }
+  .tl-item.t3::before { border-color:var(--c-danger); }
+  .tl-title { font-size:13px; font-weight:600; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .tl-desc { font-size:12px; color:var(--c-text-2); margin-top:3px; }
+  .voucher-item { display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:var(--radius-sm); background:rgba(255,255,255,.5); border:1px solid var(--c-line); margin-bottom:10px; }
+  .voucher-item .v-ico { width:38px; height:38px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:16px; background:var(--c-primary-soft); color:var(--c-primary); flex-shrink:0; }
+  .voucher-item.miss .v-ico { background:var(--c-danger-soft); color:var(--c-danger); }
+  .threshold-row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:11px 16px; border-radius:var(--radius-sm); background:rgba(255,255,255,.5); border:1px solid var(--c-line); margin-bottom:9px; }
+  .th-range { font-family:'DM Mono',monospace; font-size:13px; font-weight:500; }
+  .callout { border-left:4px solid var(--c-primary); background:var(--c-primary-soft); border-radius:0 var(--radius-sm) var(--radius-sm) 0; padding:12px 16px; font-size:12.5px; color:var(--c-text); }
+  .callout.warn { border-left-color:var(--c-warn); background:var(--c-warn-soft); }
+  .callout.danger { border-left-color:var(--c-danger); background:var(--c-danger-soft); }
+  .audit-chain { list-style:none; }
+  .audit-chain li { display:flex; gap:10px; padding:8px 0; border-bottom:1px dashed var(--c-line); font-size:12.5px; align-items:flex-start; }
+  .audit-chain li:last-child { border-bottom:none; }
+  .audit-chain .no { font-family:'DM Mono',monospace; font-size:11px; color:var(--c-primary); background:var(--c-primary-soft); border-radius:99px; padding:2px 9px; flex-shrink:0; margin-top:1px; }
+  .cond-item { display:flex; align-items:center; gap:10px; padding:10px 14px; background:rgba(255,255,255,.5); border:1px solid var(--c-line); border-radius:var(--radius-sm); margin-bottom:8px; font-size:12.5px; }
+  .cond-item i.ok { color:var(--c-ok); }
+  .phone-card { background:#fff; border-radius:14px; padding:12px 14px; margin-bottom:10px; box-shadow:0 2px 8px rgba(22,50,60,.06); }
+  .phone-card .p-title { font-size:12.5px; font-weight:700; display:flex; justify-content:space-between; align-items:center; }
+  .ph-meter { height:6px; border-radius:6px; background:rgba(22,50,60,.08); overflow:hidden; margin-top:8px; }
+  .ph-meter i { display:block; height:100%; border-radius:6px; background:linear-gradient(90deg,var(--c-primary),var(--c-primary-hi)); }
+</style>
+</head>
+<body>
+<div class="ambient-blob"></div>
+
+<div class="module-wrap">
+
+  <!-- ===== 模块头 ===== -->
+  <div class="module-top">
+    <div class="module-title">关键设备管理</div>
+    <span class="badge badge-mid"><i class="fa-solid fa-flag"></i> 优先级 中</span>
+    <div class="module-sub">条款 5.4.8 ｜ 中修年限/维保周期基准表自动排定 · 新增通气设备强制插入 · 备件需求反推 · 执行四态监控 · 阴保六类检测与结论回流</div>
+    <div class="seg" style="margin-left:auto;">
+      <button class="seg-item active" data-view="v-调压设备维保与中修计划管理-基准表与计划排定" onclick="switchView('v-调压设备维保与中修计划管理-基准表与计划排定')">基准表与计划排定</button>
+      <button class="seg-item" data-view="v-调压设备维保与中修计划管理-新增通气设备强制插入" onclick="switchView('v-调压设备维保与中修计划管理-新增通气设备强制插入')">新增通气设备强制插入</button>
+      <button class="seg-item" data-view="v-调压设备维保与中修计划管理-备品备件需求测算" onclick="switchView('v-调压设备维保与中修计划管理-备品备件需求测算')">备品备件需求测算</button>
+      <button class="seg-item" data-view="v-维保计划执行监控" onclick="switchView('v-维保计划执行监控')">维保计划执行监控</button>
+      <button class="seg-item" data-view="v-钢管阴保检测计划-年度计划与点位排定" onclick="switchView('v-钢管阴保检测计划-年度计划与点位排定')">阴保年度计划与点位排定</button>
+      <button class="seg-item" data-view="v-钢管阴保检测-检测数据合规判定与整改闭环" onclick="switchView('v-钢管阴保检测-检测数据合规判定与整改闭环')">检测合规判定与整改闭环</button>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       页面1：基准表与计划排定
+       ============================================================ -->
+  <section class="view active" id="v-调压设备维保与中修计划管理-基准表与计划排定">
+    <div class="page-head">
+      <div>
+        <div class="page-title"><i class="fa-solid fa-calendar-days" style="color:var(--c-primary);margin-right:6px;"></i>调压设备维保与中修计划管理 · 基准表与计划排定</div>
+        <div class="page-desc">PC端（设备部）· 设备部计划管理岗 ｜ 中修年限与维保周期基准表维护审批，到期推算、按月配平、跨年顺延，排程算法只读不改写</div>
+      </div>
+      <div class="flex wrap" style="gap:8px;">
+        <button class="btn btn-glass btn-sm" onclick="showToast('基准表已提交设备部审批，审批生效后留存新版本')"><i class="fa-solid fa-stamp"></i> 基准表送审</button>
+        <button class="btn btn-primary btn-sm" onclick="showToast('2026年度维保/中修计划已生成，维保工单模版按月滚动推送巡检抢修指挥系统')"><i class="fa-solid fa-wand-magic-sparkles"></i> 生成年度计划</button>
+      </div>
+    </div>
+
+    <div class="grid g-4 mb-14">
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-gauge-high"></i> 纳入排定设备</div>
+        <div class="stat-value">3,842<span style="font-size:14px;font-weight:500;"> 台</span></div>
+        <div class="stat-sub">调压站/箱/紧急切断阀全量在册</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-clipboard-list"></i> 本年维保任务</div>
+        <div class="stat-value">4,176<span style="font-size:14px;font-weight:500;"> 单</span></div>
+        <div class="stat-sub">下次维保日 = 上次维保日 + 周期，无记录取投运日</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-screwdriver-wrench"></i> 本年中修台数</div>
+        <div class="stat-value accent">96<span style="font-size:14px;font-weight:500;"> 台</span></div>
+        <div class="stat-sub">投运年 + 中修年限，提前一个周期预告</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-arrow-rotate-left"></i> 跨年顺延任务</div>
+        <div class="stat-value orange">23<span style="font-size:14px;font-weight:500;"> 单</span></div>
+        <div class="stat-sub">上年未完成顺延，来源逐条标注</div>
+      </div>
+    </div>
+
+    <div class="grid g-main-side">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-table-list"></i>中修年限与维保周期基准表</div>
+          <span class="tag tag-cyan"><i class="fa-solid fa-shield-halved"></i> 排程算法只读取、不改写</span>
+        </div>
+        <div class="alert-strip blue" style="margin-bottom:12px;">
+          <i class="fa-solid fa-circle-info"></i>
+          <div><b>演示口径，按招标人规程确认。</b>调研口径：维保周期 调压箱 3 个月 / 调压柜 6 个月 / 调压站 2 个月（以甲方现行规程为准，基准表由设备部维护、审批生效留版本）。</div>
+        </div>
+        <div class="table-scroll">
+          <table class="glass-table">
+            <thead>
+              <tr>
+                <th>设备类别</th><th>中修年限</th><th>中修起始口径</th><th>维保周期</th><th>在册台数</th><th>基准表版本</th><th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><b>区域调压站</b></td>
+                <td><span class="mono">6 年</span></td>
+                <td>通气时间起算，到期由调压组会同厂商更换关键组件</td>
+                <td><span class="mono">4 个月</span></td>
+                <td>84 台</td>
+                <td><span class="tag tag-gray">V2026.1</span></td>
+                <td><button class="btn btn-ghost btn-xs" onclick="showToast('基准表修改需设备部审批，当前版本 V2026.1 生效中')"><i class="fa-solid fa-pen"></i> 维护</button></td>
+              </tr>
+              <tr>
+                <td><b>箱式调压站</b></td>
+                <td><span class="mono">8 年</span></td>
+                <td>通气时间起算</td>
+                <td><span class="mono">6 个月</span></td>
+                <td>312 台</td>
+                <td><span class="tag tag-gray">V2026.1</span></td>
+                <td><button class="btn btn-ghost btn-xs" onclick="showToast('基准表修改需设备部审批，当前版本 V2026.1 生效中')"><i class="fa-solid fa-pen"></i> 维护</button></td>
+              </tr>
+              <tr>
+                <td><b>楼栋调压箱</b></td>
+                <td><span class="mono">10 年</span></td>
+                <td>通气时间起算</td>
+                <td><span class="mono">12 个月</span></td>
+                <td>3,398 台</td>
+                <td><span class="tag tag-gray">V2026.1</span></td>
+                <td><button class="btn btn-ghost btn-xs" onclick="showToast('基准表修改需设备部审批，当前版本 V2026.1 生效中')"><i class="fa-solid fa-pen"></i> 维护</button></td>
+              </tr>
+              <tr>
+                <td><b>紧急切断阀</b></td>
+                <td><span class="mono">6 年</span></td>
+                <td>通气时间起算</td>
+                <td><span class="mono">6 个月</span></td>
+                <td>48 台</td>
+                <td><span class="tag tag-gray">V2026.1</span></td>
+                <td><button class="btn btn-ghost btn-xs" onclick="showToast('基准表修改需设备部审批，当前版本 V2026.1 生效中')"><i class="fa-solid fa-pen"></i> 维护</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-triangle-exclamation"></i>投运日期缺失待补全</div>
+          <span class="tag tag-orange">17 台</span>
+        </div>
+        <div class="callout warn mb-14">
+          投运日期缺失设备<b>不参与到期推算</b>，不以默认值代替，单列推送设备部核实。
+        </div>
+        <ul class="icon-list">
+          <li><i class="fa-solid fa-circle-question"></i><div><span class="mono">TYX-0421</span> 楼栋调压箱 · 西湖区文新街道 ｜ 状态：<span class="tag tag-orange" style="margin-left:4px;">待补全</span></div></li>
+          <li><i class="fa-solid fa-circle-question"></i><div><span class="mono">TYX-0533</span> 箱式调压站 · 拱墅区祥符街道 ｜ 状态：<span class="tag tag-orange" style="margin-left:4px;">待补全</span></div></li>
+          <li><i class="fa-solid fa-circle-question"></i><div><span class="mono">QD-0087</span> 紧急切断阀 · 滨江区长河站 ｜ 状态：<span class="tag tag-orange" style="margin-left:4px;">待补全</span></div></li>
+        </ul>
+        <button class="btn btn-glass btn-sm mt-8" style="width:100%;justify-content:center;" onclick="showToast('待补全清单已推送设备部，共 17 台待核实投运日期')"><i class="fa-solid fa-paper-plane"></i> 推送设备部核实</button>
+      </div>
+    </div>
+
+    <div class="grid g-main-side mt-14">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-chart-column"></i>2026 年度维保计划 · 月度任务量分布</div>
+          <div class="flex wrap" style="gap:8px;">
+            <span class="tag tag-cyan">全年 4,176 单</span>
+            <span class="tag tag-orange"><i class="fa-solid fa-arrow-trend-up"></i> 橙标 = 接近单月上限</span>
+          </div>
+        </div>
+        <div class="bar-chart">
+          <div class="bar-limit-line" style="bottom:38%;"><span>单月上限 420 单</span></div>
+          <div class="bar-col"><span class="bar-value">298</span><div class="bar-stick" style="height:50%;cursor:pointer;" onclick="openModal('modal-ybyd')"></div><span class="bar-label">1月</span></div>
+          <div class="bar-col"><span class="bar-value">352</span><div class="bar-stick" style="height:59%;cursor:pointer;" onclick="openModal('modal-ybyd')"></div><span class="bar-label">2月</span></div>
+          <div class="bar-col"><span class="bar-value">389</span><div class="bar-stick" style="height:65%;cursor:pointer;" onclick="openModal('modal-ybyd')"></div><span class="bar-label">3月</span></div>
+          <div class="bar-col"><span class="bar-value orange" style="font-weight:700;">411</span><div class="bar-stick near" style="height:69%;cursor:pointer;" onclick="openModal('modal-ybyd')"></div><span class="bar-label">4月</span></div>
+          <div class="bar-col"><span class="bar-value">334</span><div class="bar-stick" style="height:56%;cursor:pointer;" onclick="openModal('modal-ybyd')"></div><span class="bar-label">5月</span></div>
+          <div class="bar-col"><span class="bar-value">296</span><div class="bar-stick" style="height:49%;cursor:pointer;" onclick="openModal('modal-ybyd')"></div><span class="bar-label">6月</span></div>
+          <div class="bar-col"><span class="bar-value">318</span><div class="bar-stick" style="height:53%;cursor:pointer;" onclick="openModal('modal-ybyd')"></div><span class="bar-label">7月</span></div>
+          <div class="bar-col"><span class="bar-value">342</span><div class="bar-stick" style="height:57%;cursor:pointer;" onclick="openModal('modal-ybyd')"></div><span class="bar-label">8月</span></div>
+          <div class="bar-col"><span class="bar-value">365</span><div class="bar-stick" style="height:61%;cursor:pointer;" onclick="openModal('modal-ybyd')"></div><span class="bar-label">9月</span></div>
+          <div class="bar-col"><span class="bar-value orange" style="font-weight:700;">403</span><div class="bar-stick near" style="height:67%;cursor:pointer;" onclick="openModal('modal-ybyd')"></div><span class="bar-label">10月</span></div>
+          <div class="bar-col"><span class="bar-value">338</span><div class="bar-stick" style="height:56%;cursor:pointer;" onclick="openModal('modal-ybyd')"></div><span class="bar-label">11月</span></div>
+          <div class="bar-col"><span class="bar-value">330</span><div class="bar-stick" style="height:55%;cursor:pointer;" onclick="openModal('modal-ybyd')"></div><span class="bar-label">12月</span></div>
+        </div>
+        <div class="callout mt-14">
+          <i class="fa-solid fa-scale-balanced" style="color:var(--c-primary);margin-right:6px;"></i><b>工作量按月配平：</b>单月任务量偏离全年均值超设定幅度（±15%）即回退重排；4 月、10 月接近上限已橙标，重排建议待确认。点击任意月份柱体可查看该月排定依据。
+        </div>
+      </div>
+
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-magnifying-glass-chart"></i>为什么排在这个月</div>
+        </div>
+        <div class="callout mb-14">
+          <b>任何一次排定可回答「为什么排在这个月」。</b>基准表由设备部维护、审批生效留版本；排程算法只读取不改写，排定因子逐条留痕，人工只做例外调整、调整留痕。
+        </div>
+        <ul class="audit-chain">
+          <li><span class="no">因子1</span><div>基准表版本 <span class="mono">V2026.1</span>：楼栋调压箱 维保周期 12 个月（只读）</div></li>
+          <li><span class="no">因子2</span><div>上次维保日 <span class="mono">2025-04-18</span>（工单 WB-2025-0418-233 办结回写）</div></li>
+          <li><span class="no">因子3</span><div>下次维保日 = 上次维保日 + 12 个月 = <span class="mono">2026-04-18</span></div></li>
+          <li><span class="no">因子4</span><div>按月配平：4 月任务量 411/420，未超上限不外溢</div></li>
+          <li><span class="no">因子5</span><div>无人工例外调整记录（如有则附调整人与事由）</div></li>
+        </ul>
+        <button class="btn btn-primary btn-sm mt-14" style="width:100%;justify-content:center;" onclick="openModal('modal-ybyd')"><i class="fa-solid fa-link"></i> 查看完整排定追溯链</button>
+        <div class="tiny mt-8" style="text-align:center;">计划生成维保工单模版，按月滚动下发巡检抢修指挥系统</div>
+      </div>
+    </div>
+
+    <!-- 弹窗：排定追溯 -->
+    <div class="modal-mask" id="modal-ybyd" onclick="if(event.target===this)closeModal('modal-ybyd')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-magnifying-glass-chart" style="color:var(--c-primary);"></i>排定追溯 · 为什么排在这个月</div>
+          <button class="modal-close" onclick="closeModal('modal-ybyd')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert-strip cyan">
+            <i class="fa-solid fa-circle-info"></i>
+            <div>对象：楼栋调压箱 <span class="mono">TYX-1207</span>（西湖区文新街道 星洲花园 12 幢）｜ 排定结果：<b>2026 年 4 月维保</b></div>
+          </div>
+          <table class="glass-table">
+            <thead>
+              <tr><th>#</th><th>排定因子</th><th>取值</th><th>来源</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><span class="mono">01</span></td><td>维保周期</td><td><span class="mono">12 个月</span></td><td>基准表 V2026.1（审批生效，只读）</td></tr>
+              <tr><td><span class="mono">02</span></td><td>上次维保日</td><td><span class="mono">2025-04-18</span></td><td>维保工单 WB-2025-0418-233 办结回写</td></tr>
+              <tr><td><span class="mono">03</span></td><td>到期推算</td><td><span class="mono">2026-04-18</span></td><td>上次维保日 + 周期（无记录取投运日）</td></tr>
+              <tr><td><span class="mono">04</span></td><td>月度配平</td><td>4 月 411 / 上限 420</td><td>配平算法，偏离均值未超 ±15%</td></tr>
+              <tr><td><span class="mono">05</span></td><td>例外调整</td><td>无</td><td>人工调整台账（当前无记录）</td></tr>
+              <tr><td><span class="mono">06</span></td><td>顺延来源</td><td>否</td><td>上年完成，未跨年顺延</td></tr>
+            </tbody>
+          </table>
+          <div class="tiny mt-8">结论：该设备维保到期落在 2026-04-18，且 4 月任务量未超单月上限，故排定于 4 月。排程算法只读取基准表，不改写；人工例外调整逐条留痕可查。</div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-glass btn-sm" onclick="closeModal('modal-ybyd')">关闭</button>
+          <button class="btn btn-primary btn-sm" onclick="closeModal('modal-ybyd');showToast('追溯链已导出，可附在月度计划说明中')"><i class="fa-solid fa-file-export"></i> 导出追溯链</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       页面2：新增通气设备强制插入
+       ============================================================ -->
+  <section class="view" id="v-调压设备维保与中修计划管理-新增通气设备强制插入">
+    <div class="page-head">
+      <div>
+        <div class="page-title"><i class="fa-solid fa-plug-circle-bolt" style="color:var(--c-primary);margin-right:6px;"></i>调压设备维保与中修计划管理 · 新增通气设备强制插入</div>
+        <div class="page-desc">PC端（设备部）· 设备部、运行站站长 ｜ 竣工通气单办结当日捕获，当晚随计划重算强制插入，移出被红色阻断，改期须设备部审批</div>
+      </div>
+      <div class="flex wrap" style="gap:8px;">
+        <span class="tag tag-red"><i class="fa-solid fa-lock"></i> 考核硬约束：新增对象纳入率 100%</span>
+        <button class="btn btn-glass btn-sm" onclick="showToast('已刷新：竣工通气单办结捕获为实时触发，无需手工刷新')"><i class="fa-solid fa-rotate"></i> 刷新捕获</button>
+      </div>
+    </div>
+
+    <div class="grid g-4 mb-14">
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-bolt"></i> 本期新增通气设备</div>
+        <div class="stat-value blue">12<span style="font-size:14px;font-weight:500;"> 台</span></div>
+        <div class="stat-sub">近 30 天 · 每台可回溯触发单据</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-stopwatch"></i> 当日捕获率</div>
+        <div class="stat-value green">100<span style="font-size:14px;font-weight:500;">%</span></div>
+        <div class="stat-sub">办结即捕获，不等下一年度计划</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-calendar-plus"></i> 已插入计划</div>
+        <div class="stat-value">12<span style="font-size:14px;font-weight:500;"> / 12 台</span></div>
+        <div class="stat-sub">插入通气日后下一个维保周期</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-file-signature"></i> 改期申请（本期）</div>
+        <div class="stat-value orange">1<span style="font-size:14px;font-weight:500;"> 件</span></div>
+        <div class="stat-sub">审批中 · 改期只改时间不改变必须做</div>
+      </div>
+    </div>
+
+    <div class="glass-card mb-14">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-list-check"></i>本期新增通气设备清单（近 30 天）</div>
+        <button class="btn btn-danger btn-sm" onclick="openModal('modal-block-remove')"><i class="fa-solid fa-ban"></i> 演示：尝试移出计划</button>
+      </div>
+      <div class="table-scroll">
+        <table class="glass-table">
+          <thead>
+            <tr>
+              <th>触发单号（竣工通气单）</th><th>设备编号</th><th>设备类型</th><th>办结日期</th><th>插入位置（坐标落区）</th><th>插入月</th><th>纳入情况</th><th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="mono">TQ-2026-0912-036</td><td class="mono">TYX-3980</td><td>楼栋调压箱</td><td>2026-09-12</td><td>西湖区 · 文新站 · 调压 2 班</td><td>2027-09</td>
+              <td><span class="tag tag-green"><i class="fa-solid fa-check"></i> 已纳入</span></td>
+              <td><button class="btn btn-ghost btn-xs" onclick="showToast('触发单据 TQ-2026-0912-036：工程部办结当日捕获，插入动作已留存')"><i class="fa-solid fa-file-triangle"></i> 回溯单据</button></td>
+            </tr>
+            <tr>
+              <td class="mono">TQ-2026-0915-042</td><td class="mono">TYX-3981</td><td>楼栋调压箱</td><td>2026-09-15</td><td>拱墅区 · 祥符站 · 调压 1 班</td><td>2027-09</td>
+              <td><span class="tag tag-green"><i class="fa-solid fa-check"></i> 已纳入</span></td>
+              <td><button class="btn btn-ghost btn-xs" onclick="showToast('触发单据 TQ-2026-0915-042：插入位置按设备坐标落区判定运行站与责任班组')"><i class="fa-solid fa-file-triangle"></i> 回溯单据</button></td>
+            </tr>
+            <tr>
+              <td class="mono">TQ-2026-0918-051</td><td class="mono">XSY-0417</td><td>箱式调压站</td><td>2026-09-18</td><td>滨江区 · 长河站 · 调压 3 班</td><td>2027-03</td>
+              <td><span class="tag tag-green"><i class="fa-solid fa-check"></i> 已纳入</span></td>
+              <td><button class="btn btn-ghost btn-xs" onclick="showToast('触发单据 TQ-2026-0918-051：箱式调压站维保周期 6 个月，插入 2027-03')"><i class="fa-solid fa-file-triangle"></i> 回溯单据</button></td>
+            </tr>
+            <tr>
+              <td class="mono">TQ-2026-0922-064</td><td class="mono">TYX-3982</td><td>楼栋调压箱</td><td>2026-09-22</td><td>余杭区 · 仓前站 · 调压 2 班</td><td>2027-09</td>
+              <td><span class="tag tag-orange"><i class="fa-solid fa-clock-rotate-left"></i> 改期审批中</span></td>
+              <td><button class="btn btn-ghost btn-xs" onclick="openModal('modal-reschedule')"><i class="fa-solid fa-pen-to-square"></i> 查看改期申请</button></td>
+            </tr>
+            <tr>
+              <td class="mono">TQ-2026-0925-070</td><td class="mono">QD-0163</td><td>紧急切断阀</td><td>2026-09-25</td><td>萧山区 · 宁围站 · 调压 1 班</td><td>2027-03</td>
+              <td><span class="tag tag-green"><i class="fa-solid fa-check"></i> 已纳入</span></td>
+              <td><button class="btn btn-ghost btn-xs" onclick="showToast('触发单据 TQ-2026-0925-070：紧急切断阀随站纳入，当晚随计划重算插入')"><i class="fa-solid fa-file-triangle"></i> 回溯单据</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="tiny mt-8">演示数据共 12 台，表内展示 5 条样例。每台设备的插入动作、触发单号、改期申请与审批逐条留存；与巡检排班助手共用同一合规性校验器。</div>
+    </div>
+
+    <div class="grid g-2">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-gears"></i>强制插入机制</div>
+        </div>
+        <div class="steps mb-14">
+          <div class="step done"><span class="dot"><i class="fa-solid fa-check"></i></span>竣工通气单办结</div>
+          <div class="step done"><span class="dot"><i class="fa-solid fa-check"></i></span>当日捕获台账新增</div>
+          <div class="step done"><span class="dot"><i class="fa-solid fa-check"></i></span>当晚计划重算</div>
+          <div class="step active"><span class="dot">4</span>插入下一维保周期</div>
+        </div>
+        <ul class="icon-list">
+          <li><i class="fa-solid fa-location-dot"></i><div><b>插入位置判定：</b>按设备坐标落区自动判定运行站与责任班组</div></li>
+          <li><i class="fa-solid fa-lock"></i><div><b>系统不提供移出入口：</b>试图移出将被红色阻断并说明依据（条款 5.4.8）</div></li>
+          <li><i class="fa-solid fa-pen-ruler"></i><div><b>确需调整只能申请改期：</b>经设备部审批，改期只改时间、不改变「必须做」</div></li>
+          <li><i class="fa-solid fa-clock"></i><div><b>不等年度计划：</b>工程部办结当日即捕获插入，避免当年脱管</div></li>
+        </ul>
+      </div>
+
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-user-shield"></i>改期申请与审批（本期）</div>
+          <span class="tag tag-orange">1 件审批中</span>
+        </div>
+        <div class="voucher-item">
+          <div class="v-ico"><i class="fa-solid fa-clock-rotate-left"></i></div>
+          <div style="flex:1;">
+            <div class="flex-between"><b class="mono" style="font-size:12px;">TYX-3982 · 仓前站</b><span class="tag tag-orange">设备部审批中</span></div>
+            <div class="tiny mt-8">申请：2027-09 → 2027-11 ｜ 事由：小区外立面整治，10-11 月内场受限</div>
+          </div>
+          <button class="btn btn-glass btn-xs" onclick="openModal('modal-reschedule')">详情</button>
+        </div>
+        <div class="callout danger">
+          <i class="fa-solid fa-circle-exclamation" style="color:var(--c-danger);margin-right:6px;"></i><b>合规提示：</b>改期经设备部审批且只改时间、不改变「必须做」；改期后任务自动顺延并留痕，不会从计划中消失。
+        </div>
+      </div>
+    </div>
+
+    <!-- 弹窗：红色阻断（移出计划） -->
+    <div class="modal-mask" id="modal-block-remove" onclick="if(event.target===this)closeModal('modal-block-remove')">
+      <div class="glass-modal blocking">
+        <div class="blocking-strip"><i class="fa-solid fa-ban"></i> 合规阻断 · 操作被拒绝</div>
+        <div class="modal-head">
+          <div class="modal-title" style="color:#C42B22;"><i class="fa-solid fa-octagon-exclamation"></i>不可移出计划</div>
+          <button class="modal-close" onclick="closeModal('modal-block-remove')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert-strip red">
+            <i class="fa-solid fa-file-shield"></i>
+            <div>您尝试将新增通气设备移出维保计划。系统<b>不提供移出入口</b>，本次操作已被阻断并记录。</div>
+          </div>
+          <table class="glass-table">
+            <tbody>
+              <tr><td style="color:var(--c-text-2);width:120px;">阻断对象</td><td>楼栋调压箱 <span class="mono">TYX-3980</span>（触发单号 <span class="mono">TQ-2026-0912-036</span>）</td></tr>
+              <tr><td style="color:var(--c-text-2);">阻断依据一</td><td>条款 5.4.8：新增通气设备强制插入维保计划</td></tr>
+              <tr><td style="color:var(--c-text-2);">阻断依据二</td><td>考核指标：新增对象纳入率 <b>100%</b>（系统硬约束）</td></tr>
+              <tr><td style="color:var(--c-text-2);">阻断依据三</td><td>维保是「必须做」的法定动作，不可通过移出计划规避</td></tr>
+              <tr><td style="color:var(--c-text-2);">合规出路</td><td><b>仅可申请改期</b>：经设备部审批，改期只改时间、不改变必须做</td></tr>
+            </tbody>
+          </table>
+          <div class="callout mt-14" style="border-left-color:var(--c-danger);background:var(--c-danger-soft);">
+            本次尝试已按操作人、时间、对象逐条留存审计记录。如设备确已废弃或变更材质，请走台账变更流程，而非移出计划。
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-glass btn-sm" onclick="closeModal('modal-block-remove')"><i class="fa-solid fa-check"></i> 知道了</button>
+          <button class="btn btn-primary btn-sm" onclick="closeModal('modal-block-remove');openModal('modal-reschedule')"><i class="fa-solid fa-clock-rotate-left"></i> 去申请改期</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 弹窗：改期申请 -->
+    <div class="modal-mask" id="modal-reschedule" onclick="if(event.target===this)closeModal('modal-reschedule')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-clock-rotate-left" style="color:var(--c-primary);"></i>改期申请详情 · TYX-3982</div>
+          <button class="modal-close" onclick="closeModal('modal-reschedule')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <dl class="kv mb-14">
+            <dt>设备编号</dt><dd class="mono">TYX-3982（楼栋调压箱 · 余杭区仓前站 · 调压 2 班）</dd>
+            <dt>触发单号</dt><dd class="mono">TQ-2026-0922-064（2026-09-22 办结）</dd>
+            <dt>原排定月</dt><dd>2027-09（通气日后下一个维保周期）</dd>
+            <dt>申请改至</dt><dd>2027-11</dd>
+            <dt>改期事由</dt><dd>小区外立面整治，10-11 月内场作业受限，附街道证明</dd>
+            <dt>申请人</dt><dd>仓前站站长 陈*明（2026-09-26 提交）</dd>
+            <dt>审批流</dt><dd>设备部审批中（收件人：设备部 计划管理岗）</dd>
+          </dl>
+          <div class="alert-strip cyan">
+            <i class="fa-solid fa-circle-info"></i>
+            <div>改期<b>只改时间、不改变「必须做」</b>：审批通过后任务自动顺延至 2027-11 并重新配平，改期记录逐条留存可回溯。</div>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-glass btn-sm" onclick="closeModal('modal-reschedule')">关闭</button>
+          <button class="btn btn-primary btn-sm" onclick="closeModal('modal-reschedule');showToast('改期申请已催办设备部审批（演示）')"><i class="fa-solid fa-bell"></i> 催办审批</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       页面3：备品备件需求测算
+       ============================================================ -->
+  <section class="view" id="v-调压设备维保与中修计划管理-备品备件需求测算">
+    <div class="page-head">
+      <div>
+        <div class="page-title"><i class="fa-solid fa-boxes-stacked" style="color:var(--c-primary);margin-right:6px;"></i>调压设备维保与中修计划管理 · 备品备件需求测算</div>
+        <div class="page-desc">PC端（设备部/物资部）· 设备部、物资部 ｜ 按中修计划反推未来 12 个月备件需求，实时比对库存得缺口，倒排建议下单时间，到点自动推送</div>
+      </div>
+      <div class="flex wrap" style="gap:8px;">
+        <span class="tag tag-cyan"><i class="fa-solid fa-rotate"></i> 每周随中修计划变动重算</span>
+        <button class="btn btn-glass btn-sm" onclick="showToast('已触发重算：测算每周随中修计划变动重算，无需人工核对')"><i class="fa-solid fa-calculator"></i> 立即重算</button>
+      </div>
+    </div>
+
+    <div class="grid g-main-side mb-14">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-square-root-variable"></i>需求测算模型</div>
+          <span class="tag tag-cyan">损耗率/安全库存按备件类别配置，设备部与物资部共同确认</span>
+        </div>
+        <div class="formula-card">
+          <div class="formula-text">需求量 = 预计中修台数 × 单台用量 × ( 1 + 损耗率 ) + 安全库存</div>
+          <div class="formula-note">建议采购量 = 需求量 − 可用库存 ｜ 建议下单时间 = 需用月份 − 采购周期 − 到货缓冲 ｜ 测算依据：中修台账（96 台 / 未来 12 个月）</div>
+        </div>
+        <div class="grid g-3 mt-14">
+          <div class="stat-card" style="padding:14px 16px;">
+            <div class="stat-label"><i class="fa-solid fa-industry"></i> 预计中修台数</div>
+            <div class="stat-value" style="font-size:22px;">96<span style="font-size:12px;font-weight:500;"> 台</span></div>
+            <div class="stat-sub">未来 12 个月 · 来源于中修计划</div>
+          </div>
+          <div class="stat-card" style="padding:14px 16px;">
+            <div class="stat-label"><i class="fa-solid fa-hourglass-half"></i> 采购周期 + 缓冲</div>
+            <div class="stat-value" style="font-size:22px;">60<span style="font-size:12px;font-weight:500;"> + 15 天</span></div>
+            <div class="stat-sub">关键组件类通用参数，按类别可配</div>
+          </div>
+          <div class="stat-card" style="padding:14px 16px;">
+            <div class="stat-label"><i class="fa-solid fa-bell"></i> 本周到点推送</div>
+            <div class="stat-value orange" style="font-size:22px;">2<span style="font-size:12px;font-weight:500;"> 项</span></div>
+            <div class="stat-sub">到达建议下单时间，自动推送物资部</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-link"></i>测算链路</div>
+        </div>
+        <div class="steps mb-14" style="flex-direction:column;align-items:stretch;gap:8px;">
+          <div class="step done" style="width:100%;"><span class="dot"><i class="fa-solid fa-check"></i></span>中修计划排定（96 台 · 按月分布）</div>
+          <div class="step done" style="width:100%;"><span class="dot"><i class="fa-solid fa-check"></i></span>反推未来 12 个月备件需求（每周重算）</div>
+          <div class="step active" style="width:100%;"><span class="dot">3</span>与物资系统实时库存比对 → 缺口</div>
+          <div class="step" style="width:100%;"><span class="dot">4</span>按采购周期与到货缓冲倒排建议下单时间</div>
+          <div class="step" style="width:100%;"><span class="dot">5</span>到点自动推送物资部 · 一键生成采购申请</div>
+        </div>
+        <div class="callout">
+          中修计划一变，需求随之重算，<b>不需人工核对</b>。物资系统查不到对应物料编码时标注「需人工确认物料」，不直接生成。
+        </div>
+      </div>
+    </div>
+
+    <div class="glass-card">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-table-list"></i>未来 12 个月备件需求与缺口</div>
+        <button class="btn btn-glass btn-sm" onclick="openModal('modal-purchase')"><i class="fa-solid fa-bell"></i> 演示：到点自动推送</button>
+      </div>
+      <div class="table-scroll">
+        <table class="glass-table">
+          <thead>
+            <tr>
+              <th>备件名称</th><th>物料编码</th><th>预计中修台数</th><th>单台用量</th><th>损耗率</th><th>安全库存</th><th>需求量</th><th>可用库存</th><th>缺口</th><th>建议下单时间</th><th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>调压器主阀阀芯</b></td><td class="mono">WL-TP-3012</td><td>84 台</td><td>1 件</td><td>5%</td><td>6 件</td><td><b class="mono">94</b></td><td class="mono">31</td>
+              <td><span class="tag tag-red">63 件</span></td><td><b>2026-11-10</b></td>
+              <td><button class="btn btn-primary btn-xs" onclick="openModal('modal-purchase')"><i class="fa-solid fa-file-circle-plus"></i> 生成采购申请</button></td>
+            </tr>
+            <tr>
+              <td><b>指挥器皮膜组件</b></td><td class="mono">WL-TP-1108</td><td>84 台</td><td>1 套</td><td>8%</td><td>8 套</td><td><b class="mono">98</b></td><td class="mono">52</td>
+              <td><span class="tag tag-red">46 套</span></td><td><b>2026-11-10</b></td>
+              <td><button class="btn btn-primary btn-xs" onclick="openModal('modal-purchase')"><i class="fa-solid fa-file-circle-plus"></i> 生成采购申请</button></td>
+            </tr>
+            <tr>
+              <td><b>紧急切断阀电磁线圈</b></td><td class="mono">WL-QD-2205</td><td>48 台</td><td>1 只</td><td>3%</td><td>4 只</td><td><b class="mono">53</b></td><td class="mono">47</td>
+              <td><span class="tag tag-orange">6 只</span></td><td><b>2026-12-05</b></td>
+              <td><button class="btn btn-glass btn-xs" onclick="showToast('采购申请草稿已保存，建议下单时间未到，暂不推送物资部')"><i class="fa-solid fa-floppy-disk"></i> 暂存草稿</button></td>
+            </tr>
+            <tr>
+              <td><b>箱式站过滤器滤芯</b></td><td class="mono">WL-XS-4102</td><td>312 台</td><td>2 只</td><td>6%</td><td>30 只</td><td><b class="mono">691</b></td><td class="mono">655</td>
+              <td><span class="tag tag-orange">36 只</span></td><td><b>2027-01-15</b></td>
+              <td><button class="btn btn-glass btn-xs" onclick="showToast('采购申请草稿已保存，建议下单时间未到，暂不推送物资部')"><i class="fa-solid fa-floppy-disk"></i> 暂存草稿</button></td>
+            </tr>
+            <tr>
+              <td><b>区域站调压阀密封垫组</b></td><td class="mono" style="color:var(--c-warn);">待匹配</td><td>84 台</td><td>1 组</td><td>5%</td><td>6 组</td><td><b class="mono">94</b></td><td class="mono">22</td>
+              <td><span class="tag tag-red">72 组</span></td><td><b>2026-11-20</b></td>
+              <td><button class="btn btn-glass btn-xs" onclick="showToast('物资系统查不到对应物料编码，已标注需人工确认物料，不直接生成采购申请')"><i class="fa-solid fa-triangle-exclamation"></i> 需人工确认物料</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="tiny mt-8">需求量按公式逐台类别测算；缺口 = 需求量 − 可用库存（物资系统实时读数）；建议下单时间按「需用月份 − 采购周期 − 到货缓冲」倒排。</div>
+    </div>
+
+    <!-- 弹窗：到点自动推送采购申请 -->
+    <div class="modal-mask" id="modal-purchase" onclick="if(event.target===this)closeModal('modal-purchase')">
+      <div class="glass-modal wide">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-bell" style="color:var(--c-warn);"></i>到点自动推送 · 采购申请（预生成）</div>
+          <button class="modal-close" onclick="closeModal('modal-purchase')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert-strip orange">
+            <i class="fa-solid fa-clock"></i>
+            <div>到达建议下单时间 <b>2026-11-10</b>，系统自动推送物资部；本演示为提前预览。申请单附带完整测算依据，可追溯至中修台账。</div>
+          </div>
+          <dl class="kv mb-14">
+            <dt>申请单号</dt><dd class="mono">CG-2026-1110-007（预生成）</dd>
+            <dt>推送对象</dt><dd>物资部 · 采购计划岗</dd>
+            <dt>测算依据</dt><dd>中修台账（2026-11 至 2027-10 · 96 台）+ 备件参数配置 V3</dd>
+          </dl>
+          <table class="glass-table">
+            <thead>
+              <tr><th>备件名称</th><th>物料编码</th><th>需求量</th><th>可用库存</th><th>建议采购量</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>调压器主阀阀芯</td><td class="mono">WL-TP-3012</td><td class="mono">94</td><td class="mono">31</td><td><b class="mono">63 件</b></td></tr>
+              <tr><td>指挥器皮膜组件</td><td class="mono">WL-TP-1108</td><td class="mono">98</td><td class="mono">52</td><td><b class="mono">46 套</b></td></tr>
+            </tbody>
+          </table>
+          <div class="callout mt-14">
+            <i class="fa-solid fa-calculator" style="color:var(--c-primary);margin-right:6px;"></i>测算示例：主阀阀芯 需求量 = 84 台 × 1 件 × (1 + 5%) + 6 件安全库存 = <b>94 件</b>；建议采购量 = 94 − 31 可用库存 = <b>63 件</b>。
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-glass btn-sm" onclick="closeModal('modal-purchase')">取消</button>
+          <button class="btn btn-primary btn-sm" onclick="closeModal('modal-purchase');showToast('采购申请已生成并附测算依据，推送物资部采购计划岗')"><i class="fa-solid fa-paper-plane"></i> 一键生成并推送</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       页面4：维保计划执行监控
+       ============================================================ -->
+  <section class="view" id="v-维保计划执行监控">
+    <div class="page-head">
+      <div>
+        <div class="page-title"><i class="fa-solid fa-gauge" style="color:var(--c-primary);margin-right:6px;"></i>维保计划执行监控</div>
+        <div class="page-desc">PC端 + 外勤APP · 维保班组、站长、设备部 ｜ 执行四态全部由工单动作驱动，凭证三件套门槛，每日 08:00 逾期扫描分档升级</div>
+      </div>
+      <div class="flex wrap" style="gap:8px;">
+        <span class="tag tag-cyan"><i class="fa-solid fa-ban"></i> 不设人工改状态入口</span>
+        <span class="tag tag-green"><i class="fa-solid fa-clock"></i> 今日 08:00 扫描已执行</span>
+      </div>
+    </div>
+
+    <div class="grid g-4 mb-14">
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-regular fa-circle"></i> 未开始</div>
+        <div class="stat-value blue">712</div>
+        <div class="stat-sub">工单未签收 ｜ 判定条件：未签收</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-circle-half-stroke"></i> 进行中</div>
+        <div class="stat-value accent">164</div>
+        <div class="stat-sub">已签收未办结，或办结但凭证不全</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-circle-check"></i> 已完成</div>
+        <div class="stat-value green">3,218</div>
+        <div class="stat-sub">办结且凭证三件套齐全</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-circle-exclamation"></i> 逾期</div>
+        <div class="stat-value red">82</div>
+        <div class="stat-sub">超计划周期未办结 ｜ 分档升级中</div>
+      </div>
+    </div>
+
+    <div class="grid g-main-side mb-14">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-table-cells-large"></i>执行看板（运行站 / 班组 / 设备类别 三维度同口径）</div>
+          <span class="tag tag-cyan">2026-10 月度</span>
+        </div>
+        <div class="table-scroll">
+          <table class="glass-table">
+            <thead>
+              <tr><th>运行站 / 班组</th><th>设备类别</th><th>月任务</th><th>未开始</th><th>进行中</th><th>已完成</th><th>逾期</th><th>按期执行率</th><th>操作</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><b>文新站 · 调压 2 班</b></td><td>楼栋调压箱</td><td class="mono">128</td><td class="mono">9</td><td class="mono">5</td><td class="mono">110</td><td><span class="tag tag-red">4</span></td>
+                <td>
+                  <div class="flex" style="gap:8px;"><div class="meter" style="flex:1;min-width:64px;"><div class="meter-fill green" style="width:86%;"></div></div><span class="mono" style="font-size:11.5px;">86%</span></div>
+                </td>
+                <td><button class="btn btn-ghost btn-xs" onclick="openModal('modal-voucher')"><i class="fa-solid fa-shield-halved"></i> 凭证核验</button></td>
+              </tr>
+              <tr>
+                <td><b>祥符站 · 调压 1 班</b></td><td>楼栋调压箱</td><td class="mono">96</td><td class="mono">6</td><td class="mono">3</td><td class="mono">84</td><td><span class="tag tag-orange">3</span></td>
+                <td>
+                  <div class="flex" style="gap:8px;"><div class="meter" style="flex:1;min-width:64px;"><div class="meter-fill green" style="width:88%;"></div></div><span class="mono" style="font-size:11.5px;">88%</span></div>
+                </td>
+                <td><button class="btn btn-ghost btn-xs" onclick="openModal('modal-voucher')"><i class="fa-solid fa-shield-halved"></i> 凭证核验</button></td>
+              </tr>
+              <tr>
+                <td><b>长河站 · 调压 3 班</b></td><td>箱式调压站</td><td class="mono">22</td><td class="mono">1</td><td class="mono">2</td><td class="mono">19</td><td><span class="tag tag-red">2</span></td>
+                <td>
+                  <div class="flex" style="gap:8px;"><div class="meter" style="flex:1;min-width:64px;"><div class="meter-fill orange" style="width:82%;"></div></div><span class="mono" style="font-size:11.5px;">82%</span></div>
+                </td>
+                <td><button class="btn btn-ghost btn-xs" onclick="openModal('modal-voucher')"><i class="fa-solid fa-shield-halved"></i> 凭证核验</button></td>
+              </tr>
+              <tr>
+                <td><b>宁围站 · 调压 1 班</b></td><td>紧急切断阀</td><td class="mono">4</td><td class="mono">0</td><td class="mono">1</td><td class="mono">3</td><td><span class="tag tag-gray">0</span></td>
+                <td>
+                  <div class="flex" style="gap:8px;"><div class="meter" style="flex:1;min-width:64px;"><div class="meter-fill green" style="width:100%;"></div></div><span class="mono" style="font-size:11.5px;">100%</span></div>
+                </td>
+                <td><button class="btn btn-ghost btn-xs" onclick="openModal('modal-voucher')"><i class="fa-solid fa-shield-halved"></i> 凭证核验</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="tiny mt-8">按期执行率口径与效能模块共用；工单办结但凭证不全仍判「进行中」，逐项提示缺什么、不计入完成数。</div>
+      </div>
+
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-shield-halved"></i>已完成凭证门槛 · 三件套</div>
+        </div>
+        <div class="voucher-item">
+          <div class="v-ico"><i class="fa-solid fa-file-signature"></i></div>
+          <div style="flex:1;">
+            <b style="font-size:12.5px;">维保工单签字</b>
+            <div class="tiny">班组签字 + 站长确认，APP 内电子签名</div>
+          </div>
+          <span class="tag tag-green"><i class="fa-solid fa-check"></i> 已校验</span>
+        </div>
+        <div class="voucher-item">
+          <div class="v-ico"><i class="fa-solid fa-camera-retro"></i></div>
+          <div style="flex:1;">
+            <b style="font-size:12.5px;">带水印现场照片</b>
+            <div class="tiny">时间/坐标/工单号水印，设备编号可辨识（复用关键设备稽核能力）</div>
+          </div>
+          <span class="tag tag-green"><i class="fa-solid fa-check"></i> 已校验</span>
+        </div>
+        <div class="voucher-item miss">
+          <div class="v-ico"><i class="fa-solid fa-clipboard-check"></i></div>
+          <div style="flex:1;">
+            <b style="font-size:12.5px;">维保记录单</b>
+            <div class="tiny">必填完整、量程合理（作业时间须落在计划周期内）</div>
+          </div>
+          <span class="tag tag-red">缺 2 项</span>
+        </div>
+        <div class="callout">
+          APP 提交时<b>即时校验</b>：三项凭证不齐，提交按钮不可用——补齐成本从事后几天降到现场几十秒；断网凭证本地暂存，恢复后自动补传。
+        </div>
+        <button class="btn btn-glass btn-sm mt-14" style="width:100%;justify-content:center;" onclick="openModal('modal-voucher')"><i class="fa-solid fa-list-check"></i> 查看逐项校验明细</button>
+      </div>
+    </div>
+
+    <div class="grid g-pc-phone">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-clock-rotate-left"></i>每日 08:00 逾期扫描 · 分档升级</div>
+          <span class="tag tag-red">当前逾期 82 单</span>
+        </div>
+        <div class="timeline">
+          <div class="tl-item">
+            <div class="tl-title">逾期 1-2 天 <span class="tag tag-blue">提醒班组</span></div>
+            <div class="tl-desc">系统提醒责任班组尽快办结；今日命中 47 单，已推送 APP 待办与短信。</div>
+          </div>
+          <div class="tl-item t2">
+            <div class="tl-title">逾期 3-5 天 <span class="tag tag-orange">升级站长 + 填事由</span></div>
+            <div class="tl-desc">升级运行站站长督办，班组必须填写逾期事由；今日命中 28 单，事由归集中。</div>
+          </div>
+          <div class="tl-item t3">
+            <div class="tl-title">逾期 &gt; 5 天 <span class="tag tag-red">升级设备部 · 计入当月台账</span></div>
+            <div class="tl-desc">升级设备部督办并计入当月执行台账；今日命中 7 单，已列入月度例会清单。</div>
+          </div>
+        </div>
+        <hr class="divider">
+        <div class="card-title mb-8"><i class="fa-solid fa-inbox"></i>逾期事由归集与回调</div>
+        <div class="grid g-2" style="gap:10px;">
+          <div class="cond-item"><i class="fa-solid fa-rotate-left ok"></i><div><b>计划排布不合理</b><span class="tiny">（11 单）→ 回调下一轮月度配平参数</span></div></div>
+          <div class="cond-item"><i class="fa-solid fa-user-clock" style="color:var(--c-danger);"></i><div><b>执行没跟上</b><span class="tiny">（18 单）→ 进执行台账，触发流程改进</span></div></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="glass-card mb-14" style="padding:16px 18px;">
+          <div class="card-title mb-8"><i class="fa-solid fa-mobile-screen-button"></i>外勤 APP · 凭证即时校验</div>
+          <div class="tiny">作业：楼栋调压箱 <span class="mono">TYX-1207</span> 维保（工单 <span class="mono">WB-2026-1012-036</span>）</div>
+        </div>
+        <div class="phone-frame">
+          <div class="phone-screen">
+            <div class="phone-notch"></div>
+            <div class="phone-statusbar"><span>09:41</span><span>杭州燃气作业</span><span><i class="fa-solid fa-signal"></i> <i class="fa-solid fa-battery-three-quarters"></i></span></div>
+            <div class="phone-body">
+              <div class="phone-card">
+                <div class="p-title"><span>维保凭证提交</span><span class="tag tag-orange">进行中</span></div>
+                <div class="tiny mt-8">三件套不齐，提交按钮不可用</div>
+              </div>
+              <div class="phone-card">
+                <div class="flex-between"><span style="font-size:12px;"><i class="fa-solid fa-file-signature" style="color:var(--c-ok);"></i> 工单签字</span><span class="tag tag-green" style="font-size:10px;">已签</span></div>
+                <div class="ph-meter"><i style="width:100%;"></i></div>
+              </div>
+              <div class="phone-card">
+                <div class="flex-between"><span style="font-size:12px;"><i class="fa-solid fa-camera-retro" style="color:var(--c-ok);"></i> 现场照片（水印+编号）</span><span class="tag tag-green" style="font-size:10px;">2 张</span></div>
+                <div class="ph-meter"><i style="width:100%;"></i></div>
+              </div>
+              <div class="phone-card">
+                <div class="flex-between"><span style="font-size:12px;"><i class="fa-solid fa-clipboard-check" style="color:var(--c-danger);"></i> 维保记录单</span><span class="tag tag-red" style="font-size:10px;">缺出口压力读数</span></div>
+                <div class="ph-meter"><i style="width:60%;background:linear-gradient(90deg,#FF9500,#FFB340);"></i></div>
+                <div class="tiny mt-8" style="color:#C42B22;">量程校验：出口压力读数缺失，请现场补录</div>
+              </div>
+              <div class="phone-card">
+                <div class="tiny" style="color:var(--c-text-2);"><i class="fa-solid fa-cloud-arrow-up" style="color:var(--c-primary);"></i> 断网时凭证本地暂存，恢复后自动补传</div>
+              </div>
+              <button class="btn btn-sm disabled" style="width:100%;justify-content:center;margin-top:2px;" onclick="showToast('凭证不全：维保记录单缺出口压力读数，提交不可用')"><i class="fa-solid fa-lock"></i> 提交（凭证不全不可用）</button>
+            </div>
+            <div class="phone-tabbar">
+              <div class="phone-tab"><i class="fa-solid fa-house"></i>工作台</div>
+              <div class="phone-tab active"><i class="fa-solid fa-clipboard-list"></i>工单</div>
+              <div class="phone-tab"><i class="fa-solid fa-camera"></i>稽核</div>
+              <div class="phone-tab"><i class="fa-solid fa-user"></i>我的</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 弹窗：凭证校验明细 -->
+    <div class="modal-mask" id="modal-voucher" onclick="if(event.target===this)closeModal('modal-voucher')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-shield-halved" style="color:var(--c-primary);"></i>凭证三件套逐项校验 · WB-2026-1012-036</div>
+          <button class="modal-close" onclick="closeModal('modal-voucher')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert-strip orange">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <div>该工单已办结动作，但凭证不全 → 状态保持<b>「进行中」</b>，不计入完成数。以下为逐项提示（缺什么补什么）：</div>
+          </div>
+          <table class="glass-table">
+            <thead>
+              <tr><th>凭证项</th><th>校验要点</th><th>结果</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><b>维保工单签字</b></td><td>班组签字 + 站长确认（电子签名）</td><td><span class="tag tag-green"><i class="fa-solid fa-check"></i> 通过</span></td></tr>
+              <tr><td><b>带水印现场照片</b></td><td>时间/坐标/工单号水印；设备编号可辨识</td><td><span class="tag tag-green"><i class="fa-solid fa-check"></i> 通过（2 张）</span></td></tr>
+              <tr><td><b>维保记录单</b></td><td>必填完整 · 量程合理 · 作业时间落在计划周期内</td><td><span class="tag tag-red"><i class="fa-solid fa-xmark"></i> 缺出口压力读数</span></td></tr>
+            </tbody>
+          </table>
+          <div class="callout mt-14">
+            补录后自动重校验；校验规则：作业时间落在计划周期内、照片设备编号可辨识、记录单必填完整且量程合理。不设人工改状态入口。
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-glass btn-sm" onclick="closeModal('modal-voucher')">关闭</button>
+          <button class="btn btn-primary btn-sm" onclick="closeModal('modal-voucher');showToast('缺项已推送作业人 APP 待办：补录出口压力读数')"><i class="fa-solid fa-bell"></i> 推送补录待办</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       页面5：阴保检测年度计划与点位排定
+       ============================================================ -->
+  <section class="view" id="v-钢管阴保检测计划-年度计划与点位排定">
+    <div class="page-head">
+      <div>
+        <div class="page-title"><i class="fa-solid fa-bolt-lightning" style="color:var(--c-primary);margin-right:6px;"></i>钢管阴保检测计划 · 年度计划与点位排定</div>
+        <div class="page-desc">PC端 · 阴保专业岗、运行站巡检班组 ｜ 六类检测按各自周期分别排定，测试桩逐桩排定与自动加密，新增钢制管线双条件纳入</div>
+      </div>
+      <div class="flex wrap" style="gap:8px;">
+        <span class="tag tag-cyan"><i class="fa-solid fa-layer-group"></i> 六类不合并成一张计划</span>
+        <button class="btn btn-primary btn-sm" onclick="showToast('年度计划已按六类分别生成，测试桩工单按月滚动下发巡检班组')"><i class="fa-solid fa-calendar-check"></i> 下发月度工单</button>
+      </div>
+    </div>
+
+    <div class="glass-card mb-14">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-table-list"></i>六类检测年度计划</div>
+        <span class="tag tag-cyan">2026 年度</span>
+      </div>
+      <div class="table-scroll">
+        <table class="glass-table">
+          <thead>
+            <tr><th>检测类型</th><th>周期</th><th>点位数（测试桩）</th><th>本年任务</th><th>已完成</th><th>执行进度</th><th>最近批次</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>通电电位检测</b></td><td><span class="tag tag-blue">月度</span></td><td class="mono">1,286</td><td class="mono">15,432</td><td class="mono">11,574</td>
+              <td><div class="flex" style="gap:8px;"><div class="meter" style="flex:1;min-width:80px;"><div class="meter-fill" style="width:75%;"></div></div><span class="mono" style="font-size:11.5px;">75%</span></div></td>
+              <td class="mono">2026-10-25</td>
+            </tr>
+            <tr>
+              <td><b>恒电位仪运行检查</b></td><td><span class="tag tag-blue">月度</span></td><td class="mono">96</td><td class="mono">1,152</td><td class="mono">960</td>
+              <td><div class="flex" style="gap:8px;"><div class="meter" style="flex:1;min-width:80px;"><div class="meter-fill" style="width:83%;"></div></div><span class="mono" style="font-size:11.5px;">83%</span></div></td>
+              <td class="mono">2026-10-24</td>
+            </tr>
+            <tr>
+              <td><b>断电电位检测</b></td><td><span class="tag tag-cyan">季度</span></td><td class="mono">1,286</td><td class="mono">5,144</td><td class="mono">3,859</td>
+              <td><div class="flex" style="gap:8px;"><div class="meter" style="flex:1;min-width:80px;"><div class="meter-fill" style="width:75%;"></div></div><span class="mono" style="font-size:11.5px;">75%</span></div></td>
+              <td class="mono">2026-10-12</td>
+            </tr>
+            <tr>
+              <td><b>绝缘接头检测</b></td><td><span class="tag tag-gray">年度</span></td><td class="mono">412</td><td class="mono">412</td><td class="mono">358</td>
+              <td><div class="flex" style="gap:8px;"><div class="meter" style="flex:1;min-width:80px;"><div class="meter-fill" style="width:87%;"></div></div><span class="mono" style="font-size:11.5px;">87%</span></div></td>
+              <td class="mono">2026-09-28</td>
+            </tr>
+            <tr>
+              <td><b>阳极地床接地电阻检测</b></td><td><span class="tag tag-gray">年度</span></td><td class="mono">96</td><td class="mono">96</td><td class="mono">74</td>
+              <td><div class="flex" style="gap:8px;"><div class="meter" style="flex:1;min-width:80px;"><div class="meter-fill" style="width:77%;"></div></div><span class="mono" style="font-size:11.5px;">77%</span></div></td>
+              <td class="mono">2026-09-20</td>
+            </tr>
+            <tr>
+              <td><b>管地电位普查</b></td><td><span class="tag tag-gray">年度</span></td><td class="mono">1,286</td><td class="mono">1,286</td><td class="mono">802</td>
+              <td><div class="flex" style="gap:8px;"><div class="meter" style="flex:1;min-width:80px;"><div class="meter-fill" style="width:62%;"></div></div><span class="mono" style="font-size:11.5px;">62%</span></div></td>
+              <td class="mono">2026-10-08</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="tiny mt-8">六类不合并成一张计划：防止月度检测被年度节奏拖慢；计划按月滚动生成工单下发巡检班组。</div>
+    </div>
+
+    <div class="grid g-main-side mb-14">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-map-location-dot"></i>测试桩点位排定示意（点位自动加密）</div>
+          <div class="map-legend" style="position:static;">
+            <span><span class="sw" style="background:var(--c-primary);"></span>常规桩</span>
+            <span><span class="sw" style="background:var(--c-warn);"></span>加密桩</span>
+            <span><span class="sw" style="background:var(--c-danger);"></span>异常复测桩</span>
+          </div>
+        </div>
+        <div class="map-canvas" style="min-height:300px;">
+          <svg width="100%" height="100%" viewBox="0 0 760 300" preserveAspectRatio="none" style="position:absolute;inset:0;">
+            <path class="pipe" d="M40,220 C160,200 240,150 340,160 S560,110 720,90" stroke="#0E7490"/>
+            <path class="pipe" d="M60,60 C200,90 300,60 420,90 S600,200 720,230" stroke="#34A8FF" stroke-width="4" opacity=".65"/>
+            <path class="pipe" d="M340,160 L420,90" stroke="#0E7490" stroke-width="3" opacity=".5"/>
+          </svg>
+          <div class="map-pin" style="left:14%;top:62%;background:var(--c-primary);"><i class="fa-solid fa-square"></i></div>
+          <div class="map-pin" style="left:31%;top:44%;background:var(--c-warn);"><i class="fa-solid fa-train"></i></div>
+          <div class="map-pin" style="left:44%;top:47%;background:var(--c-warn);"><i class="fa-solid fa-water"></i></div>
+          <div class="map-pin" style="left:58%;top:32%;background:var(--c-primary);"><i class="fa-solid fa-square"></i></div>
+          <div class="map-pin" style="left:69%;top:28%;background:var(--c-danger);"><i class="fa-solid fa-bolt"></i></div>
+          <div class="map-pin" style="left:79%;top:21%;background:var(--c-warn);"><i class="fa-solid fa-road"></i></div>
+          <div class="map-pin" style="left:24%;top:18%;background:var(--c-info);"><i class="fa-solid fa-square"></i></div>
+          <div class="map-legend">
+            <span><span class="sw" style="background:#0E7490;"></span>钢管 GD-1208</span>
+            <span><span class="sw" style="background:#34A8FF;"></span>并行高压电缆段</span>
+          </div>
+        </div>
+        <div class="grid g-3 mt-14" style="gap:10px;">
+          <div class="cond-item"><i class="fa-solid fa-train-subway" style="color:var(--c-warn);"></i><div><b>穿越加密</b><span class="tiny">铁路/河道/高等级公路两侧</span></div></div>
+          <div class="cond-item"><i class="fa-solid fa-tower-broadcast" style="color:var(--c-warn);"></i><div><b>干扰加密</b><span class="tiny">与高压电缆直流干扰源并行段</span></div></div>
+          <div class="cond-item"><i class="fa-solid fa-layer-group" style="color:var(--c-warn);"></i><div><b>土壤加密</b><span class="tiny">土壤电阻率偏低段</span></div></div>
+        </div>
+        <div class="tiny mt-8">点位按标准间距基准排定，命中加密规则的点位自动加密，<b>加密原因逐条记录</b>（点开地图桩标可查）。</div>
+      </div>
+
+      <div>
+        <div class="glass-card mb-14">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-filter-circle-check"></i>新增钢管识别 · 双条件</div>
+          </div>
+          <div class="cond-item"><i class="fa-solid fa-file-circle-check ok"></i><div><b>条件一</b>：竣工通气单办结</div></div>
+          <div class="cond-item"><i class="fa-solid fa-database ok"></i><div><b>条件二</b>：GIS 管材字段 = 钢质</div></div>
+          <div class="callout mt-8">
+            双条件同时满足才纳入本年计划；纳入后<b>本年剩余检测周期与任务量自动重算</b>，首次检测不迟于通气后一个周期（避免年初一次排定导致当年脱管）。
+          </div>
+          <div class="callout warn mt-8" style="margin-top:10px;">
+            <b>挂起待办：</b>管材字段缺失管段 <span class="mono">GD-1311</span>、<span class="mono">GD-1312</span> 挂起生成核实待办——不误纳、不漏纳。
+          </div>
+          <button class="btn btn-glass btn-sm mt-14" style="width:100%;justify-content:center;" onclick="showToast('挂起待办已推送 GIS 数据岗核实管材字段（2 段）')"><i class="fa-solid fa-paper-plane"></i> 推送管材核实待办</button>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-lock"></i>移出限制</div>
+          </div>
+          <div class="callout danger">
+            系统同样<b>不提供移出入口</b>：点位废弃或管材变更为非钢质，走台账变更流程；变更后自动重算该段剩余检测任务。
+          </div>
+          <div class="tiny mt-8">演示：点击下方按钮查看与巡检排班共用的合规性校验器。</div>
+          <button class="btn btn-danger btn-sm mt-8" style="width:100%;justify-content:center;" onclick="showToast('合规校验器：阴保检测点位不支持移出，请走台账变更流程（演示阻断）')"><i class="fa-solid fa-ban"></i> 演示：尝试移出检测点位</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       页面6：检测数据合规判定与整改闭环
+       ============================================================ -->
+  <section class="view" id="v-钢管阴保检测-检测数据合规判定与整改闭环">
+    <div class="page-head">
+      <div>
+        <div class="page-title"><i class="fa-solid fa-wave-square" style="color:var(--c-primary);margin-right:6px;"></i>钢管阴保检测 · 检测数据合规判定与整改闭环</div>
+        <div class="page-desc">PC端 + 外勤APP · 阴保专业岗、巡检班组 ｜ 阈值写进系统按区段配置，录入即出结论；复测-整改-复测销号；结论结构化回流健康评估</div>
+      </div>
+      <div class="flex wrap" style="gap:8px;">
+        <span class="tag tag-green"><i class="fa-solid fa-bolt"></i> 录入即出结论，不必等报告</span>
+      </div>
+    </div>
+
+    <div class="grid g-main-side mb-14">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-ruler-vertical"></i>断电电位区段阈值判定（区段配置）</div>
+          <span class="tag tag-cyan">区段 GD-1208 阈值组 V3</span>
+        </div>
+        <div class="threshold-row">
+          <div><b style="font-size:12.5px;">合格</b><div class="tiny">保护电位达到准则</div></div>
+          <div class="th-range" style="color:var(--c-ok);">负于 -850mV</div>
+          <span class="tag tag-green">合格</span>
+        </div>
+        <div class="threshold-row">
+          <div><b style="font-size:12.5px;">欠保护</b><div class="tiny">未达保护准则，转入复测</div></div>
+          <div class="th-range" style="color:var(--c-warn);">正于 -850mV</div>
+          <span class="tag tag-orange">欠保护</span>
+        </div>
+        <div class="threshold-row">
+          <div><b style="font-size:12.5px;">过保护风险</b><div class="tiny">防腐层剥离风险，提示核查</div></div>
+          <div class="th-range" style="color:var(--c-info);">负于 -1200mV</div>
+          <span class="tag tag-blue">过保护</span>
+        </div>
+        <div class="threshold-row" style="border:1px dashed rgba(255,149,0,.4);background:var(--c-warn-soft);">
+          <div><b style="font-size:12.5px;">厌氧环境加严</b><div class="tiny">厌氧区段适用加严准则</div></div>
+          <div class="th-range" style="color:#B36A00;">负于 -950mV 方合格</div>
+          <span class="tag tag-accent">加严区段</span>
+        </div>
+        <div class="callout mt-8" style="margin-top:12px;">
+          阈值写进系统、按区段配置，现场不必记判据；<b>量程外异常值要求重测、不落库</b>（录入时即时拦截）。
+        </div>
+      </div>
+
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-repeat"></i>异常点位 · 复测-整改-复测销号</div>
+          <span class="tag tag-red">在办 7 处</span>
+        </div>
+        <div class="steps mb-14" style="flex-direction:column;align-items:stretch;gap:8px;">
+          <div class="step done" style="width:100%;"><span class="dot"><i class="fa-solid fa-check"></i></span>检测异常（欠保护/过保护）</div>
+          <div class="step done" style="width:100%;"><span class="dot"><i class="fa-solid fa-check"></i></span>复测：排除测读误差与接触不良</div>
+          <div class="step active" style="width:100%;"><span class="dot">3</span>复测不合格转整改（调恒电位仪输出/修复防腐层/补充阳极）</div>
+          <div class="step" style="width:100%;"><span class="dot">4</span>整改后再次复测合格 → 销号</div>
+        </div>
+        <div class="callout danger">
+          整改期间该管段按<b>欠保护</b>计入腐蚀因子，不被忽略；同一区段<b>连续多轮欠保护</b>，提示排查阳极地床或防腐层。
+        </div>
+        <button class="btn btn-primary btn-sm mt-14" style="width:100%;justify-content:center;" onclick="showToast('在办异常点位 7 处已推送对应责任岗（阴保专业岗 4 处 / 巡检班组 3 处）')"><i class="fa-solid fa-bell"></i> 推送责任岗跟进</button>
+      </div>
+    </div>
+
+    <div class="grid g-pc-phone">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-heart-pulse"></i>检测结论回流健康评估 · 四字段</div>
+          <span class="tag tag-cyan">结构化回流 · 按管段</span>
+        </div>
+        <div class="table-scroll">
+          <table class="glass-table">
+            <thead>
+              <tr><th>管段</th><th>阴保达标率</th><th>连续欠保护轮次</th><th>最近检测时间</th><th>整改闭环状态</th><th>操作</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="mono">GD-1208</td>
+                <td>
+                  <div class="flex" style="gap:8px;"><div class="meter" style="flex:1;min-width:56px;"><div class="meter-fill green" style="width:94%;"></div></div><span class="mono" style="font-size:11.5px;">94%</span></div>
+                </td>
+                <td><span class="tag tag-gray">0 轮</span></td>
+                <td class="mono">2026-10-12</td>
+                <td><span class="tag tag-green"><i class="fa-solid fa-check"></i> 已闭环</span></td>
+                <td><button class="btn btn-ghost btn-xs" onclick="openModal('modal-judge')"><i class="fa-solid fa-eye"></i> 判定详情</button></td>
+              </tr>
+              <tr>
+                <td class="mono">GD-1103</td>
+                <td>
+                  <div class="flex" style="gap:8px;"><div class="meter" style="flex:1;min-width:56px;"><div class="meter-fill orange" style="width:78%;"></div></div><span class="mono" style="font-size:11.5px;">78%</span></div>
+                </td>
+                <td><span class="tag tag-orange">连续 2 轮</span></td>
+                <td class="mono">2026-10-10</td>
+                <td><span class="tag tag-orange"><i class="fa-solid fa-screwdriver-wrench"></i> 整改中</span></td>
+                <td><button class="btn btn-ghost btn-xs" onclick="openModal('modal-judge')"><i class="fa-solid fa-eye"></i> 判定详情</button></td>
+              </tr>
+              <tr>
+                <td class="mono">GD-0876</td>
+                <td>
+                  <div class="flex" style="gap:8px;"><div class="meter" style="flex:1;min-width:56px;"><div class="meter-fill red" style="width:61%;"></div></div><span class="mono" style="font-size:11.5px;">61%</span></div>
+                </td>
+                <td><span class="tag tag-red">连续 4 轮</span></td>
+                <td class="mono">2026-09-30</td>
+                <td><span class="tag tag-red"><i class="fa-solid fa-triangle-exclamation"></i> 疑似阳极地床失效</span></td>
+                <td><button class="btn btn-ghost btn-xs" onclick="openModal('modal-judge')"><i class="fa-solid fa-eye"></i> 判定详情</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="tiny mt-8">连续多轮欠保护（如 GD-0876 连续 4 轮）自动提示排查阳极地床或防腐层；近六轮欠保护分布随判定详情展示。</div>
+      </div>
+
+      <div>
+        <div class="glass-card mb-14" style="padding:16px 18px;">
+          <div class="card-title mb-8"><i class="fa-solid fa-mobile-screen-button"></i>外勤 APP · 现场录入即时判定</div>
+          <div class="tiny">断电电位检测 · 测试桩 <span class="mono">CS-1208-07</span>（GD-1208）</div>
+        </div>
+        <div class="phone-frame">
+          <div class="phone-screen">
+            <div class="phone-notch"></div>
+            <div class="phone-statusbar"><span>10:24</span><span>阴保检测录入</span><span><i class="fa-solid fa-signal"></i> <i class="fa-solid fa-battery-three-quarters"></i></span></div>
+            <div class="phone-body">
+              <div class="phone-card">
+                <div class="p-title"><span>测读值录入</span><span class="tag tag-cyan">区段阈值 V3</span></div>
+                <div class="flex-between mt-8" style="padding:6px 2px;">
+                  <span style="font-size:12px;color:var(--c-text-2);">断电电位测读值</span>
+                  <span class="mono" style="font-size:18px;font-weight:700;color:var(--c-ok);">-912 mV</span>
+                </div>
+                <div class="flex-between" style="padding:6px 2px;">
+                  <span style="font-size:12px;color:var(--c-text-2);">判定结论（即时）</span>
+                  <span class="tag tag-green"><i class="fa-solid fa-check"></i> 合格（负于 -850mV）</span>
+                </div>
+              </div>
+              <div class="phone-card">
+                <div class="p-title"><span>近六轮判定分布</span></div>
+                <div class="flex mt-8" style="gap:6px;">
+                  <span class="tag tag-green" style="flex:1;justify-content:center;">合格</span>
+                  <span class="tag tag-green" style="flex:1;justify-content:center;">合格</span>
+                  <span class="tag tag-orange" style="flex:1;justify-content:center;">欠保</span>
+                  <span class="tag tag-green" style="flex:1;justify-content:center;">合格</span>
+                  <span class="tag tag-green" style="flex:1;justify-content:center;">合格</span>
+                  <span class="tag tag-green" style="flex:1;justify-content:center;">本轮</span>
+                </div>
+                <div class="tiny mt-8">连续欠保护轮次：0（上轮欠保已复测销号）</div>
+              </div>
+              <div class="phone-card">
+                <div class="p-title"><span>量程拦截示例</span><span class="tag tag-red">不落库</span></div>
+                <div class="tiny mt-8">若录入 <span class="mono">-2600mV</span>（超量程）→ 提示「量程外异常值，要求重测」，不落库。</div>
+              </div>
+              <button class="btn btn-primary btn-sm" style="width:100%;justify-content:center;" onclick="showToast('检测数据已落库，结论「合格」已回流健康评估四字段')"><i class="fa-solid fa-cloud-arrow-up"></i> 提交并回流结论</button>
+            </div>
+            <div class="phone-tabbar">
+              <div class="phone-tab"><i class="fa-solid fa-house"></i>工作台</div>
+              <div class="phone-tab active"><i class="fa-solid fa-bolt-lightning"></i>阴保</div>
+              <div class="phone-tab"><i class="fa-solid fa-clipboard-list"></i>工单</div>
+              <div class="phone-tab"><i class="fa-solid fa-user"></i>我的</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 弹窗：判定详情 -->
+    <div class="modal-mask" id="modal-judge" onclick="if(event.target===this)closeModal('modal-judge')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-wave-square" style="color:var(--c-primary);"></i>检测数据判定详情</div>
+          <button class="modal-close" onclick="closeModal('modal-judge')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <dl class="kv mb-14">
+            <dt>管段 / 桩号</dt><dd class="mono">GD-1103 / CS-1103-12（滨江区 江南大道段）</dd>
+            <dt>测读值</dt><dd class="mono">-793 mV（断电电位）</dd>
+            <dt>区段阈值</dt><dd>合格线 -850mV ｜ 过保护线 -1200mV ｜ 非厌氧区段</dd>
+            <dt>即时结论</dt><dd><span class="tag tag-orange"><i class="fa-solid fa-circle-exclamation"></i> 欠保护（正于 -850mV）</span></dd>
+            <dt>处置路径</dt><dd>先复测排除测读误差与接触不良 → 复测不合格转整改</dd>
+          </dl>
+          <div class="steps mb-14">
+            <div class="step done"><span class="dot"><i class="fa-solid fa-check"></i></span>初测异常</div>
+            <div class="step done"><span class="dot"><i class="fa-solid fa-check"></i></span>复测确认</div>
+            <div class="step active"><span class="dot">3</span>整改中（调恒电位仪输出）</div>
+            <div class="step"><span class="dot">4</span>复测合格销号</div>
+          </div>
+          <div class="callout warn">
+            该管段近六轮欠保护分布：<b>2 轮欠保护</b>（连续 2 轮）；整改期间按欠保护计入腐蚀因子；若下一轮仍欠保护，将提示排查阳极地床或防腐层。
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-glass btn-sm" onclick="closeModal('modal-judge')">关闭</button>
+          <button class="btn btn-primary btn-sm" onclick="closeModal('modal-judge');showToast('整改任务已通知阴保专业岗：调整恒电位仪输出后复测')"><i class="fa-solid fa-paper-plane"></i> 通知整改责任岗</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+function switchView(vid){
+  document.querySelectorAll('.view').forEach(function(v){v.classList.remove('active');});
+  var el=document.getElementById(vid); if(el){el.classList.add('active');}
+  document.querySelectorAll('.seg-item[data-view]').forEach(function(b){
+    b.classList.toggle('active', b.getAttribute('data-view')===vid);
+  });
+  try{history.replaceState(null,'','#'+encodeURIComponent(vid));}catch(e){}
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function openModal(id){var m=document.getElementById(id); if(m){m.classList.add('open');}}
+function closeModal(id){var m=document.getElementById(id); if(m){m.classList.remove('open');}}
+function showToast(msg){
+  var t=document.getElementById('app-toast');
+  if(!t){t=document.createElement('div');t.id='app-toast';t.className='toast';document.body.appendChild(t);}
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._tm);t._tm=setTimeout(function(){t.classList.remove('show');},2200);
+}
+window.addEventListener('hashchange',function(){
+  var h=decodeURIComponent(location.hash.replace('#',''));
+  if(h&&document.getElementById(h)){switchView(h);}
+});
+(function(){
+  var h=decodeURIComponent(location.hash.replace('#',''));
+  if(h&&document.getElementById(h)){switchView(h);}
+})();
+</script>
+</body>
+</html>

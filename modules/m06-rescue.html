@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M06 · 应急抢修资源推荐助手</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="../styles/liquid-glass.css">
+<style>
+/* ===== M06 module-specific layout（配色一律引用全局 CSS 变量） ===== */
+.g-5 { grid-template-columns: repeat(5, 1fr); }
+@media (max-width: 1100px) { .g-5 { grid-template-columns: repeat(2, 1fr); } }
+
+.map-tall { min-height: 560px; }
+.map-short { min-height: 240px; }
+
+/* 资源标记：四类形状 × 四态颜色 */
+.res { position: absolute; width: 18px; height: 18px; border: 2px solid #fff; box-shadow: 0 2px 8px rgba(22,50,60,.28); cursor: pointer; z-index: 4; transition: transform .15s ease; }
+.res:hover { transform: scale(1.28); z-index: 6; }
+.sh-sq { border-radius: 4px; }
+.sh-di { border-radius: 3px; transform: rotate(45deg); }
+.sh-di:hover { transform: rotate(45deg) scale(1.28); }
+.sh-ci { border-radius: 50%; }
+.sh-tr { clip-path: polygon(50% 0, 100% 100%, 0 100%); border: none; box-shadow: none; filter: drop-shadow(0 2px 3px rgba(22,50,60,.35)); }
+.st-idle { background: var(--c-ok); }
+.st-busy { background: var(--c-info); }
+.st-work { background: var(--c-warn); }
+.st-off  { background: #94A3B8; }
+.res-mini { position: relative; display: inline-block; width: 14px; height: 14px; border: 1.5px solid #fff; box-shadow: 0 1px 4px rgba(22,50,60,.25); flex-shrink: 0; }
+.res-label { position: absolute; z-index: 5; font-size: 10px; font-weight: 600; color: var(--c-text-2); background: rgba(255,255,255,.72); padding: 1px 7px; border-radius: 999px; pointer-events: none; white-space: nowrap; }
+.ev-pin { background: var(--c-danger); animation: evPulse 1.6s ease-out infinite; }
+@keyframes evPulse { 0% { box-shadow: 0 0 0 0 rgba(255,59,48,.55); } 100% { box-shadow: 0 0 0 20px rgba(255,59,48,0); } }
+
+/* 近2小时轨迹条 */
+.track-bar { display: flex; gap: 2px; height: 12px; }
+.track-bar .tk { flex: 1; min-width: 4px; border-radius: 3px; }
+.tk { display: inline-block; width: 10px; height: 10px; border-radius: 3px; vertical-align: -1px; }
+.tk-idle { background: var(--c-ok); }
+.tk-busy { background: var(--c-info); }
+.tk-work { background: var(--c-warn); }
+.tk-off  { background: #B6C2CE; }
+.tk-na   { background: rgba(22,50,60,.10); }
+
+/* 过滤 chip */
+.chip { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; padding: 4px 12px; border-radius: 999px; border: 1px solid var(--glass-border); background: rgba(255,255,255,.55); color: var(--c-text-2); cursor: pointer; font-family: inherit; transition: all .15s ease; }
+.chip:hover { color: var(--c-primary); }
+.chip.off { opacity: .45; text-decoration: line-through; }
+
+/* 编号章 / 步骤卡 */
+.num-chip { width: 30px; height: 30px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-family: 'DM Mono', monospace; font-weight: 700; color: #fff; background: linear-gradient(135deg, var(--c-primary), var(--c-primary-hi)); flex-shrink: 0; box-shadow: 0 3px 10px rgba(14,116,144,.25); font-size: 13px; }
+
+/* 时间线 */
+.tl { position: relative; margin-left: 6px; padding-left: 24px; }
+.tl::before { content: ''; position: absolute; left: 6px; top: 8px; bottom: 8px; width: 2px; background: rgba(22,50,60,.12); border-radius: 2px; }
+.tl-item { position: relative; padding-bottom: 16px; }
+.tl-item::before { content: ''; position: absolute; left: -19px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: var(--c-text-3); }
+.tl-item.ok::before { background: var(--c-ok); }
+.tl-item.warn::before { background: var(--c-warn); }
+.tl-item.red::before { background: var(--c-danger); }
+.tl-item.blue::before { background: var(--c-info); }
+
+/* 两方案对比 */
+.vs-wrap { display: grid; grid-template-columns: 1fr 70px 1fr; align-items: stretch; }
+@media (max-width: 1100px) { .vs-wrap { grid-template-columns: 1fr; } .vs-badge { display: none; } }
+.vs-badge { align-self: center; justify-self: center; width: 54px; height: 54px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'DM Mono', monospace; font-weight: 700; font-size: 15px; color: var(--c-primary); background: var(--glass-bg-strong); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow), var(--glass-inner); z-index: 2; }
+.big-eta { font-family: 'DM Mono', monospace; font-size: 30px; font-weight: 700; line-height: 1.1; letter-spacing: -0.5px; }
+
+.eta-parts { display: flex; gap: 8px; flex-wrap: wrap; }
+.eta-part { font-size: 11px; font-weight: 600; padding: 4px 11px; background: var(--c-primary-soft); color: var(--c-primary); border-radius: 999px; }
+.eta-part.accent { background: var(--c-accent-soft); color: #C77700; }
+
+.score-cell { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--c-text-2); }
+.score-cell b { color: var(--c-primary); }
+
+.drawer-head { padding: 16px 22px; border-bottom: 1px solid var(--c-line); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+.drawer-body { padding: 20px 22px; overflow-y: auto; }
+
+.bnd { position: absolute; border: 1.5px dashed rgba(14,116,144,.35); background: rgba(14,116,144,.05); border-radius: 14px; }
+.bnd-b { border-color: rgba(255,149,0,.45); background: rgba(255,149,0,.06); }
+.bnd-label { position: absolute; font-size: 11px; font-weight: 700; color: var(--c-primary); opacity: .75; }
+</style>
+</head>
+<body>
+<div class="ambient-blob"></div>
+<div class="module-wrap">
+
+  <!-- ===== 模块头 ===== -->
+  <div class="module-top">
+    <div>
+      <div class="flex wrap">
+        <div class="module-title">应急抢修资源推荐助手</div>
+        <span class="badge badge-mid">优先级 中</span>
+      </div>
+      <div class="module-sub">条款 5.4.5 · 四类资源三态实时可视化 · 网格责任映射与四步归属判定 · 工单落库 1 秒弹窗推荐 · 跨区域强制指派首响 · 多通道指令下发与回执</div>
+    </div>
+    <div class="seg">
+      <button class="seg-item active" data-view="v-抢修资源可视化-资源实时态势" onclick="switchView('v-抢修资源可视化-资源实时态势')">资源实时态势</button>
+      <button class="seg-item" data-view="v-网格化管理-网格与责任映射维护" onclick="switchView('v-网格化管理-网格与责任映射维护')">网格责任映射</button>
+      <button class="seg-item" data-view="v-网格化管理-跨网格归属判定与层级上报" onclick="switchView('v-网格化管理-跨网格归属判定与层级上报')">跨网格归属判定</button>
+      <button class="seg-item" data-view="v-智能调度与指令下发-工单生成瞬间弹窗推荐" onclick="switchView('v-智能调度与指令下发-工单生成瞬间弹窗推荐')">工单弹窗推荐</button>
+      <button class="seg-item" data-view="v-智能调度与指令下发-跨区域强制指派首响" onclick="switchView('v-智能调度与指令下发-跨区域强制指派首响')">跨区首响指派</button>
+      <button class="seg-item" data-view="v-智能调度与指令下发-多通道指令下发与回执" onclick="switchView('v-智能调度与指令下发-多通道指令下发与回执')">多通道指令下发</button>
+    </div>
+  </div>
+
+  <!-- ================= 页面1：抢修资源可视化·资源实时态势 ================= -->
+  <section class="view active" id="v-抢修资源可视化-资源实时态势">
+    <div class="page-head">
+      <div>
+        <div class="page-title">抢修资源可视化 · 资源实时态势</div>
+        <div class="page-desc">PC 调度台 · 调度员/站长 · 四类角色 × 四态实时地图 · 状态由派单、到场回执、工单办结三个业务动作自动驱动</div>
+      </div>
+      <button class="btn btn-glass btn-sm" onclick="showToast('已手动触发一次定位刷新（常规为 30 秒自动刷新）')"><i class="fa-solid fa-rotate"></i> 手动刷新</button>
+    </div>
+
+    <div class="alert-strip blue"><i class="fa-solid fa-satellite-dish"></i><span>定位数据每 <b>30 秒</b>自动刷新 · 上次刷新 <span class="mono" id="rf-time">10:42:05</span> · <span class="mono" id="rf-count">30</span> 秒后刷新 · 市级缩放按基地聚合、区级展开单体；大面积定位中断时显式标注数据可用性与最后刷新时间</span></div>
+    <div class="alert-strip orange"><i class="fa-solid fa-triangle-exclamation"></i><span>离线剔除说明：定位连续 <b>15 分钟</b>未更新自动转「离线」并从候选池剔除（<b>离线 ≠ 空闲</b>），推送所属站长核实；车辆 2 小时无数据转「待核实」；资质与随车设备每日 07:00 校验、过期自动退出候选池。</span></div>
+
+    <div class="grid g-main-side">
+      <!-- 左：调度地图 -->
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-map-location-dot"></i>调度地图 · 抢修车辆与特种设备同图层</div>
+          <div class="flex wrap">
+            <button class="chip st-idle" data-name="空闲" onclick="toggleLayer(this,'idle')" style="border:none;color:#1E9E44;"><span class="tk tk-idle"></span>空闲</button>
+            <button class="chip st-busy" data-name="在途" onclick="toggleLayer(this,'busy')" style="border:none;color:#0B7FD4;"><span class="tk tk-busy"></span>在途</button>
+            <button class="chip st-work" data-name="作业中" onclick="toggleLayer(this,'work')" style="border:none;color:#C67200;"><span class="tk tk-work"></span>作业中</button>
+            <button class="chip st-off" data-name="离线" onclick="toggleLayer(this,'off')" style="border:none;color:#64748B;"><span class="tk tk-off"></span>离线</button>
+          </div>
+        </div>
+        <div class="map-canvas map-tall" id="map-main">
+          <svg style="position:absolute;inset:0;width:100%;height:100%;" viewBox="0 0 1000 620" preserveAspectRatio="none">
+            <rect x="40" y="80" width="480" height="430" rx="18" fill="rgba(14,116,144,0.04)" stroke="rgba(14,116,144,0.22)" stroke-dasharray="8 6" stroke-width="1.5"/>
+            <rect x="470" y="120" width="470" height="440" rx="18" fill="rgba(52,199,89,0.04)" stroke="rgba(52,199,89,0.22)" stroke-dasharray="8 6" stroke-width="1.5"/>
+            <text x="70" y="112" font-size="20" font-weight="600" fill="#0E7490" opacity=".6">滨江网格组</text>
+            <text x="505" y="152" font-size="20" font-weight="600" fill="#1E9E44" opacity=".6">城东网格组</text>
+            <polyline class="pipe" points="40,120 240,150 480,120 720,180 960,140" stroke="#FF9500" opacity=".55"/>
+            <polyline class="pipe" points="60,520 260,380 520,330 760,250 950,180" stroke="#34A8FF"/>
+            <polyline class="pipe" points="120,600 300,470 560,420 820,360 980,300" stroke="#34C759"/>
+            <polyline class="pipe" points="260,380 320,240 520,180" stroke="#34A8FF" opacity=".6"/>
+            <polyline class="pipe" points="520,330 620,470 800,520" stroke="#34A8FF" opacity=".6"/>
+          </svg>
+
+          <!-- 泄漏事件点 -->
+          <div class="map-pin ev-pin" style="left:62%;top:36%;" onclick="showToast('泄漏事件 GD-2025-0871 · 一级 · 已触发弹窗推荐')"><i class="fa-solid fa-fire"></i></div>
+          <span class="res-label" style="left:60.5%;top:39.5%;">GD-2025-0871 泄漏</span>
+
+          <!-- 抢修班组（方形） -->
+          <div class="res sh-sq st-idle" style="left:30%;top:30%;" onclick="openResDrawer('qx-a')" title="抢修A组"></div>
+          <span class="res-label" style="left:29%;top:26.2%;">抢修A组</span>
+          <div class="res sh-sq st-work" style="left:68%;top:52%;" onclick="openResDrawer('qx-b')" title="抢修B组"></div>
+          <span class="res-label" style="left:67%;top:48.2%;">抢修B组</span>
+          <div class="res sh-sq st-busy" style="left:45%;top:62%;" onclick="openResDrawer('qx-d')" title="抢修D组"></div>
+          <div class="res sh-sq st-off" style="left:80%;top:20%;" onclick="openResDrawer('qx-f')" title="抢修F组"></div>
+
+          <!-- 调压（菱形） -->
+          <div class="res sh-di st-idle" style="left:22%;top:48%;" onclick="openResDrawer('dy-1')" title="调压工 陈*华"></div>
+          <div class="res sh-di st-work" style="left:58%;top:26%;" onclick="openResDrawer('dy-2')" title="调压工 吴*芳"></div>
+          <div class="res sh-di st-busy" style="left:74%;top:64%;" onclick="openResDrawer('dy-3')" title="调压工 周*斌"></div>
+
+          <!-- 巡检（圆形） -->
+          <div class="res sh-ci st-busy" style="left:40%;top:45%;" onclick="openResDrawer('xj-1')" title="巡检员 张*明"></div>
+          <div class="res sh-ci st-idle" style="left:18%;top:72%;" onclick="openResDrawer('xj-2')" title="巡检员 刘*涛"></div>
+          <div class="res sh-ci st-off" style="left:86%;top:40%;" onclick="openResDrawer('xj-3')" title="巡检员 赵*磊"></div>
+
+          <!-- 站长（三角形） -->
+          <div class="res sh-tr st-idle" style="left:33%;top:58%;" onclick="openResDrawer('zz-1')" title="站长 王*强"></div>
+          <span class="res-label" style="left:32%;top:61.6%;">站长 王*强</span>
+          <div class="res sh-tr st-busy" style="left:52%;top:78%;" onclick="openResDrawer('zz-2')" title="站长 郑*红"></div>
+
+          <div class="map-legend">
+            <span><span class="res-mini sh-sq" style="background:#94A3B8;"></span>抢修</span>
+            <span><span class="res-mini sh-di" style="background:#94A3B8;"></span>调压</span>
+            <span><span class="res-mini sh-ci" style="background:#94A3B8;"></span>巡检</span>
+            <span><span class="res-mini sh-tr" style="background:#94A3B8;"></span>站长</span>
+            <span><span class="res-mini" style="background:var(--c-danger);"></span>事件点</span>
+          </div>
+        </div>
+        <div class="tiny mt-8"><i class="fa-solid fa-circle-info"></i> 点击地图点位查看资源详情（班组人员、随车设备、资质、近 2 小时轨迹）；地图 / 列表点选联动高亮。橙色=高压 · 蓝色=中压 · 绿色=低压。</div>
+      </div>
+
+      <!-- 右：统计与设备 -->
+      <div class="grid" style="align-content:start;">
+        <div class="grid g-2">
+          <div class="stat-card">
+            <div class="stat-label"><i class="fa-solid fa-users-viewfinder"></i>四类资源在线</div>
+            <div class="stat-value blue">42</div>
+            <div class="stat-sub">抢修组 12 · 巡检 18 · 调压 8 · 站长 4</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label"><i class="fa-solid fa-mug-hot"></i>空闲</div>
+            <div class="stat-value green">18</div>
+            <div class="stat-sub">可进入推荐候选池</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label"><i class="fa-solid fa-helmet-safety"></i>作业中</div>
+            <div class="stat-value orange">15</div>
+            <div class="stat-sub">业务动作自动流转</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label"><i class="fa-solid fa-plug-circle-xmark"></i>离线（已剔除）</div>
+            <div class="stat-value">3</div>
+            <div class="stat-sub">离线 ≠ 空闲 · 已推送站长核实</div>
+          </div>
+        </div>
+        <div class="glass-card">
+          <div class="card-head"><div class="card-title"><i class="fa-solid fa-truck-monster"></i>特种设备状态</div><span class="tag tag-green">每日 07:00 校验</span></div>
+          <ul class="icon-list">
+            <li><i class="fa-solid fa-bolt"></i><span>应急发电车 6 台 · <span class="tag tag-green">可用 4</span> <span class="tag tag-orange">维保中 1</span> <span class="tag tag-blue">已借出 1</span></span></li>
+            <li><i class="fa-solid fa-truck-fast"></i><span>大型抢修车辆 8 辆 · <span class="tag tag-green">可用 6</span> <span class="tag tag-orange">作业中 2</span></span></li>
+            <li><i class="fa-solid fa-wrench"></i><span>堵漏 / 切管套丝机 15 套 · <span class="tag tag-green">全部可用</span> 资质过期自动退出候选池</span></li>
+          </ul>
+        </div>
+        <div class="glass-card soft">
+          <div class="card-title mb-8"><i class="fa-solid fa-shapes"></i>四态颜色口径</div>
+          <div class="flex wrap" style="gap:8px;">
+            <span class="tag tag-green">空闲 绿</span>
+            <span class="tag tag-blue">在途 蓝</span>
+            <span class="tag tag-orange">作业中 橙</span>
+            <span class="tag tag-gray">离线 灰</span>
+          </div>
+          <div class="tiny mt-8">状态由派单、到场回执、工单办结三个业务动作自动驱动，不设人工改状态入口。</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 资源详情抽屉 -->
+    <div class="glass-drawer" id="drawer-res">
+      <div class="drawer-head">
+        <div class="card-title"><i class="fa-solid fa-circle-info"></i>资源详情</div>
+        <button class="modal-close" onclick="closeModal('drawer-res')">&times;</button>
+      </div>
+      <div class="drawer-body" id="dr-body"></div>
+    </div>
+  </section>
+
+  <!-- ================= 页面2：网格化管理·网格与责任映射维护 ================= -->
+  <section class="view" id="v-网格化管理-网格与责任映射维护">
+    <div class="page-head">
+      <div>
+        <div class="page-title">网格化管理 · 网格与责任映射维护</div>
+        <div class="page-desc">PC 端（后台）· 后台管理员 · 网格-运行站-责任站长-常驻班组映射维护 · 变更次日零时生效 · 每日五项完整性自检</div>
+      </div>
+      <button class="btn btn-glass btn-sm" onclick="showToast('映射变更已提交运行部审批，次日零时生效')"><i class="fa-solid fa-plus"></i> 新增映射</button>
+    </div>
+
+    <div class="alert-strip cyan"><i class="fa-solid fa-clock-rotate-left"></i><span>变更经运行部审批、<b>次日零时生效</b>；生效前事件按原映射判定、不追溯；复盘按事件发生时点的映射版本判定。当前生效版本 <span class="mono">v2025.10.27</span>（运行部审批通过）。</span></div>
+
+    <div class="glass-card">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-table-cells-large"></i>网格责任矩阵</div>
+        <span class="tiny">管径覆盖：每网格管网里程 80–160 km · 边界支持地图绘制 / GIS 导入</span>
+      </div>
+      <div class="table-scroll">
+        <table class="glass-table">
+          <thead>
+            <tr><th>网格名称</th><th>所属运行站</th><th>责任站长</th><th>联系方式</th><th>常驻班组</th><th>管网里程</th><th>边界要素</th><th>操作</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="mono">滨江-01</td><td>滨江运行站</td><td>王*强</td><td class="mono">138****6601</td><td>抢修A组</td><td class="mono">96.4 km</td><td>GIS 面 · 2025-08 版</td><td><button class="icon-btn" onclick="showToast('映射变更已提交运行部审批，次日零时生效')" title="编辑"><i class="fa-solid fa-pen"></i></button> <button class="icon-btn" onclick="showToast('已打开 GIS 边界绘制：保存时自动执行重叠与覆盖空白校验')" title="边界"><i class="fa-solid fa-draw-polygon"></i></button></td></tr>
+            <tr><td class="mono">滨江-02</td><td>滨江运行站</td><td>郑*红</td><td class="mono">139****2210</td><td>抢修C组</td><td class="mono">128.7 km</td><td>GIS 面 · 2025-08 版</td><td><button class="icon-btn" onclick="showToast('映射变更已提交运行部审批，次日零时生效')" title="编辑"><i class="fa-solid fa-pen"></i></button> <button class="icon-btn" onclick="showToast('已打开 GIS 边界绘制：保存时自动执行重叠与覆盖空白校验')" title="边界"><i class="fa-solid fa-draw-polygon"></i></button></td></tr>
+            <tr><td class="mono">滨江-03</td><td>滨江运行站</td><td>王*强</td><td class="mono">137****5532</td><td>抢修A组 / 抢修D组</td><td class="mono">142.5 km</td><td>GIS 面 · 2025-10 版</td><td><button class="icon-btn" onclick="showToast('映射变更已提交运行部审批，次日零时生效')" title="编辑"><i class="fa-solid fa-pen"></i></button> <button class="icon-btn" onclick="showToast('已打开 GIS 边界绘制：保存时自动执行重叠与覆盖空白校验')" title="边界"><i class="fa-solid fa-draw-polygon"></i></button></td></tr>
+            <tr><td class="mono">城东-01</td><td>城东运行站</td><td>刘*涛</td><td class="mono">136****8817</td><td>抢修E组</td><td class="mono">88.2 km</td><td>GIS 面 · 2025-08 版</td><td><button class="icon-btn" onclick="showToast('映射变更已提交运行部审批，次日零时生效')" title="编辑"><i class="fa-solid fa-pen"></i></button> <button class="icon-btn" onclick="showToast('已打开 GIS 边界绘制：保存时自动执行重叠与覆盖空白校验')" title="边界"><i class="fa-solid fa-draw-polygon"></i></button></td></tr>
+            <tr><td class="mono">城西-01</td><td>城西运行站</td><td>陈*华</td><td class="mono">135****4409</td><td>抢修F组</td><td class="mono">153.1 km</td><td>GIS 面 · 2025-08 版</td><td><button class="icon-btn" onclick="showToast('映射变更已提交运行部审批，次日零时生效')" title="编辑"><i class="fa-solid fa-pen"></i></button> <button class="icon-btn" onclick="showToast('已打开 GIS 边界绘制：保存时自动执行重叠与覆盖空白校验')" title="边界"><i class="fa-solid fa-draw-polygon"></i></button></td></tr>
+            <tr><td class="mono">之江-01</td><td>之江运行站</td><td>吴*芳</td><td class="mono">138****7725</td><td>抢修G组</td><td class="mono">82.6 km</td><td>GIS 面 · 2025-08 版</td><td><button class="icon-btn" onclick="showToast('映射变更已提交运行部审批，次日零时生效')" title="编辑"><i class="fa-solid fa-pen"></i></button> <button class="icon-btn" onclick="showToast('已打开 GIS 边界绘制：保存时自动执行重叠与覆盖空白校验')" title="边界"><i class="fa-solid fa-draw-polygon"></i></button></td></tr>
+            <tr><td class="mono">城东-02</td><td>城东运行站</td><td>郑*红</td><td class="mono">139****2210</td><td><span class="tag tag-red">暂无常驻班组</span></td><td class="mono">104.3 km</td><td>GIS 面 · 2025-08 版</td><td><button class="icon-btn" onclick="showToast('映射变更已提交运行部审批，次日零时生效')" title="编辑"><i class="fa-solid fa-pen"></i></button> <button class="icon-btn" onclick="showToast('已打开 GIS 边界绘制：保存时自动执行重叠与覆盖空白校验')" title="边界"><i class="fa-solid fa-draw-polygon"></i></button></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="tiny mt-8"><i class="fa-solid fa-shield-halved"></i> 保存时自动执行边界重叠与覆盖空白校验：冲突阻断提交并定位冲突区，修复后方可再次提交。</div>
+    </div>
+
+    <div class="glass-card mt-14">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-list-check"></i>每日五项完整性自检（07:00）</div>
+        <span class="tag tag-cyan">空缺与覆盖空白为 0 是「任一位置都有责任人」的前提</span>
+      </div>
+      <div class="grid g-5">
+        <div class="stat-card">
+          <div class="stat-label"><i class="fa-solid fa-file-circle-xmark"></i>映射空缺</div>
+          <div class="stat-value green">0</div>
+          <div class="stat-sub mb-8">全部网格映射完整</div>
+          <span class="tag tag-green">通过</span>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label"><i class="fa-solid fa-object-intersect"></i>边界重叠</div>
+          <div class="stat-value orange">1</div>
+          <div class="stat-sub mb-8">滨江-02 × 之江-01 交叉约 420 米</div>
+          <button class="btn btn-glass btn-xs" onclick="openModal('modal-conflict')"><i class="fa-solid fa-crosshairs"></i> 定位冲突区</button>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label"><i class="fa-solid fa-map-pin"></i>覆盖空白</div>
+          <div class="stat-value green">0</div>
+          <div class="stat-sub mb-8">无 GIS 覆盖空白区域</div>
+          <span class="tag tag-green">通过</span>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label"><i class="fa-solid fa-user-slash"></i>责任人离岗未更新</div>
+          <div class="stat-value accent">2</div>
+          <div class="stat-sub mb-8">郑*红（休假）· 吴*芳（培训）待移交</div>
+          <button class="btn btn-glass btn-xs" onclick="showToast('已发起责任人变更：待运行部审批，次日零时生效')"><i class="fa-solid fa-arrows-rotate"></i> 更新责任人</button>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label"><i class="fa-solid fa-people-group"></i>无常驻班组</div>
+          <div class="stat-value red">1</div>
+          <div class="stat-sub mb-8">城东-02 暂无常驻班组（硬缺陷）</div>
+          <button class="btn btn-danger btn-xs" onclick="showToast('已生成高优先待办并推送城东运行站站长')"><i class="fa-solid fa-flag"></i> 生成高优先待办</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 边界冲突弹窗 -->
+    <div class="modal-mask" id="modal-conflict" onclick="if(event.target===this)closeModal('modal-conflict')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-object-intersect"></i>边界重叠冲突 · 滨江-02 × 之江-01</div>
+          <button class="modal-close" onclick="closeModal('modal-conflict')">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="map-canvas map-short">
+            <div class="bnd" style="left:10%;top:12%;width:55%;height:72%;"></div>
+            <div class="bnd bnd-b" style="left:42%;top:28%;width:48%;height:62%;"></div>
+            <span class="bnd-label" style="left:14%;top:16%;">滨江-02</span>
+            <span class="bnd-label" style="left:80%;top:32%;color:#C67200;">之江-01</span>
+            <div class="map-pin ev-pin" style="left:56%;top:48%;" onclick="showToast('冲突区：交叉约 420 米，保存已阻断')"><i class="fa-solid fa-crosshairs"></i></div>
+          </div>
+          <dl class="kv mt-14">
+            <dt>冲突范围</dt><dd>交叉约 420 米（钱塘江沿岸带）</dd>
+            <dt>阻断规则</dt><dd>保存自动校验 → 冲突阻断提交并定位冲突区</dd>
+            <dt>建议处置</dt><dd>以江堤路中心线重新绘制滨江-02 东侧边界</dd>
+          </dl>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-glass" onclick="showToast('已重新绘制：重叠与覆盖空白校验通过，待审批');closeModal('modal-conflict')"><i class="fa-solid fa-draw-polygon"></i> 重新绘制边界</button>
+          <button class="btn btn-danger" onclick="showToast('已生成高优先待办：边界重叠修复');closeModal('modal-conflict')"><i class="fa-solid fa-flag"></i> 生成待办</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 页面3：网格化管理·跨网格归属判定与层级上报 ================= -->
+  <section class="view" id="v-网格化管理-跨网格归属判定与层级上报">
+    <div class="page-head">
+      <div>
+        <div class="page-title">网格化管理 · 跨网格归属判定与层级上报</div>
+        <div class="page-desc">PC 调度台 · 调度员/站长 · 四步归属判定 + 按事件级别的层级上报路径与签收时限</div>
+      </div>
+      <button class="btn btn-glass btn-sm" onclick="showToast('坐标缺失 / 辖区外事件：已标记「坐标存疑」并生成核查待办，请人工指定网格')"><i class="fa-solid fa-location-dot-slash"></i> 坐标存疑·人工指定</button>
+    </div>
+
+    <div class="alert-strip blue"><i class="fa-solid fa-lock"></i><span>四步规则<b>固定</b>、不可由调度员临时更改，保证同一事件归属结论一致；判定依据随工单留痕，异议走复核申请由运行部裁定。</span></div>
+
+    <div class="grid g-4">
+      <div class="glass-card">
+        <div class="flex mb-8"><span class="num-chip">1</span><b>受影响管段归属</b></div>
+        <div class="tiny">优先按事件关联管段（GD-XXXX）台账归属网格判定，管段台账唯一对应主责网格。</div>
+        <div class="mt-8"><span class="tag tag-cyan">固定规则</span></div>
+      </div>
+      <div class="glass-card">
+        <div class="flex mb-8"><span class="num-chip">2</span><b>坐标落区</b></div>
+        <div class="tiny">无关联管段时，按事件坐标落入网格 GIS 边界面判定主责网格。</div>
+        <div class="mt-8"><span class="tag tag-cyan">固定规则</span></div>
+      </div>
+      <div class="glass-card">
+        <div class="flex mb-8"><span class="num-chip">3</span><b>边界带 ±30 米</b></div>
+        <div class="tiny">坐标位于边界带 ±30 米内 → 双网格同时通知；先到场者处置，另一方自动转支援。</div>
+        <div class="mt-8"><span class="tag tag-orange">双网格并行</span></div>
+      </div>
+      <div class="glass-card">
+        <div class="flex mb-8"><span class="num-chip">4</span><b>跨网格管段</b></div>
+        <div class="tiny">跨网格管段按<b>上游阀室</b>所在网格确定主责网格，另一方列为协同网格。</div>
+        <div class="mt-8"><span class="tag tag-cyan">固定规则</span></div>
+      </div>
+    </div>
+
+    <div class="glass-card mt-14">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-timeline"></i>层级上报路径与签收时限</div>
+        <span class="tiny">超时未签收自动升级并短信告知</span>
+      </div>
+      <div class="table-scroll">
+        <table class="glass-table">
+          <thead>
+            <tr><th>事件级别</th><th>通知时限</th><th>上报路径</th><th>通知方式</th><th>签收要求</th><th>超时处理</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><span class="tag tag-red">一级</span></td><td class="mono">15 分钟</td><td>站长 + 运行部 + 公司总值班</td><td><b>三级并行通知</b></td><td>三方签收（送达/签收双状态）</td><td>超时自动升级 + 短信告知</td></tr>
+            <tr><td><span class="tag tag-orange">二级</span></td><td class="mono">30 分钟</td><td>站长逐级上报 → 运行部</td><td>逐级</td><td>站长签收</td><td>超时自动升级 + 短信告知</td></tr>
+            <tr><td><span class="tag tag-yellow">三级</span></td><td class="mono">2 小时</td><td>站长</td><td>单级</td><td>知悉签收</td><td>超时自动升级 + 短信告知</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="grid g-main-side mt-14">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-bell-concierge"></i>签收状态时间线 · GD-2025-0871（一级）</div>
+          <span class="tag tag-red">一级 · 15 分钟三方并行</span>
+        </div>
+        <div class="tl">
+          <div class="tl-item blue"><b>10:41:32</b> 事件入库（泄漏 · 滨江区江虹路×滨盛路口）</div>
+          <div class="tl-item blue"><b>10:41:33</b> 归属判定完成：命中规则 ①+④ → 主责网格 滨江-03</div>
+          <div class="tl-item blue"><b>10:41:35</b> 三级并行送达：滨江站长 王*强 / 运行部值班长 / 公司总值班</div>
+          <div class="tl-item ok"><b>10:42:08</b> 滨江站长 王*强 签收（APP）</div>
+          <div class="tl-item ok"><b>10:43:12</b> 公司总值班 签收（短信回复 R）</div>
+          <div class="tl-item warn"><b>10:44:00</b> 运行部值班长 送达未签收 · 剩余签收窗口 11 分钟</div>
+          <div class="tl-item"><b>时限 10:56:35</b> 超时未签收将自动升级并短信告知</div>
+        </div>
+      </div>
+      <div class="grid" style="align-content:start;">
+        <div class="glass-card">
+          <div class="card-head"><div class="card-title"><i class="fa-solid fa-fingerprint"></i>判定依据留痕</div></div>
+          <dl class="kv">
+            <dt>事件单号</dt><dd class="mono">GD-2025-0871</dd>
+            <dt>命中规则</dt><dd>① 管段归属 + ④ 上游阀室定主责</dd>
+            <dt>关联管段</dt><dd class="mono">GD-2305（中压 DN300 · 跨网格）</dd>
+            <dt>上游阀室</dt><dd class="mono">VF-118 → 滨江-03</dd>
+            <dt>主责网格</dt><dd>滨江-03（责任站长 王*强）</dd>
+            <dt>判定时间</dt><dd class="mono">10:41:33（入库后 1 秒）</dd>
+          </dl>
+          <button class="btn btn-glass btn-sm mt-14" onclick="openModal('modal-basis')"><i class="fa-solid fa-arrow-up-right-from-square"></i> 查看完整判定链</button>
+        </div>
+        <div class="glass-card soft">
+          <div class="card-title mb-8"><i class="fa-solid fa-people-arrows"></i>边界带协同口径</div>
+          <div class="tiny">边界带 ±30 米内两网格同时接收：先到场者处置、另一方转支援；判定依据与命中规则随工单全量留痕。</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 判定链弹窗 -->
+    <div class="modal-mask" id="modal-basis" onclick="if(event.target===this)closeModal('modal-basis')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-fingerprint"></i>完整判定链 · GD-2025-0871</div>
+          <button class="modal-close" onclick="closeModal('modal-basis')">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="steps mb-14">
+            <span class="step done"><span class="dot"><i class="fa-solid fa-check"></i></span>① 管段归属 GD-2305</span>
+            <span class="step active"><span class="dot">4</span>④ 上游阀室 VF-118 → 滨江-03</span>
+          </div>
+          <dl class="kv">
+            <dt>步骤①</dt><dd>事件关联管段 GD-2305 · 台账归属：跨网格管段 → 进入步骤④</dd>
+            <dt>步骤②</dt><dd>坐标（30.2081, 120.2103）落入滨江-03 边界面（备用校验通过）</dd>
+            <dt>步骤③</dt><dd>距最近边界 214 米 &gt; 30 米边界带 · 不触发双网格并行通知</dd>
+            <dt>步骤④</dt><dd>上游阀室 VF-118 位于滨江-03 → 主责网格：滨江-03</dd>
+            <dt>结论</dt><dd>主责 滨江-03 · 协同 无 · 判定用时 1 秒 · 判定依据已写入工单</dd>
+          </dl>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-glass" onclick="showToast('复核申请已提交运行部：裁定期间按原判定执行');closeModal('modal-basis')"><i class="fa-solid fa-scale-balanced"></i> 提交复核申请</button>
+          <button class="btn btn-primary" onclick="closeModal('modal-basis')">关闭</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 页面4：智能调度与指令下发·工单生成瞬间弹窗推荐 ================= -->
+  <section class="view" id="v-智能调度与指令下发-工单生成瞬间弹窗推荐">
+    <div class="page-head">
+      <div>
+        <div class="page-title">智能调度与指令下发 · 工单生成瞬间弹窗推荐</div>
+        <div class="page-desc">PC 调度台 · 调度员 · 工单落库 1 秒内自动弹窗推荐 · 硬性过滤先于打分 · 路网到达时间每 60 秒重算</div>
+      </div>
+      <button class="btn btn-accent btn-sm" onclick="openModal('modal-recommend')"><i class="fa-solid fa-bolt"></i> 重新演示：落库触发弹窗</button>
+    </div>
+
+    <div class="alert-strip orange"><i class="fa-solid fa-clipboard-user"></i><span>调研口径：常规只调度本片区抢修组 · 一个区域同时仅一个抢修组当值 · 重大事故或片区内并发多起事件，须上报领导同意后跨区域支援。</span></div>
+
+    <div class="glass-card strong">
+      <div class="card-head">
+        <div class="flex wrap">
+          <div class="card-title"><i class="fa-solid fa-fire-flame-curved"></i>泄漏事件 <span class="mono">GD-2025-0871</span></div>
+          <span class="tag tag-red">一级 · 泄漏</span>
+          <span class="tag tag-accent">已落库 · 1 秒内触发推荐</span>
+        </div>
+        <span class="tiny mono">入库时间 2025-10-28 10:41:32</span>
+      </div>
+      <div class="grid g-4">
+        <div class="stat-card">
+          <div class="stat-label"><i class="fa-solid fa-location-dot"></i>事件位置</div>
+          <div style="font-weight:700;font-size:14px;margin-top:6px;">滨江区江虹路 × 滨盛路交叉口</div>
+          <div class="stat-sub">坐标 30.2081, 120.2103</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label"><i class="fa-solid fa-pipe-valve"></i>关联管段 / 附近阀门</div>
+          <div style="font-weight:700;font-size:14px;margin-top:6px;"><span class="mono">GD-2305</span> 中压 DN300</div>
+          <div class="stat-sub">上游 VF-118 · 下游 VF-119</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label"><i class="fa-solid fa-user-tie"></i>主责网格</div>
+          <div style="font-weight:700;font-size:14px;margin-top:6px;">滨江-03（王*强）</div>
+          <div class="stat-sub">判定依据：规则 ①+④（见跨网格归属判定页）</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label"><i class="fa-solid fa-stopwatch"></i>推荐对象 · 路网 ETA</div>
+          <div class="big-eta" style="font-size:22px;margin-top:4px;">12 <span style="font-size:12px;">分钟</span></div>
+          <div class="stat-sub">抢修A组 · 基础路网 9 + 路况修正 2 + 集结装车 1</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="glass-card soft mt-14">
+      <div class="flex-between wrap">
+        <div class="flex wrap">
+          <span class="eta-part">候选 3 组</span>
+          <span class="eta-part accent">硬性过滤剔除 4 组</span>
+          <span class="eta-part">路网 ETA 每 60 秒重算</span>
+          <span class="eta-part">候选池为空 → 原因汇总 + 提示放宽范围 / 跨区搜索</span>
+        </div>
+        <div class="tiny">ETA 首次预估偏离 &gt;3 分钟自动提示，并同步大屏与站长 · 路网服务不可用时降级直线排序并显式标注</div>
+      </div>
+    </div>
+
+    <!-- 自动弹窗：落库 1 秒推荐（进入本页默认展示） -->
+    <div class="modal-mask open" id="modal-recommend" onclick="if(event.target===this)closeModal('modal-recommend')">
+      <div class="glass-modal wide">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-wand-magic-sparkles"></i>工单落库 1 秒 · 自动推荐候选清单 <span class="tag tag-red">GD-2025-0871 · 一级</span></div>
+          <button class="modal-close" onclick="closeModal('modal-recommend')">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="flex-between wrap mb-14">
+            <div class="eta-parts">
+              <span class="eta-part">四因子权重：路网到达 0.40</span>
+              <span class="eta-part">技能与设备匹配 0.30</span>
+              <span class="eta-part">当前负荷 0.20</span>
+              <span class="eta-part">网格归属 0.10</span>
+            </div>
+            <div class="flex wrap" style="gap:6px;">
+              <span class="tag tag-accent">推荐：抢修A组</span>
+              <span class="tag tag-green">一级资源组合：班组 + 应急抢险车 + 阀控人员</span>
+            </div>
+          </div>
+          <div class="table-scroll">
+            <table class="glass-table">
+              <thead>
+                <tr><th>推荐资源</th><th>状态</th><th>直线距离</th><th>路网到达</th><th>四因子得分（到时/匹配/负荷/归属）</th><th>总分</th><th>决定性因子</th></tr>
+              </thead>
+              <tbody>
+                <tr style="background:var(--c-primary-soft);">
+                  <td><b>抢修A组</b> · 滨江运行站 <span class="tag tag-red">推荐</span></td>
+                  <td><span class="tag tag-green">空闲</span></td>
+                  <td class="mono">2.4 km</td>
+                  <td class="mono"><b>12 分钟</b></td>
+                  <td class="score-cell">到时 <b>.34</b> / 匹配 <b>.27</b> / 负荷 <b>.18</b> / 归属 <b>.10</b></td>
+                  <td class="mono"><b>0.89</b></td>
+                  <td>路网最快 · 随车发电车匹配泄漏处置</td>
+                </tr>
+                <tr>
+                  <td>抢修C组 · 滨江运行站</td>
+                  <td><span class="tag tag-green">空闲</span></td>
+                  <td class="mono">5.1 km</td>
+                  <td class="mono">17 分钟</td>
+                  <td class="score-cell">到时 <b>.28</b> / 匹配 <b>.24</b> / 负荷 <b>.16</b> / 归属 <b>.10</b></td>
+                  <td class="mono"><b>0.78</b></td>
+                  <td>属地网格 · 技能匹配</td>
+                </tr>
+                <tr>
+                  <td>抢修E组 · 城东运行站（跨网格）</td>
+                  <td><span class="tag tag-green">空闲</span></td>
+                  <td class="mono">8.6 km</td>
+                  <td class="mono">24 分钟</td>
+                  <td class="score-cell">到时 <b>.22</b> / 匹配 <b>.27</b> / 负荷 <b>.18</b> / 归属 <b>.03</b></td>
+                  <td class="mono"><b>0.70</b></td>
+                  <td>当前负荷低 · 跨网格扣归属分</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="glass-card soft mt-14" style="padding:16px 18px;">
+            <div class="card-title mb-8"><i class="fa-solid fa-filter-circle-xmark"></i>硬性过滤日志 · 为什么最近的没被推荐（过滤先于打分）</div>
+            <ul class="icon-list">
+              <li><i class="fa-solid fa-ban" style="color:var(--c-danger);"></i><span><b>抢修B组</b>（直线最近 800 米）→ 剔除：当前状态「作业中」，非空闲</span></li>
+              <li><i class="fa-solid fa-ban" style="color:var(--c-danger);"></i><span><b>抢修F组</b> → 剔除：定位离线（15 分钟未更新，已退出候选池）</span></li>
+              <li><i class="fa-solid fa-ban" style="color:var(--c-danger);"></i><span><b>抢修G组</b> → 剔除：随车无发电车 · 资质/设备不匹配</span></li>
+              <li><i class="fa-solid fa-ban" style="color:var(--c-danger);"></i><span><b>巡检员 张*明</b>（直线 1.2 km）→ 剔除：角色不承担泄漏抢修四类</span></li>
+            </ul>
+          </div>
+          <div class="flex wrap mt-14" style="gap:8px;">
+            <span class="tag tag-cyan">ETA 三段构成：基础路网 9 分 + 实时路况修正 2 分 + 集结装车 1 分 = 12 分</span>
+            <span class="tag tag-blue">资源组合：抢修A组 + 应急抢险车 浙A·D1108 + 阀控人员 周*斌</span>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <span class="tiny" style="margin-right:auto;">默认选中最优方案 · 一键指派；不采纳须填写理由（随得分明细写入工单用于复盘）</span>
+          <button class="btn btn-glass" onclick="openModal('modal-reject')"><i class="fa-solid fa-circle-xmark"></i> 不采纳推荐</button>
+          <button class="btn btn-primary" onclick="doAssign()"><i class="fa-solid fa-paper-plane"></i> 一键指派 · 抢修A组</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 不采纳理由弹窗（理由必填） -->
+    <div class="modal-mask" id="modal-reject" onclick="if(event.target===this)closeModal('modal-reject')">
+      <div class="glass-modal blocking">
+        <div class="blocking-strip"><i class="fa-solid fa-triangle-exclamation"></i> 不采纳推荐 · 理由必填</div>
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-file-pen"></i>请填写不采纳理由</div>
+          <button class="modal-close" onclick="closeModal('modal-reject')">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-label">不采纳理由 <span class="req">*</span></div>
+          <textarea id="reject-reason" class="form-textarea" rows="4" placeholder="例如：改派抢修C组（该组熟悉该片区阀室情况）……"></textarea>
+          <div class="alert-strip orange mt-14" style="margin-bottom:0;"><i class="fa-solid fa-clipboard-list"></i><span>理由将随四因子得分明细一并写入工单，用于复盘；不填理由无法提交。</span></div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost" onclick="closeModal('modal-reject')">取消</button>
+          <button class="btn btn-danger" onclick="confirmReject()"><i class="fa-solid fa-check"></i> 确认提交</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 页面5：智能调度与指令下发·跨区域强制指派首响 ================= -->
+  <section class="view" id="v-智能调度与指令下发-跨区域强制指派首响">
+    <div class="page-head">
+      <div>
+        <div class="page-title">智能调度与指令下发 · 跨区域强制指派首响</div>
+        <div class="page-desc">PC 调度台 · 调度员/站长 · 属地力量与最近力量不一致时并排对比 · 分级授权 · 首响与接续交接分离</div>
+      </div>
+      <span class="tag tag-red">事件 GD-2025-0871 · 一级泄漏 · 滨江-03</span>
+    </div>
+
+    <div class="alert-strip red"><i class="fa-solid fa-clipboard-user"></i><span>调研口径：常规只调度本片区抢修组 · 一个区域同时仅一个抢修组当值 · <b>重大事故或片区内并发多起事件，须上报领导同意后跨区域支援</b>。本事件为一级泄漏，触发跨区强制指派首响。</span></div>
+
+    <div class="vs-wrap">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-house-chimney"></i>属地方案</div>
+          <span class="tag tag-cyan">按责任网格派工</span>
+        </div>
+        <dl class="kv">
+          <dt>资源</dt><dd>抢修C组 · 滨江运行站（当值备用组）</dd>
+          <dt>状态</dt><dd><span class="tag tag-green">空闲</span> 当前位于滨江站本部</dd>
+          <dt>路线</dt><dd>江南大道（交通管制 · 绕行）</dd>
+        </dl>
+        <div class="flex-between mt-14">
+          <div>
+            <div class="stat-label">路网到达时间</div>
+            <div class="big-eta orange">31 <span style="font-size:13px;">分钟</span></div>
+          </div>
+          <div class="tag tag-orange" style="font-size:12px;">首响拖后 17 分钟</div>
+        </div>
+        <button class="btn btn-glass btn-sm mt-14" onclick="showToast('已按属地方案指派抢修C组 · 工单与三通道指令同步下发')"><i class="fa-solid fa-check"></i> 按属地指派</button>
+      </div>
+      <div class="vs-badge">VS</div>
+      <div class="glass-card strong">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-bolt"></i>最近力量方案（跨区强制指派）</div>
+          <span class="tag tag-accent">系统推荐 · 首响优先</span>
+        </div>
+        <dl class="kv">
+          <dt>资源</dt><dd>抢修B组 · 西湖运行站（跨区域支援）</dd>
+          <dt>状态</dt><dd><span class="tag tag-green">空闲</span> 距事件直线 3.8 km</dd>
+          <dt>路线</dt><dd>之江大桥 → 江虹路（畅通）</dd>
+        </dl>
+        <div class="flex-between mt-14">
+          <div>
+            <div class="stat-label">路网到达时间</div>
+            <div class="big-eta green">14 <span style="font-size:13px;">分钟</span></div>
+          </div>
+          <div class="tag tag-green" style="font-size:12px;">首响提前 17 分钟</div>
+        </div>
+        <button class="btn btn-primary btn-sm mt-14" onclick="showToast('已强制指派西湖站抢修B组：指令立即下发（先派后报），同步通知双方站长与运行部值班，2 小时内补录事由')"><i class="fa-solid fa-paper-plane"></i> 按最近力量强制指派</button>
+      </div>
+    </div>
+
+    <div class="grid g-3 mt-14">
+      <div class="glass-card">
+        <div class="card-head"><div class="card-title"><i class="fa-solid fa-bolt"></i>一级 · 先派后报</div><span class="tag tag-red">一级</span></div>
+        <ul class="icon-list">
+          <li><i class="fa-solid fa-1"></i><span>调度中心直接指派最近力量，<b>先派后报</b></span></li>
+          <li><i class="fa-solid fa-2"></i><span>2 小时内补录事由</span></li>
+          <li><i class="fa-solid fa-3"></i><span>指令下发同时通知双方站长与运行部值班</span></li>
+        </ul>
+      </div>
+      <div class="glass-card">
+        <div class="card-head"><div class="card-title"><i class="fa-solid fa-user-shield"></i>二级 · 值班长确认</div><span class="tag tag-orange">二级</span></div>
+        <ul class="icon-list">
+          <li><i class="fa-solid fa-1"></i><span>报运行部值班长确认后跨区指派</span></li>
+          <li><i class="fa-solid fa-2"></i><span><b>超时 3 分钟视同同意</b></span></li>
+          <li><i class="fa-solid fa-3"></i><span>确认记录与超时判定自动留痕</span></li>
+        </ul>
+      </div>
+      <div class="glass-card">
+        <div class="card-head"><div class="card-title"><i class="fa-solid fa-handshake"></i>三级 · 双方站长协商</div><span class="tag tag-yellow">三级</span></div>
+        <ul class="icon-list">
+          <li><i class="fa-solid fa-1"></i><span>属地与就近双方站长协商确定</span></li>
+          <li><i class="fa-solid fa-2"></i><span>协商结论回填工单</span></li>
+          <li><i class="fa-solid fa-3"></i><span>未达成一致时按属地方案执行</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="grid g-main-side mt-14">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-right-left"></i>首响与接续交接流程（首响任务限定）</div>
+          <span class="tiny">交接时点与交接双方记入工单 · 工作量分别计入各自运行站</span>
+        </div>
+        <div class="grid g-3">
+          <div class="glass-card soft" style="padding:16px;">
+            <div class="flex mb-8"><span class="num-chip">1</span><b>首响任务（最近力量）</b></div>
+            <div class="tiny">到场 · 初步研判 · 警戒 · 初期处置：<b>关阀、放散、封锁</b></div>
+          </div>
+          <div class="glass-card soft" style="padding:16px;">
+            <div class="flex mb-8"><span class="num-chip">2</span><b>交接时点</b></div>
+            <div class="tiny">属地力量到场 → 双方确认交接，交接时点、交接双方与现场状态记入工单</div>
+          </div>
+          <div class="glass-card soft" style="padding:16px;">
+            <div class="flex mb-8"><span class="num-chip">3</span><b>接续处置（属地力量）</b></div>
+            <div class="tiny">抢修施工 · 恢复供气；工作量分站归属：首响计入西湖站、接续计入滨江站</div>
+          </div>
+        </div>
+      </div>
+      <div class="glass-card">
+        <div class="card-head"><div class="card-title"><i class="fa-solid fa-clock-rotate-left"></i>近 30 日指派记录</div></div>
+        <dl class="kv">
+          <dt>跨区指派</dt><dd class="mono">2 次</dd>
+          <dt>补录事由</dt><dd>均已按时补录（平均 47 分钟）</dd>
+          <dt>属地指派</dt><dd class="mono">26 次</dd>
+          <dt>首响达标率</dt><dd><span class="tag tag-green">96.2%</span></dd>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 页面6：智能调度与指令下发·多通道指令下发与回执 ================= -->
+  <section class="view" id="v-智能调度与指令下发-多通道指令下发与回执">
+    <div class="page-head">
+      <div>
+        <div class="page-title">智能调度与指令下发 · 多通道指令下发与回执</div>
+        <div class="page-desc">PC 调度台 · 调度员 · APP / 短信 / 语音外呼按事件级别组合并行下发 · 失败自动降级重试 · 送达 / 签收 / 到场三态回执</div>
+      </div>
+      <div class="flex wrap">
+        <button class="btn btn-glass btn-sm" onclick="showToast('已临时增加短信通道（一级事件语音通道不可减少）')"><i class="fa-solid fa-plus"></i> 临时增加通道</button>
+        <button class="btn btn-primary btn-sm" onclick="showToast('指令已按一级三通道策略重新下发（GD-2025-0871）')"><i class="fa-solid fa-paper-plane"></i> 重新下发</button>
+      </div>
+    </div>
+
+    <div class="alert-strip cyan"><i class="fa-solid fa-tower-broadcast"></i><span>调度员可临时增加通道，但<b>不能减少一级事件的语音通道</b>；未签收持续 3 分钟自动告警班长与值班长；全部通道失败告警值班长并提示人工电话；实际到达回传修正路网时间估算模型。</span></div>
+
+    <div class="grid g-3">
+      <div class="glass-card">
+        <div class="card-head"><div class="card-title"><i class="fa-solid fa-bolt"></i>一级 · 强制三通道</div><span class="tag tag-red">一级</span></div>
+        <ul class="icon-list">
+          <li><i class="fa-solid fa-mobile-screen"></i><span><b>APP</b>（工单详情）· 30 秒未签收触发语音</span></li>
+          <li><i class="fa-solid fa-phone-volume"></i><span><b>语音外呼</b>（TTS 按键接单）· 3 次未接转备用号码并告警值班长</span></li>
+          <li><i class="fa-solid fa-comment-sms"></i><span><b>短信</b>（140 字摘要）并行下发</span></li>
+        </ul>
+      </div>
+      <div class="glass-card">
+        <div class="card-head"><div class="card-title"><i class="fa-solid fa-mobile-screen-button"></i>二级 · APP + 短信</div><span class="tag tag-orange">二级</span></div>
+        <ul class="icon-list">
+          <li><i class="fa-solid fa-mobile-screen"></i><span><b>APP</b>（工单详情）优先下发</span></li>
+          <li><i class="fa-solid fa-comment-sms"></i><span><b>短信</b>（140 字摘要）同步下发</span></li>
+          <li><i class="fa-solid fa-rotate-right"></i><span>2 分钟未签收自动补发一轮</span></li>
+        </ul>
+      </div>
+      <div class="glass-card">
+        <div class="card-head"><div class="card-title"><i class="fa-solid fa-mobile-screen"></i>三级 · APP 为主</div><span class="tag tag-yellow">三级</span></div>
+        <ul class="icon-list">
+          <li><i class="fa-solid fa-mobile-screen"></i><span><b>APP</b>（工单详情）单通道下发</span></li>
+          <li><i class="fa-solid fa-comment-sms"></i><span>10 分钟未签收自动补<b>短信</b></span></li>
+          <li><i class="fa-solid fa-circle-check"></i><span>送达 / 签收双状态记录，无需语音</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="grid g-main-side mt-14">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-table-list"></i>逐人逐通道送达 / 签收状态 · GD-2025-0871</div>
+          <span class="tag tag-green">已全员签收</span>
+        </div>
+        <div class="table-scroll">
+          <table class="glass-table">
+            <thead>
+              <tr><th>人员</th><th>角色</th><th>通道</th><th>下发内容</th><th>送达状态</th><th>送达时间</th><th>签收状态</th><th>签收时间</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>王*强</td><td>滨江-03 站长</td><td>APP</td><td>工单详情</td><td><span class="tag tag-green">已送达</span></td><td class="mono">10:41:33</td><td><span class="tag tag-green">已签收</span></td><td class="mono">10:41:36</td></tr>
+              <tr><td>王*强</td><td>滨江-03 站长</td><td>短信</td><td>140 字摘要</td><td><span class="tag tag-green">已送达</span></td><td class="mono">10:41:33</td><td><span class="tag tag-green">回复 R 签收</span></td><td class="mono">10:42:10</td></tr>
+              <tr><td>李*军</td><td>抢修A组 · 组长</td><td>APP</td><td>工单详情</td><td><span class="tag tag-green">已送达</span></td><td class="mono">10:41:33</td><td><span class="tag tag-orange">30 秒未签收</span></td><td>—</td></tr>
+              <tr><td>李*军</td><td>抢修A组 · 组长</td><td>语音</td><td>TTS 接单指令</td><td><span class="tag tag-green">第 2 次接通</span></td><td class="mono">10:42:20</td><td><span class="tag tag-green">按键 1 接单</span></td><td class="mono">10:42:41</td></tr>
+              <tr><td>周*斌</td><td>阀控人员</td><td>APP</td><td>工单详情</td><td><span class="tag tag-green">已送达</span></td><td class="mono">10:41:34</td><td><span class="tag tag-green">已签收</span></td><td class="mono">10:41:58</td></tr>
+              <tr><td>运行部值班长</td><td>运行部</td><td>APP</td><td>值班通知</td><td><span class="tag tag-green">已送达</span></td><td class="mono">10:41:34</td><td><span class="tag tag-green">已签收</span></td><td class="mono">10:41:52</td></tr>
+              <tr><td>公司总值班</td><td>总值班室</td><td>短信</td><td>140 字摘要</td><td><span class="tag tag-green">已送达</span></td><td class="mono">10:41:35</td><td><span class="tag tag-green">回复 R 签收</span></td><td class="mono">10:43:12</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="tiny mt-8"><i class="fa-solid fa-database"></i> 下发日志全量留存（含通道、内容、送达与签收时间戳），支持按人 / 按事件回溯。</div>
+      </div>
+      <div class="grid" style="align-content:start;">
+        <div class="glass-card">
+          <div class="card-head"><div class="card-title"><i class="fa-solid fa-arrow-down-1-9"></i>降级记录（自动）</div></div>
+          <ul class="icon-list">
+            <li><i class="fa-solid fa-mobile-screen"></i><span><span class="mono">10:42:03</span> 李*军 APP 送达 30 秒未签收 → 自动降级：<b>语音外呼第 1 次</b></span></li>
+            <li><i class="fa-solid fa-phone-slash"></i><span><span class="mono">10:42:12</span> 语音第 1 次未接通 → 自动重拨第 2 次</span></li>
+            <li><i class="fa-solid fa-phone"></i><span><span class="mono">10:42:20</span> 第 2 次接通 → <span class="mono">10:42:41</span> 按键 1 接单，降级结束</span></li>
+            <li><i class="fa-solid fa-triangle-exclamation" style="color:var(--c-warn);"></i><span>若 3 次未接 → 自动转备用号码 <span class="mono">138****2233</span> 并告警值班长</span></li>
+            <li><i class="fa-solid fa-bell" style="color:var(--c-warn);"></i><span>未签收持续 3 分钟 → 自动告警班长与值班长</span></li>
+          </ul>
+        </div>
+        <div class="glass-card">
+          <div class="card-head"><div class="card-title"><i class="fa-solid fa-chart-simple"></i>通道可用性 · 按周回算</div></div>
+          <div class="tiny mb-8">APP 送达率 <span class="mono">98.6%</span></div>
+          <div class="meter mb-14"><div class="meter-fill green" style="width:98.6%;"></div></div>
+          <div class="tiny mb-8">短信送达率 <span class="mono">99.2%</span></div>
+          <div class="meter mb-14"><div class="meter-fill green" style="width:99.2%;"></div></div>
+          <div class="tiny mb-8">语音接通率 <span class="mono">91.4%</span></div>
+          <div class="meter"><div class="meter-fill orange" style="width:91.4%;"></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- ===== 公共脚本 ===== -->
+<script>
+function switchView(vid){
+  document.querySelectorAll('.view').forEach(function(v){v.classList.remove('active');});
+  var el=document.getElementById(vid); if(el){el.classList.add('active');}
+  document.querySelectorAll('.seg-item[data-view]').forEach(function(b){
+    b.classList.toggle('active', b.getAttribute('data-view')===vid);
+  });
+  try{history.replaceState(null,'','#'+encodeURIComponent(vid));}catch(e){}
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function openModal(id){var m=document.getElementById(id); if(m){m.classList.add('open');}}
+function closeModal(id){var m=document.getElementById(id); if(m){m.classList.remove('open');}}
+function showToast(msg){
+  var t=document.getElementById('app-toast');
+  if(!t){t=document.createElement('div');t.id='app-toast';t.className='toast';document.body.appendChild(t);}
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._tm);t._tm=setTimeout(function(){t.classList.remove('show');},2200);
+}
+window.addEventListener('hashchange',function(){
+  var h=decodeURIComponent(location.hash.replace('#',''));
+  if(h&&document.getElementById(h)){switchView(h);}
+});
+(function(){
+  var h=decodeURIComponent(location.hash.replace('#',''));
+  if(h&&document.getElementById(h)){switchView(h);}
+})();
+</script>
+
+<!-- ===== M06 模块脚本 ===== -->
+<script>
+var shMap = { '抢修班组':'sh-sq', '调压工':'sh-di', '巡检员':'sh-ci', '站长':'sh-tr' };
+var stColor = { '空闲':'var(--c-ok)', '在途':'var(--c-info)', '作业中':'var(--c-warn)', '离线':'#94A3B8' };
+
+function RD(n, r, st, stc, stn, zz, tr, crew, eq, qu, note){
+  return {
+    n:n, r:r, st:st, stc:stc, stn:stn, zz:zz,
+    upd: st === '离线' ? '09:39:12（63 分钟未更新）' : '10:42:05（30 秒前）',
+    tr: tr,
+    crew: crew || ['王*强（组长 · 管道工 · 带气作业证）','李*军（管工 · 焊接资质至2026-12）'],
+    eq: eq || ['应急抢险车 浙A·D1108','堵漏器具全套'],
+    qu: qu || ['带气作业证'],
+    note: note || '今日 1 单 · 平均首响 8 分钟'
+  };
+}
+
+var resData = {
+  'qx-a': RD('抢修A组','抢修班组','空闲','tag-green','滨江运行站','王*强',
+    ['idle','idle','idle','busy','busy','busy','idle','idle'],
+    ['王*强（组长 · 管道工 · 带气作业证）','李*军（焊工 · 焊接资质至2026-12）','赵*明（发电车操作 · 特种设备证）'],
+    ['应急抢险车 浙A·D1108','发电车 GE-07（可用）','切管套丝机 / 堵漏器具全套'],
+    ['带气作业证','有限空间作业证','焊接与热切割'],
+    '今日 1 单 · 平均首响 8 分钟'),
+  'qx-b': RD('抢修B组','抢修班组','作业中','tag-orange','滨江运行站','王*强',
+    ['work','work','work','work','busy','busy','work','work'],null,null,null,
+    '作业中 · GD-2308 漏气修复（预计 40 分钟办结）'),
+  'qx-d': RD('抢修D组','抢修班组','在途','tag-blue','滨江运行站','郑*红',
+    ['busy','busy','busy','idle','idle','busy','busy','busy'],null,null,null,
+    '在途 · 前往 VF-118 阀室巡检配合'),
+  'qx-f': RD('抢修F组','抢修班组','离线','tag-gray','城西运行站','陈*华',
+    ['off','off','off','idle','idle','off','off','off'],null,null,null,
+    '定位 63 分钟未更新 · 已从候选池剔除 · 已推送陈*华核实'),
+  'dy-1': RD('陈*华','调压工','空闲','tag-green','城西运行站','陈*华',
+    ['idle','idle','idle','idle','busy','busy','idle','idle'],null,null,['调压器检修资质']),
+  'dy-2': RD('吴*芳','调压工','作业中','tag-orange','滨江运行站','王*强',
+    ['work','work','work','idle','idle','idle','idle','idle'],null,null,['调压器检修资质'],
+    '作业中 · 调压站 RJ-07 例行维护'),
+  'dy-3': RD('周*斌','调压工','在途','tag-blue','滨江运行站','王*强',
+    ['busy','busy','busy','busy','busy','idle','idle','idle'],null,null,['调压器检修资质','阀室操作资质'],
+    '在途 · 阀控支援（一级组合备选）'),
+  'xj-1': RD('张*明','巡检员','在途','tag-blue','滨江运行站','王*强',
+    ['busy','busy','busy','busy','idle','idle','idle','idle'],null,null,['巡检上岗证'],
+    '在途 · 滨江-03 管段巡查'),
+  'xj-2': RD('刘*涛','巡检员','空闲','tag-green','城东运行站','刘*涛',
+    ['idle','idle','busy','busy','busy','busy','idle','idle'],null,null,['巡检上岗证']),
+  'xj-3': RD('赵*磊','巡检员','离线','tag-gray','之江运行站','吴*芳',
+    ['off','off','off','off','off','off','off','off'],null,null,['巡检上岗证'],
+    '定位 47 分钟未更新 · 已从候选池剔除 · 已推送吴*芳核实'),
+  'zz-1': RD('王*强','站长','空闲','tag-green','滨江运行站','王*强',
+    ['idle','idle','idle','idle','idle','idle','idle','idle'],null,null,['调度指挥证'],
+    '滨江-01 / 滨江-03 责任站长'),
+  'zz-2': RD('郑*红','站长','在途','tag-blue','城东运行站','刘*涛',
+    ['busy','busy','busy','idle','idle','idle','idle','idle'],null,null,['调度指挥证'],
+    '城东-01 责任站长 · 现场检查途中')
+};
+
+function openResDrawer(k){
+  var d = resData[k];
+  if(!d){ showToast('该资源详情暂未收录'); return; }
+  var sh = shMap[d.r] || 'sh-sq';
+  var sc = stColor[d.st] || '#94A3B8';
+  var crew = '', eq = '', qu = '', tr = '', i, s;
+  for(i = 0; i < d.crew.length; i++){
+    crew += '<li><i class="fa-solid fa-helmet-safety"></i><span>' + d.crew[i] + '</span></li>';
+  }
+  for(i = 0; i < d.eq.length; i++){
+    eq += '<li><i class="fa-solid fa-truck-fast"></i><span>' + d.eq[i] + '</span></li>';
+  }
+  for(i = 0; i < d.qu.length; i++){
+    qu += '<span class="tag tag-cyan">' + d.qu[i] + '</span>';
+  }
+  for(i = 0; i < 24; i++){
+    s = d.tr[i % d.tr.length];
+    tr += '<div class="tk tk-' + s + '"></div>';
+  }
+  document.getElementById('dr-body').innerHTML =
+    '<div class="flex-between mb-14"><div class="flex"><span class="res-mini ' + sh + '" style="background:' + sc + '"></span>' +
+    '<div><div style="font-weight:700;font-size:15px;">' + d.n + '</div><div class="tiny">' + d.r + ' · ' + d.stn + '</div></div></div>' +
+    '<span class="tag ' + d.stc + '">' + d.st + '</span></div>' +
+    '<dl class="kv mb-14"><dt>责任站长</dt><dd>' + d.zz + '</dd>' +
+    '<dt>定位更新</dt><dd class="mono">' + d.upd + '</dd>' +
+    '<dt>近24小时</dt><dd>' + d.note + '</dd>' +
+    '<dt>状态驱动</dt><dd>派单 / 到场回执 / 工单办结自动流转，无人工改状态入口</dd></dl>' +
+    '<div class="form-label">班组人员</div><ul class="icon-list">' + crew + '</ul>' +
+    '<div class="form-label mt-14">随车设备（每日 07:00 校验）</div><ul class="icon-list">' + eq + '</ul>' +
+    '<div class="form-label mt-14">作业资质</div><div class="flex wrap">' + qu + '</div>' +
+    '<div class="form-label mt-14">近2小时轨迹（5 分钟粒度）</div>' +
+    '<div class="track-bar mb-8">' + tr + '</div>' +
+    '<div class="tiny"><span class="tk tk-idle"></span> 空闲&nbsp;&nbsp;<span class="tk tk-busy"></span> 在途&nbsp;&nbsp;<span class="tk tk-work"></span> 作业中&nbsp;&nbsp;<span class="tk tk-off"></span> 离线/无数据</div>';
+  openModal('drawer-res');
+}
+
+function toggleLayer(btn, st){
+  var off = btn.classList.toggle('off');
+  var ms = document.querySelectorAll('#map-main .res.st-' + st);
+  for(var i = 0; i < ms.length; i++){ ms[i].style.display = off ? 'none' : ''; }
+  showToast(off ? '已隐藏「' + btn.getAttribute('data-name') + '」资源' : '已显示「' + btn.getAttribute('data-name') + '」资源');
+}
+
+function doAssign(){
+  closeModal('modal-recommend');
+  showToast('已一键指派：抢修A组（滨江运行站）· 指令已按一级三通道下发');
+}
+
+function confirmReject(){
+  var v = document.getElementById('reject-reason').value.trim();
+  if(!v){ showToast('不采纳须填写理由：请补充后提交'); return; }
+  closeModal('modal-reject');
+  closeModal('modal-recommend');
+  showToast('已记录不采纳理由，随四因子得分明细写入工单（可复盘）');
+}
+
+(function(){
+  var n = 30;
+  setInterval(function(){
+    var el = document.getElementById('rf-count');
+    if(!el){ return; }
+    n = n > 1 ? n - 1 : 30;
+    el.textContent = n;
+  }, 1000);
+})();
+</script>
+</body>
+</html>

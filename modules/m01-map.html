@@ -1,0 +1,1676 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>管网生命线一张图 · 杭州燃气管网运营智能体平台</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="../styles/liquid-glass.css">
+<style>
+/* ===== 模块私有样式（作用域限定 .screen-dark 指挥大屏深色玻璃变体，不改全局设计系统） ===== */
+.screen-dark .glass-card{background:rgba(15,32,40,.78);border-color:rgba(255,255,255,.14);box-shadow:0 10px 36px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.08);color:#EAF4F8;}
+.screen-dark .stat-card{background:rgba(15,32,40,.72);border-color:rgba(255,255,255,.14);color:#EAF4F8;box-shadow:0 10px 30px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.08);}
+.screen-dark .stat-label{color:#9DB8C4;}
+.screen-dark .stat-label i{color:#5CC2FF;}
+.screen-dark .stat-sub{color:#7C97A6;}
+.screen-dark .stat-value{color:#EAF4F8;}
+.screen-dark .card-title{color:#EAF4F8;}
+.screen-dark .card-title i{color:#5CC2FF;}
+.screen-dark .glass-table th{background:rgba(255,255,255,.06);color:#9DB8C4;border-bottom:1px solid rgba(255,255,255,.12);}
+.screen-dark .glass-table td{color:#DDE9EF;border-bottom:1px solid rgba(255,255,255,.08);}
+.screen-dark .glass-table tbody tr:hover{background:rgba(255,255,255,.06);}
+.screen-dark .glass-table .mono{color:#8FDCFF;}
+.screen-dark .map-canvas{background:linear-gradient(rgba(92,194,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(92,194,255,.05) 1px,transparent 1px),linear-gradient(160deg,#0D2430 0%,#102B34 60%,#123039 100%);background-size:36px 36px,36px 36px,cover;border-color:rgba(255,255,255,.12);}
+.screen-dark .map-legend{background:rgba(15,32,40,.88);color:#9DB8C4;border-color:rgba(255,255,255,.14);}
+.screen-dark .muted{color:#9DB8C4;}
+.screen-dark .tiny{color:#7C97A6;}
+.screen-dark .btn-glass{background:rgba(255,255,255,.1);color:#EAF4F8;border-color:rgba(255,255,255,.18);}
+.screen-dark .btn-glass:hover{background:rgba(255,255,255,.18);}
+.screen-dark .alert-strip{border:1px solid rgba(255,59,48,.4);background:rgba(255,59,48,.12);color:#FFB4AE;}
+.screen-dark .kv dt{color:#9DB8C4;}
+.screen-dark .kv dd{color:#EAF4F8;}
+.screen-dark .meter{background:rgba(255,255,255,.1);}
+.screen-dark .divider{background:rgba(255,255,255,.1);}
+.screen-dark .icon-list li{border-bottom:1px dashed rgba(255,255,255,.12);}
+/* 图层开关胶囊 */
+.layer-chip{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;padding:6px 12px;border-radius:999px;background:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.78);color:#16323C;cursor:pointer;user-select:none;}
+.layer-chip b{font-family:'DM Mono',monospace;font-weight:500;color:#0E7490;}
+.layer-chip input{accent-color:#0E7490;}
+.screen-dark .layer-chip{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.16);color:#DDE9EF;}
+.screen-dark .layer-chip b{color:#8FDCFF;}
+.screen-dark .layer-chip input{accent-color:#34A8FF;}
+/* 组织树 */
+.org-node{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:10px;cursor:pointer;font-size:12.5px;color:#9DB8C4;}
+.org-node:hover{background:rgba(255,255,255,.08);color:#EAF4F8;}
+.org-node.current{background:rgba(52,168,255,.16);color:#8FDCFF;font-weight:600;}
+.org-children{margin-left:18px;border-left:1px dashed rgba(255,255,255,.18);padding-left:6px;}
+/* 关阀方案卡 */
+.scheme-card{border-radius:14px;padding:12px 14px;cursor:pointer;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);transition:all .2s ease;margin-bottom:10px;}
+.scheme-card:hover{background:rgba(255,255,255,.1);}
+.scheme-card.active{border-color:rgba(52,199,89,.6);background:rgba(52,199,89,.12);box-shadow:0 0 0 1px rgba(52,199,89,.3);}
+/* SVG 点位可点击 */
+.pipe-node{cursor:pointer;}
+.legend-btn{cursor:pointer;background:none;border:none;font:inherit;padding:0;color:inherit;font-size:11px;font-weight:600;display:inline-flex;align-items:center;gap:5px;}
+.legend-btn:hover{opacity:.8;}
+</style>
+</head>
+<body>
+<div class="ambient-blob"></div>
+<div class="module-wrap">
+  <div class="module-top">
+    <div>
+      <div class="flex" style="gap:12px">
+        <div class="module-title">管网生命线一张图</div>
+        <span class="badge badge-mid">优先级 中</span>
+      </div>
+      <div class="module-sub">统一时空底图与指挥中枢：五层业务数据同源融合 · 四级驾驶舱下钻 · 一张表 · 四色图 · 盲区分析 · 爆管关阀与抢修调度 · 共性隐患研判 · 运营决策报告</div>
+    </div>
+  </div>
+  <div class="seg" style="margin-bottom:20px">
+    <button class="seg-item active" data-view="v-公司级指挥驾驶舱" onclick="switchView('v-公司级指挥驾驶舱')">公司级指挥驾驶舱</button>
+    <button class="seg-item" data-view="v-运行站级指挥驾驶舱" onclick="switchView('v-运行站级指挥驾驶舱')">运行站级驾驶舱</button>
+    <button class="seg-item" data-view="v-管网运行一张表全景视图" onclick="switchView('v-管网运行一张表全景视图')">一张表全景视图</button>
+    <button class="seg-item" data-view="v-管网健康四色图" onclick="switchView('v-管网健康四色图')">健康四色图</button>
+    <button class="seg-item" data-view="v-巡检盲区覆盖分析" onclick="switchView('v-巡检盲区覆盖分析')">巡检盲区分析</button>
+    <button class="seg-item" data-view="v-爆管关阀策略生成与停气影响评估" onclick="switchView('v-爆管关阀策略生成与停气影响评估')">爆管关阀与停气评估</button>
+    <button class="seg-item" data-view="v-抢修资源配给与就近调度" onclick="switchView('v-抢修资源配给与就近调度')">抢修资源调度</button>
+    <button class="seg-item" data-view="v-共性隐患研判-AI聚类与NLP-" onclick="switchView('v-共性隐患研判-AI聚类与NLP-')">共性隐患研判</button>
+    <button class="seg-item" data-view="v-运营策略生成与决策报告推送" onclick="switchView('v-运营策略生成与决策报告推送')">决策报告推送</button>
+  </div>
+
+  <!-- ============================== 页面1 公司级指挥驾驶舱 ============================== -->
+  <section class="view active screen-dark" id="v-公司级指挥驾驶舱">
+    <div class="page-head">
+      <div>
+        <div class="page-title">公司级指挥驾驶舱</div>
+        <div class="page-desc">GIS 底图与五层业务数据（设备基础 / 安检保养 / 抢修维修历史 / 风险隐患动态 / 工地信息）同源融合 · 集团-子公司-分公司-运行站四级下钻</div>
+      </div>
+      <div class="flex wrap">
+        <span class="tag tag-green"><i class="fa-solid fa-circle-check"></i>五层数据接入正常 5/5</span>
+        <span class="tag tag-cyan"><i class="fa-regular fa-clock"></i>数据时点 2026-10-28 10:42</span>
+        <button class="btn btn-glass btn-sm" onclick="showToast('态势已刷新 · 数据时点 2026-10-28 10:42')"><i class="fa-solid fa-rotate"></i>刷新态势</button>
+      </div>
+    </div>
+
+    <div class="grid g-4 mb-14">
+      <div class="stat-card" style="cursor:pointer" onclick="switchView('v-管网运行一张表全景视图')">
+        <div class="stat-label"><i class="fa-solid fa-route"></i>管网总里程</div>
+        <div class="stat-value">10,815<span style="font-size:13px;font-weight:500"> km</span></div>
+        <div class="stat-sub">高压 286 · 次高压 512 · 中压 3,862 · 低压 6,155 km · 点击下钻一张表</div>
+      </div>
+      <div class="stat-card" style="cursor:pointer" onclick="openModal('modal-隐患下钻')">
+        <div class="stat-label"><i class="fa-solid fa-triangle-exclamation"></i>未闭环隐患（统一口径）</div>
+        <div class="stat-value red">126<span style="font-size:13px;font-weight:500"> 项</span></div>
+        <div class="stat-sub">红色管段关联 38 项 · 点击按分公司 / 隐患类别逐级下钻</div>
+      </div>
+      <div class="stat-card" style="cursor:pointer" onclick="showToast('异常事件清单见右侧面板 · 一级事件可转入爆管关阀流程')">
+        <div class="stat-label"><i class="fa-solid fa-bolt"></i>今日异常事件</div>
+        <div class="stat-value orange">3<span style="font-size:13px;font-weight:500"> 起</span></div>
+        <div class="stat-sub">一级 1 · 二级 1 · 三级 1 · 均已定位坐标</div>
+      </div>
+      <div class="stat-card" style="cursor:pointer" onclick="switchView('v-巡检盲区覆盖分析')">
+        <div class="stat-label"><i class="fa-solid fa-person-walking"></i>近 30 日巡检覆盖率</div>
+        <div class="stat-value blue">96.8<span style="font-size:13px;font-weight:500"> %</span></div>
+        <div class="stat-sub">巡检员 178 人 · 轨迹按日清洗后求交 · 点击下钻盲区分析</div>
+      </div>
+    </div>
+    <div class="grid g-4 mb-14">
+      <div class="stat-card" style="cursor:pointer" onclick="showToast('已下钻设备基础图层 · 点位 12,643 个')">
+        <div class="stat-label"><i class="fa-solid fa-gauge-high"></i>在运调压设施</div>
+        <div class="stat-value">486<span style="font-size:13px;font-weight:500"> 座</span></div>
+        <div class="stat-sub">调压箱 461 · 区域调压站 25</div>
+      </div>
+      <div class="stat-card" style="cursor:pointer" onclick="showToast('已下钻阀门台账 · 阀门井 12,438 座，远程可控 1,862 座')">
+        <div class="stat-label"><i class="fa-solid fa-door-closed"></i>阀门井</div>
+        <div class="stat-value">12,438<span style="font-size:13px;font-weight:500"> 座</span></div>
+        <div class="stat-sub">远程可控 1,862 · 本月启闭 356 次</div>
+      </div>
+      <div class="stat-card" style="cursor:pointer" onclick="showToast('已下钻工地信息图层 · 活跃工地 47 处，监护点 312 点次/月')">
+        <div class="stat-label"><i class="fa-solid fa-helmet-safety"></i>活跃工地</div>
+        <div class="stat-value accent">47<span style="font-size:13px;font-weight:500"> 处</span></div>
+        <div class="stat-sub">高风险 6 · 一般 41 · 均已关联监护责任人</div>
+      </div>
+      <div class="stat-card" style="cursor:pointer" onclick="switchView('v-管网健康四色图')">
+        <div class="stat-label"><i class="fa-solid fa-heart-pulse"></i>管网平均风险评分</div>
+        <div class="stat-value blue">41.2</div>
+        <div class="stat-sub">健康评估结果为唯一依据 · 点击下钻四色图</div>
+      </div>
+    </div>
+
+    <div class="grid g-main-side">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-map-location-dot"></i>生命线一张图 · 五层融合</div>
+          <div class="flex wrap" style="gap:8px">
+            <span class="tag tag-cyan" id="layer-stat">已叠加 5/5 层 · 点位 24,138 个</span>
+            <button class="btn btn-glass btn-xs" onclick="resetLayers()"><i class="fa-solid fa-layer-group"></i>重置图层</button>
+          </div>
+        </div>
+        <div class="flex wrap mb-14" style="gap:8px">
+          <label class="layer-chip"><input type="checkbox" class="layer-cb" data-count="12643" checked onchange="toggleLayer(this,'g-l1')">设备基础 <b>12,643</b></label>
+          <label class="layer-chip"><input type="checkbox" class="layer-cb" data-count="8214" checked onchange="toggleLayer(this,'g-l2')">安检保养 <b>8,214</b></label>
+          <label class="layer-chip"><input type="checkbox" class="layer-cb" data-count="3108" checked onchange="toggleLayer(this,'g-l3')">抢修维修历史 <b>3,108</b></label>
+          <label class="layer-chip"><input type="checkbox" class="layer-cb" data-count="126" checked onchange="toggleLayer(this,'g-l4')">风险隐患动态 <b>126</b></label>
+          <label class="layer-chip"><input type="checkbox" class="layer-cb" data-count="47" checked onchange="toggleLayer(this,'g-l5')">工地信息 <b>47</b></label>
+        </div>
+        <div class="map-canvas" style="min-height:520px">
+          <svg viewBox="0 0 1000 500" style="position:absolute;inset:0;width:100%;height:100%">
+            <path class="pipe" d="M40,430 L220,430 L300,340 L470,340 L560,250 L760,250 L850,330 L950,330" stroke="#2E8FB8"/>
+            <path class="pipe" d="M140,70 L300,70 L370,160 L530,160 L640,100 L880,100" stroke="#2E8FB8"/>
+            <path class="pipe" d="M300,70 L300,340" stroke="#1F6488"/>
+            <path class="pipe" d="M530,160 L560,250" stroke="#1F6488"/>
+            <path class="pipe" d="M470,340 L500,420 L680,420" stroke="#1F6488"/>
+            <path class="pipe" d="M760,250 L800,180 L930,180" stroke="#2E8FB8"/>
+            <path class="pipe" d="M680,420 L760,250" stroke="#1F6488"/>
+            <g id="g-l1">
+              <circle cx="300" cy="340" r="4" fill="#8FDCFF"/><circle cx="560" cy="250" r="4" fill="#8FDCFF"/><circle cx="760" cy="250" r="4" fill="#8FDCFF"/><circle cx="470" cy="340" r="4" fill="#8FDCFF"/><circle cx="530" cy="160" r="4" fill="#8FDCFF"/><circle cx="880" cy="100" r="4" fill="#8FDCFF"/><circle cx="300" cy="70" r="4" fill="#8FDCFF"/><circle cx="680" cy="420" r="4" fill="#8FDCFF"/><circle cx="220" cy="430" r="4" fill="#8FDCFF"/><circle cx="950" cy="330" r="4" fill="#8FDCFF"/>
+            </g>
+            <g id="g-l2">
+              <circle cx="350" cy="300" r="4" fill="#34C759"/><circle cx="620" cy="220" r="4" fill="#34C759"/><circle cx="420" cy="370" r="4" fill="#34C759"/><circle cx="820" cy="330" r="4" fill="#34C759"/><circle cx="250" cy="120" r="4" fill="#34C759"/><circle cx="700" cy="150" r="4" fill="#34C759"/><circle cx="930" cy="180" r="4" fill="#34C759"/><circle cx="500" cy="420" r="4" fill="#34C759"/><circle cx="140" cy="70" r="4" fill="#34C759"/><circle cx="860" cy="120" r="4" fill="#34C759"/>
+            </g>
+            <g id="g-l3">
+              <circle cx="560" cy="250" r="5" fill="none" stroke="#FF9500" stroke-width="2.5"/><circle cx="300" cy="340" r="5" fill="none" stroke="#FF9500" stroke-width="2.5"/><circle cx="640" cy="100" r="5" fill="none" stroke="#FF9500" stroke-width="2.5"/><circle cx="760" cy="250" r="5" fill="none" stroke="#FF9500" stroke-width="2.5"/><circle cx="470" cy="340" r="5" fill="none" stroke="#FF9500" stroke-width="2.5"/><circle cx="680" cy="420" r="5" fill="none" stroke="#FF9500" stroke-width="2.5"/>
+            </g>
+            <g id="g-l4">
+              <circle class="pipe-node" cx="520" cy="262" r="6" fill="#FF3B30" onclick="openModal('modal-点位联动');showToast('问询准星已锁定坐标 120.1078,30.2756')"/>
+              <circle class="pipe-node" cx="310" cy="330" r="6" fill="#FF3B30" onclick="openModal('modal-点位联动');showToast('问询准星已锁定坐标 120.0912,30.2604')"/>
+              <circle class="pipe-node" cx="750" cy="262" r="6" fill="#FF3B30" onclick="openModal('modal-点位联动');showToast('问询准星已锁定坐标 120.1866,30.2811')"/>
+              <circle class="pipe-node" cx="660" cy="412" r="6" fill="#FF3B30" onclick="openModal('modal-点位联动');showToast('问询准星已锁定坐标 120.1533,30.2409')"/>
+              <circle class="pipe-node" cx="940" cy="330" r="6" fill="#FF3B30" onclick="openModal('modal-点位联动');showToast('问询准星已锁定坐标 120.2130,30.2987')"/>
+            </g>
+            <g id="g-l5">
+              <rect x="445" y="295" width="10" height="10" rx="2" fill="#FFCC00"/><rect x="695" y="295" width="10" height="10" rx="2" fill="#FFCC00"/><rect x="855" y="125" width="10" height="10" rx="2" fill="#FFCC00"/><rect x="575" y="175" width="10" height="10" rx="2" fill="#FFCC00"/><rect x="235" y="395" width="10" height="10" rx="2" fill="#FFCC00"/>
+            </g>
+            <text x="170" y="452" fill="#7C97A6" font-size="11">北大桥站</text>
+            <text x="48" y="404" fill="#7C97A6" font-size="11">转塘站</text>
+            <text x="600" y="236" fill="#7C97A6" font-size="11">天目站</text>
+            <text x="742" y="236" fill="#7C97A6" font-size="11">水湘站</text>
+            <text x="882" y="316" fill="#7C97A6" font-size="11">三塘站</text>
+          </svg>
+          <div class="map-legend">
+            <span><span class="sw" style="background:#8FDCFF"></span>设备基础</span>
+            <span><span class="sw" style="background:#34C759"></span>安检保养</span>
+            <span><span class="sw" style="background:#FF9500"></span>抢修历史</span>
+            <span><span class="sw" style="background:#FF3B30"></span>风险隐患</span>
+            <span><span class="sw" style="background:#FFCC00"></span>工地</span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="glass-card mb-14">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-sitemap"></i>组织逐级下钻</div>
+            <span class="tag tag-gray">行级权限已生效</span>
+          </div>
+          <div class="org-node current" onclick="showToast('当前层级：集团 · 指标口径为全网')"><i class="fa-solid fa-building"></i>市燃气集团</div>
+          <div class="org-children">
+            <div class="org-node" onclick="showToast('下钻：城西分公司 · 地图范围与指标口径同步收敛')"><i class="fa-solid fa-folder-tree"></i>城西分公司</div>
+            <div class="org-children">
+              <div class="org-node" onclick="showToast('下钻：北大桥站 · 切换运行站级驾驶舱口径')"><i class="fa-solid fa-house-flag"></i>北大桥站</div>
+              <div class="org-node" onclick="showToast('下钻：转塘站 · 切换运行站级驾驶舱口径')"><i class="fa-solid fa-house-flag"></i>转塘站</div>
+            </div>
+            <div class="org-node" onclick="showToast('下钻：城东分公司 · 地图范围与指标口径同步收敛')"><i class="fa-solid fa-folder-tree"></i>城东分公司</div>
+            <div class="org-children">
+              <div class="org-node" onclick="showToast('下钻：水湘站 · 切换运行站级驾驶舱口径')"><i class="fa-solid fa-house-flag"></i>水湘站</div>
+              <div class="org-node" onclick="showToast('下钻：三塘站 · 切换运行站级驾驶舱口径')"><i class="fa-solid fa-house-flag"></i>三塘站</div>
+            </div>
+            <div class="org-node" onclick="showToast('下钻：城中分公司 · 地图范围与指标口径同步收敛')"><i class="fa-solid fa-folder-tree"></i>城中分公司</div>
+            <div class="org-children">
+              <div class="org-node" onclick="showToast('下钻：天目站 · 切换运行站级驾驶舱口径')"><i class="fa-solid fa-house-flag"></i>天目站</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass-card mb-14">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-triangle-exclamation"></i>异常事件提醒与定位</div>
+          </div>
+          <ul class="icon-list">
+            <li>
+              <i class="fa-solid fa-circle-exclamation" style="color:#FF3B30"></i>
+              <div style="flex:1">
+                <div class="flex-between"><b>一级 · 压力突降（疑似爆管）</b><span class="tag tag-red">处置中</span></div>
+                <div class="tiny">天目山路×古翠路 DN300 中压管 · 10-28 09:12 · 压力+报修自动触发</div>
+                <div class="flex mt-8" style="gap:8px">
+                  <button class="btn btn-danger btn-xs" onclick="switchView('v-爆管关阀策略生成与停气影响评估')"><i class="fa-solid fa-fire-extinguisher"></i>转入爆管关阀</button>
+                  <button class="btn btn-glass btn-xs" onclick="showToast('已定位事件坐标 120.1078,30.2756 · 地图已落准星')"><i class="fa-solid fa-crosshairs"></i>定位</button>
+                </div>
+              </div>
+            </li>
+            <li>
+              <i class="fa-solid fa-triangle-exclamation" style="color:#FF9500"></i>
+              <div style="flex:1">
+                <div class="flex-between"><b>二级 · 第三方施工破坏预警</b><span class="tag tag-orange">已派单</span></div>
+                <div class="tiny">转塘站 GD-2025-0312 上方机械开挖 · 10-28 08:47 · 视频识别触发</div>
+                <div class="flex mt-8" style="gap:8px">
+                  <button class="btn btn-glass btn-xs" onclick="showToast('已定位事件坐标 120.0875,30.2201 · 地图已落准星')"><i class="fa-solid fa-crosshairs"></i>定位</button>
+                </div>
+              </div>
+            </li>
+            <li>
+              <i class="fa-solid fa-triangle-exclamation" style="color:#FFCC00"></i>
+              <div style="flex:1">
+                <div class="flex-between"><b>三级 · 阀井微量渗漏</b><span class="tag tag-yellow">待复核</span></div>
+                <div class="tiny">水湘站 V-2216 阀井检测 12ppm·m · 10-27 22:31 · 巡检上报</div>
+                <div class="flex mt-8" style="gap:8px">
+                  <button class="btn btn-glass btn-xs" onclick="showToast('已定位事件坐标 120.2014,30.2905 · 地图已落准星')"><i class="fa-solid fa-crosshairs"></i>定位</button>
+                </div>
+              </div>
+            </li>
+          </ul>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-head"><div class="card-title"><i class="fa-solid fa-database"></i>五层数据接入状态</div></div>
+          <div class="table-scroll">
+            <table class="glass-table">
+              <thead><tr><th>图层</th><th>点位</th><th>更新频率</th><th>状态</th></tr></thead>
+              <tbody>
+                <tr><td>设备基础</td><td class="mono">12,643</td><td>日</td><td><span class="tag tag-green">正常</span></td></tr>
+                <tr><td>安检保养</td><td class="mono">8,214</td><td>日</td><td><span class="tag tag-green">正常</span></td></tr>
+                <tr><td>抢修维修历史</td><td class="mono">3,108</td><td>实时</td><td><span class="tag tag-green">正常</span></td></tr>
+                <tr><td>风险隐患动态</td><td class="mono">126</td><td>实时</td><td><span class="tag tag-green">正常</span></td></tr>
+                <tr><td>工地信息</td><td class="mono">47</td><td>小时</td><td><span class="tag tag-green">正常</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-mask" id="modal-隐患下钻" onclick="if(event.target===this)closeModal('modal-隐患下钻')">
+      <div class="glass-modal wide">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-triangle-exclamation" style="color:#FF3B30"></i>未闭环隐患 126 项 · 指标下钻</div>
+          <button class="modal-close" onclick="closeModal('modal-隐患下钻')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="grid g-2">
+            <div>
+              <div class="card-title mb-8"><i class="fa-solid fa-folder-tree"></i>按分公司</div>
+              <table class="glass-table">
+                <thead><tr><th>分公司</th><th>未闭环</th><th>红色管段关联</th><th>环比</th></tr></thead>
+                <tbody>
+                  <tr><td>城西分公司</td><td class="mono">41</td><td class="mono">12</td><td><span class="tag tag-green">-6</span></td></tr>
+                  <tr><td>城东分公司</td><td class="mono">37</td><td class="mono">11</td><td><span class="tag tag-green">-2</span></td></tr>
+                  <tr><td>城中分公司</td><td class="mono">48</td><td class="mono">15</td><td><span class="tag tag-green">-1</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div>
+              <div class="card-title mb-8"><i class="fa-solid fa-chart-simple"></i>按隐患类别</div>
+              <div class="flex-between mb-8"><span>管道占压</span><b class="mono">38 项</b></div>
+              <div class="meter mb-14"><div class="meter-fill red" style="width:76%"></div></div>
+              <div class="flex-between mb-8"><span>设施老化</span><b class="mono">29 项</b></div>
+              <div class="meter mb-14"><div class="meter-fill orange" style="width:58%"></div></div>
+              <div class="flex-between mb-8"><span>第三方施工风险</span><b class="mono">26 项</b></div>
+              <div class="meter mb-14"><div class="meter-fill orange" style="width:52%"></div></div>
+              <div class="flex-between mb-8"><span>腐蚀隐患</span><b class="mono">18 项</b></div>
+              <div class="meter mb-14"><div class="meter-fill" style="width:36%"></div></div>
+              <div class="flex-between mb-8"><span>其他</span><b class="mono">15 项</b></div>
+              <div class="meter"><div class="meter-fill" style="width:30%"></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-隐患下钻')">关闭</button>
+          <button class="btn btn-primary btn-sm" onclick="showToast('已打开隐患清单 · 地图同步高亮 126 个隐患点位，可继续按站下钻')"><i class="fa-solid fa-list"></i>查看隐患清单并地图高亮</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-mask" id="modal-点位联动" onclick="if(event.target===this)closeModal('modal-点位联动')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-circle-dot" style="color:#FF3B30"></i>点位五类联动信息 · GD-2024-0821</div>
+          <button class="modal-close" onclick="closeModal('modal-点位联动')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert-strip cyan"><i class="fa-solid fa-crosshairs"></i>问询准星已锁定坐标：120.1078, 30.2756（点击点位即锁定并联动以下五类信息）</div>
+          <dl class="kv">
+            <dt>设备基础</dt><dd>中压 DN300 · PE · 1.24 km · 2009 年投运 · 北大桥站</dd>
+            <dt>安检保养</dt><dd>最近安检 2026-09-14 · 保养周期 12 个月 · 上次保养评级 B</dd>
+            <dt>抢修历史</dt><dd>近 36 个月抢修 3 次 · 最近 2026-06-15（第三方破坏修复）</dd>
+            <dt>风险动态</dt><dd>综合风险评分 85.3（橙）· 未闭环隐患 1 项（管道占压）</dd>
+            <dt>工地信息</dt><dd>周边 500m 活跃工地 1 处 · 天目山路道路整治工程 · 已派监护</dd>
+          </dl>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-点位联动')">关闭</button>
+          <button class="btn btn-primary btn-sm" onclick="showToast('已生成点位问询工单 GX-2026-11267 · 转入责任站复核')"><i class="fa-solid fa-paper-plane"></i>发起问询</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== 页面2 运行站级指挥驾驶舱 ============================== -->
+  <section class="view" id="v-运行站级指挥驾驶舱">
+    <div class="page-head">
+      <div>
+        <div class="page-title">运行站级指挥驾驶舱 · 管理差值与效能诊断</div>
+        <div class="page-desc">同周期实际值-计划值差值分析 · 规则库效能诊断（输出原因判断而非仅列指标） · 改进建议确认下发与按期复评</div>
+      </div>
+      <div class="flex wrap">
+        <select class="filter-select" onchange="showToast('已切换至 '+this.value+' · 重新加载本月差值与诊断')">
+          <option>北大桥站</option><option>水湘站</option><option>天目站</option><option>三塘站</option><option>转塘站</option>
+        </select>
+        <select class="filter-select" onchange="showToast('已切换统计周期：'+this.value)">
+          <option>2026-10（本月）</option><option>2026-09</option><option>2026-08</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="grid g-4 mb-14">
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-ranking-star"></i>同类站横向排名（Ⅰ类站）</div>
+        <div class="stat-value">3<span style="font-size:13px;font-weight:500"> / 5 位</span></div>
+        <div class="stat-sub">仅同类站间对比 · 水湘站 98.6% 居首</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-clipboard-check"></i>计划按期执行率</div>
+        <div class="stat-value orange">93.2<span style="font-size:13px;font-weight:500"> %</span></div>
+        <div class="stat-sub">低于 95% 阈值 · 环比 +2.1pt · 同比 -3.4pt</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-flag"></i>超阈值项</div>
+        <div class="stat-value red">1<span style="font-size:13px;font-weight:500"> 项</span></div>
+        <div class="stat-sub">管网巡检 -7.1% 超出 ±5% 阈值 · 橙红标记</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-screwdriver-wrench"></i>本期改进建议</div>
+        <div class="stat-value blue">2<span style="font-size:13px;font-weight:500"> 条</span></div>
+        <div class="stat-sub">排班类 1 · 管理类 1 · 复评节点 2026-11-30</div>
+      </div>
+    </div>
+
+    <div class="glass-card mb-14">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-table-columns"></i>五类任务差值分析（2026-10 · 实际值 - 计划值）</div>
+        <span class="tag tag-orange"><i class="fa-solid fa-circle-exclamation"></i>超阈值项已橙红标记</span>
+      </div>
+      <div class="table-scroll">
+        <table class="glass-table">
+          <thead><tr><th>任务类型</th><th>计划值</th><th>实际值</th><th>差值</th><th>差值率</th><th>同比</th><th>阈值</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr style="background:rgba(255,59,48,.06)">
+              <td><b>管网巡检</b></td><td class="mono">1,240 km</td><td class="mono">1,152 km</td><td class="mono" style="color:#D93025">-88 km</td><td class="mono" style="color:#D93025">-7.1%</td><td class="mono">-3.4%</td><td>±5%</td><td><span class="tag tag-red">超阈值</span></td>
+            </tr>
+            <tr>
+              <td><b>设备保养</b></td><td class="mono">86 台</td><td class="mono">81 台</td><td class="mono">-5 台</td><td class="mono">-5.8%</td><td class="mono">+1.2%</td><td>±10%</td><td><span class="tag tag-green">正常</span></td>
+            </tr>
+            <tr>
+              <td><b>隐患整改</b></td><td class="mono">42 项</td><td class="mono">38 项</td><td class="mono">-4 项</td><td class="mono">-9.5%</td><td class="mono">-2.0%</td><td>±15%</td><td><span class="tag tag-green">正常</span></td>
+            </tr>
+            <tr>
+              <td><b>工地监护</b></td><td class="mono">312 点次</td><td class="mono">305 点次</td><td class="mono">-7 点次</td><td class="mono">-2.2%</td><td class="mono">+4.5%</td><td>±5%</td><td><span class="tag tag-green">正常</span></td>
+            </tr>
+            <tr>
+              <td><b>应急演练</b></td><td class="mono">4 次</td><td class="mono">4 次</td><td class="mono">0</td><td class="mono">0%</td><td class="mono">0%</td><td>—</td><td><span class="tag tag-green">达标</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="grid g-main-side">
+      <div>
+        <div class="glass-card mb-14">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-magnifying-glass-chart"></i>效能诊断（规则库输出）</div>
+            <span class="tag tag-cyan">规则 R-03 命中</span>
+          </div>
+          <div class="alert-strip orange"><i class="fa-solid fa-circle-info"></i>规则命中即输出原因判断；未命中不作结论（如设备保养 -5.8% 在阈值内，仅记录不诊断）。</div>
+          <dl class="kv">
+            <dt>现象条件</dt><dd>8 月完成率 94.1% · 9 月 94.6% · 10 月 92.9%，连续 3 个月低于 95%</dd>
+            <dt>原因判断</dt><dd><b>排班覆盖问题</b>——周三 / 周五两条巡检线路在高频工地段（天目山路×古翠路）重叠，单人日巡里程超限</dd>
+            <dt>处置指向</dt><dd>排班类（推送巡检排班助手）</dd>
+            <dt>触发规则</dt><dd class="mono">R-03 · 阈值 95% · 连续 3 月 · 规则版本 R2026Q4</dd>
+          </dl>
+        </div>
+        <div class="glass-card">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-lightbulb"></i>改进建议（站长确认后下发）</div>
+          </div>
+          <dl class="kv">
+            <dt>建议内容</dt><dd>周三 A-07 线与周五 B-03 线在高频工地段合并为单次全段覆盖，并动态插入工地监护点</dd>
+            <dt>依据</dt><dd>诊断 R-03 + 工地绕行分析（3 处工地双向绕行 4.2 km/次）</dd>
+            <dt>执行动作</dt><dd>排班类 → 推送巡检排班助手；管理类 → 进入站长待办</dd>
+            <dt>生效时间</dt><dd class="mono">2026-10-30</dd>
+            <dt>复评节点</dt><dd class="mono">2026-11-30（未消除将重新进入诊断）</dd>
+          </dl>
+          <div class="flex mt-14" style="gap:10px">
+            <button class="btn btn-primary btn-sm" onclick="openModal('modal-建议下发')"><i class="fa-solid fa-paper-plane"></i>确认下发</button>
+            <button class="btn btn-ghost btn-sm" onclick="showToast('建议已暂存 · 复评节点前可继续编辑')">暂存</button>
+          </div>
+        </div>
+      </div>
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-ranking-star"></i>同类站横向排名</div>
+          <span class="tag tag-gray">仅同类站（Ⅰ类站）间对比</span>
+        </div>
+        <table class="glass-table">
+          <thead><tr><th>位次</th><th>站点</th><th>按期执行率</th><th>环比</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>水湘站</td><td class="mono">98.6%</td><td><span class="tag tag-green">+0.8pt</span></td></tr>
+            <tr><td>2</td><td>三塘站</td><td class="mono">96.4%</td><td><span class="tag tag-green">+1.2pt</span></td></tr>
+            <tr style="background:var(--c-primary-soft)"><td><b>3</b></td><td><b>北大桥站（本站）</b></td><td class="mono">93.2%</td><td><span class="tag tag-green">+2.1pt</span></td></tr>
+            <tr><td>4</td><td>天目站</td><td class="mono">91.8%</td><td><span class="tag tag-red">-0.9pt</span></td></tr>
+            <tr><td>5</td><td>转塘站</td><td class="mono">89.5%</td><td><span class="tag tag-green">+0.4pt</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="modal-mask" id="modal-建议下发" onclick="if(event.target===this)closeModal('modal-建议下发')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-paper-plane" style="color:#0E7490"></i>改进建议确认下发</div>
+          <button class="modal-close" onclick="closeModal('modal-建议下发')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <dl class="kv">
+            <dt>建议内容</dt><dd>周三 A-07 线与周五 B-03 线合并覆盖高频工地段，动态插入工地监护点</dd>
+            <dt>类型</dt><dd>排班类 + 管理类（组合建议）</dd>
+            <dt>下发对象</dt><dd>巡检排班助手（排班类）· 站长待办（管理类）</dd>
+            <dt>生效时间</dt><dd class="mono">2026-10-30</dd>
+            <dt>复评节点</dt><dd class="mono">2026-11-30</dd>
+          </dl>
+          <div class="alert-strip blue mt-14"><i class="fa-solid fa-circle-info"></i>下发后进入按期复评，未消除的差值项将重新进入诊断流程。</div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-建议下发')">取消</button>
+          <button class="btn btn-primary btn-sm" onclick="closeModal('modal-建议下发');showToast('已确认下发：排班类建议已推送巡检排班助手，管理类建议已进入站长待办')"><i class="fa-solid fa-check"></i>确认下发</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== 页面3 管网运行一张表全景视图 ============================== -->
+  <section class="view" id="v-管网运行一张表全景视图">
+    <div class="page-head">
+      <div>
+        <div class="page-title">管网运行「一张表」全景视图</div>
+        <div class="page-desc">高中低压分类统计 · 全量管段台账 · 多条件组合筛选 · 表图双向联动 · Excel 导出留痕</div>
+      </div>
+      <div class="flex wrap">
+        <span class="tag tag-cyan"><i class="fa-solid fa-table-cells"></i>表图双向联动</span>
+      </div>
+    </div>
+
+    <div class="grid g-4 mb-14">
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-bars-staggered"></i>管段总数</div>
+        <div class="stat-value">32,486<span style="font-size:13px;font-weight:500"> 段</span></div>
+        <div class="stat-sub">台账与 GIS 空间数据同源</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-route"></i>总里程</div>
+        <div class="stat-value">10,815<span style="font-size:13px;font-weight:500"> km</span></div>
+        <div class="stat-sub">高压 2.6% · 次高压 4.7% · 中压 35.7% · 低压 56.9%</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-gauge-high"></i>高中压管网</div>
+        <div class="stat-value blue">4,660<span style="font-size:13px;font-weight:500"> km</span></div>
+        <div class="stat-sub">高压 286 · 次高压 512 · 中压 3,862 km</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-house-chimney"></i>低压管网</div>
+        <div class="stat-value">6,155<span style="font-size:13px;font-weight:500"> km</span></div>
+        <div class="stat-sub">庭院管 + 立管 · 占比 56.9%</div>
+      </div>
+    </div>
+
+    <div class="filter-bar">
+      <div class="filter-item">
+        <span class="filter-label">压力等级</span>
+        <select class="filter-select"><option>全部</option><option>高压</option><option>次高压</option><option>中压</option><option>低压</option></select>
+      </div>
+      <div class="filter-item">
+        <span class="filter-label">材质</span>
+        <select class="filter-select"><option>全部</option><option>PE</option><option>钢管</option><option>铸铁</option></select>
+      </div>
+      <div class="filter-item">
+        <span class="filter-label">投运年份</span>
+        <select class="filter-select"><option>全部</option><option>2010 年前</option><option>2010-2018</option><option>2019 年后</option></select>
+      </div>
+      <div class="filter-item">
+        <span class="filter-label">健康等级</span>
+        <select class="filter-select"><option>全部</option><option>红（≥85）</option><option>橙（70-85）</option><option>黄（50-70）</option><option>蓝（&lt;50）</option></select>
+      </div>
+      <div class="filter-item">
+        <span class="filter-label">所属运行站</span>
+        <select class="filter-select"><option>全部</option><option>北大桥站</option><option>水湘站</option><option>天目站</option><option>三塘站</option><option>转塘站</option></select>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="doQuery()"><i class="fa-solid fa-magnifying-glass"></i>查询</button>
+      <button class="btn btn-glass btn-sm" onclick="showToast('筛选条件已重置为全部 · 表格与地图恢复全量')"><i class="fa-solid fa-rotate-left"></i>重置</button>
+      <button class="btn btn-glass btn-sm" onclick="showToast('已导出 Excel · 筛选条件、导出人 王*强、导出时间 2026-10-28 10:42 已留痕')"><i class="fa-solid fa-file-export"></i>导出 Excel</button>
+    </div>
+
+    <div class="alert-strip cyan mb-14" id="hit-stat"><i class="fa-solid fa-filter"></i>当前命中：3,286 段 · 合计长度 4,213 km · 涉及 5 个运行站</div>
+
+    <div class="grid g-main-side">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-table-list"></i>管段台账（点击行定位地图并展开属性卡）</div>
+          <span class="tag tag-gray">示例 8 / 32,486 段</span>
+        </div>
+        <div class="table-scroll">
+          <table class="glass-table">
+            <thead><tr><th>管段编号</th><th>压力等级</th><th>管径</th><th>材质</th><th>长度</th><th>投运</th><th>所属站</th><th>健康等级</th><th>36月抢修</th><th>最近巡检</th><th>状态</th><th>操作</th></tr></thead>
+            <tbody>
+              <tr style="cursor:pointer" onclick="openModal('modal-管段属性')">
+                <td class="mono">GD-2024-0821</td><td>中压</td><td>DN300</td><td>PE</td><td class="mono">1.24 km</td><td>2009</td><td>北大桥站</td><td><span class="tag tag-orange">橙</span></td><td class="mono">3</td><td class="mono">10-24</td><td><span class="tag tag-green">在运</span></td>
+                <td><button class="btn btn-glass btn-xs" onclick="showToast('已定位 GD-2024-0821 · 地图高亮并展开属性卡')"><i class="fa-solid fa-crosshairs"></i>定位</button></td>
+              </tr>
+              <tr style="cursor:pointer" onclick="openModal('modal-管段属性')">
+                <td class="mono">GD-2023-0447</td><td>中压</td><td>DN200</td><td>钢管</td><td class="mono">0.86 km</td><td>2003</td><td>天目站</td><td><span class="tag tag-red">红</span></td><td class="mono">5</td><td class="mono">10-19</td><td><span class="tag tag-green">在运</span></td>
+                <td><button class="btn btn-glass btn-xs" onclick="showToast('已定位 GD-2023-0447 · 地图高亮并展开属性卡')"><i class="fa-solid fa-crosshairs"></i>定位</button></td>
+              </tr>
+              <tr style="cursor:pointer" onclick="openModal('modal-管段属性')">
+                <td class="mono">GD-2019-0063</td><td>低压</td><td>DN110</td><td>PE</td><td class="mono">2.31 km</td><td>2016</td><td>水湘站</td><td><span class="tag tag-yellow">黄</span></td><td class="mono">1</td><td class="mono">10-21</td><td><span class="tag tag-green">在运</span></td>
+                <td><button class="btn btn-glass btn-xs" onclick="showToast('已定位 GD-2019-0063 · 地图高亮并展开属性卡')"><i class="fa-solid fa-crosshairs"></i>定位</button></td>
+              </tr>
+              <tr style="cursor:pointer" onclick="openModal('modal-管段属性')">
+                <td class="mono">GD-2021-0158</td><td>中压</td><td>DN300</td><td>钢管</td><td class="mono">1.08 km</td><td>2001</td><td>三塘站</td><td><span class="tag tag-red">红</span></td><td class="mono">4</td><td class="mono">10-18</td><td><span class="tag tag-green">在运</span></td>
+                <td><button class="btn btn-glass btn-xs" onclick="showToast('已定位 GD-2021-0158 · 地图高亮并展开属性卡')"><i class="fa-solid fa-crosshairs"></i>定位</button></td>
+              </tr>
+              <tr style="cursor:pointer" onclick="openModal('modal-管段属性')">
+                <td class="mono">GD-2025-0312</td><td>高压</td><td>DN500</td><td>钢管</td><td class="mono">3.42 km</td><td>2022</td><td>转塘站</td><td><span class="tag tag-blue">蓝</span></td><td class="mono">0</td><td class="mono">10-26</td><td><span class="tag tag-green">在运</span></td>
+                <td><button class="btn btn-glass btn-xs" onclick="showToast('已定位 GD-2025-0312 · 地图高亮并展开属性卡')"><i class="fa-solid fa-crosshairs"></i>定位</button></td>
+              </tr>
+              <tr style="cursor:pointer" onclick="openModal('modal-管段属性')">
+                <td class="mono">GD-2018-0234</td><td>低压</td><td>DN63</td><td>PE</td><td class="mono">1.67 km</td><td>2013</td><td>北大桥站</td><td><span class="tag tag-blue">蓝</span></td><td class="mono">0</td><td class="mono">10-22</td><td><span class="tag tag-green">在运</span></td>
+                <td><button class="btn btn-glass btn-xs" onclick="showToast('已定位 GD-2018-0234 · 地图高亮并展开属性卡')"><i class="fa-solid fa-crosshairs"></i>定位</button></td>
+              </tr>
+              <tr style="cursor:pointer" onclick="openModal('modal-管段属性')">
+                <td class="mono">GD-2022-0777</td><td>次高压</td><td>DN400</td><td>钢管</td><td class="mono">2.05 km</td><td>2011</td><td>天目站</td><td><span class="tag tag-orange">橙</span></td><td class="mono">2</td><td class="mono">10-20</td><td><span class="tag tag-gray">技改评估</span></td>
+                <td><button class="btn btn-glass btn-xs" onclick="showToast('已定位 GD-2022-0777 · 地图高亮并展开属性卡')"><i class="fa-solid fa-crosshairs"></i>定位</button></td>
+              </tr>
+              <tr style="cursor:pointer" onclick="openModal('modal-管段属性')">
+                <td class="mono">GD-2020-0509</td><td>中压</td><td>DN200</td><td>PE</td><td class="mono">0.94 km</td><td>2019</td><td>水湘站</td><td><span class="tag tag-yellow">黄</span></td><td class="mono">1</td><td class="mono">10-23</td><td><span class="tag tag-green">在运</span></td>
+                <td><button class="btn btn-glass btn-xs" onclick="showToast('已定位 GD-2020-0509 · 地图高亮并展开属性卡')"><i class="fa-solid fa-crosshairs"></i>定位</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-map"></i>命中管段地图高亮</div>
+          <span class="tag tag-gray">其余图层已自动收起</span>
+        </div>
+        <div class="map-canvas" style="min-height:430px">
+          <svg viewBox="0 0 1000 500" style="position:absolute;inset:0;width:100%;height:100%">
+            <path class="pipe" d="M40,430 L220,430 L300,340 L470,340 L560,250 L760,250 L850,330 L950,330" stroke="#34A8FF" opacity=".45"/>
+            <path class="pipe" d="M140,70 L300,70 L370,160 L530,160 L640,100 L880,100" stroke="#34A8FF" opacity=".45"/>
+            <path class="pipe" d="M300,70 L300,340" stroke="#0E7490" opacity=".45"/>
+            <path class="pipe" d="M530,160 L560,250" stroke="#0E7490" opacity=".45"/>
+            <path class="pipe" d="M470,340 L500,420 L680,420" stroke="#0E7490" opacity=".45"/>
+            <path class="pipe" d="M760,250 L800,180 L930,180" stroke="#34A8FF" opacity=".45"/>
+            <path class="pipe" d="M680,420 L760,250" stroke="#0E7490" opacity=".45"/>
+            <g id="g-hit-seg">
+              <path class="pipe" d="M470,340 L560,250" stroke="#FF9F0A" stroke-width="8" style="cursor:pointer" onclick="openModal('modal-管段属性');showToast('地图点击：已反向定位表格行 GD-2024-0821')"/>
+              <path class="pipe" d="M300,340 L470,340" stroke="#FF9F0A" stroke-width="8" style="cursor:pointer" onclick="openModal('modal-管段属性');showToast('地图点击：已反向定位表格行 GD-2023-0447')"/>
+            </g>
+            <text x="170" y="452" fill="#94A3B8" font-size="11">北大桥站</text>
+            <text x="48" y="404" fill="#94A3B8" font-size="11">转塘站</text>
+            <text x="600" y="236" fill="#94A3B8" font-size="11">天目站</text>
+            <text x="742" y="236" fill="#94A3B8" font-size="11">水湘站</text>
+            <text x="882" y="316" fill="#94A3B8" font-size="11">三塘站</text>
+          </svg>
+          <div class="map-legend">
+            <span><span class="sw" style="background:#34A8FF"></span>全管网</span>
+            <span><span class="sw" style="background:#FF9F0A"></span>命中管段（点击反向定位）</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-mask" id="modal-管段属性" onclick="if(event.target===this)closeModal('modal-管段属性')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-circle-info" style="color:#0E7490"></i>管段属性卡 · GD-2024-0821</div>
+          <button class="modal-close" onclick="closeModal('modal-管段属性')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <dl class="kv">
+            <dt>压力等级</dt><dd>中压 · DN300 · PE · 壁厚 17.6mm</dd>
+            <dt>长度</dt><dd class="mono">1.24 km · 焊口 86 道</dd>
+            <dt>投运年份</dt><dd class="mono">2009-06</dd>
+            <dt>所属运行站</dt><dd>北大桥站 · 城西分公司</dd>
+            <dt>健康等级</dt><dd><span class="tag tag-orange">橙（综合评分 85.3）</span></dd>
+            <dt>近 36 月抢修</dt><dd class="mono">3 次（最近 2026-06-15 第三方破坏）</dd>
+            <dt>最近巡检</dt><dd class="mono">2026-10-24 · 巡检员 王*强</dd>
+            <dt>当前状态</dt><dd><span class="tag tag-green">在运</span></dd>
+          </dl>
+          <hr class="divider">
+          <div class="card-title mb-8"><i class="fa-solid fa-clock-rotate-left"></i>最近 3 次抢维修记录</div>
+          <ul class="icon-list">
+            <li><i class="fa-solid fa-screwdriver-wrench"></i>2026-06-15 第三方破坏泄漏 · 卡具修复 · 工单 QX-2026-0521</li>
+            <li><i class="fa-solid fa-screwdriver-wrench"></i>2025-02-03 阀井接口渗漏 · 密封更换 · 工单 QX-2025-0088</li>
+            <li><i class="fa-solid fa-screwdriver-wrench"></i>2024-08-22 占压整改配合 · 复位检测 · 工单 QX-2024-0773</li>
+          </ul>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-管段属性')">关闭</button>
+          <button class="btn btn-primary btn-sm" onclick="showToast('已加入重点关注清单 · 变更将同步四色图与排班因子')"><i class="fa-solid fa-star"></i>加入重点关注</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== 页面4 管网健康四色图 ============================== -->
+  <section class="view" id="v-管网健康四色图">
+    <div class="page-head">
+      <div>
+        <div class="page-title">管网健康四色图</div>
+        <div class="page-desc">按管段综合评分四色渲染：红 ≥85 · 橙 70-85 · 黄 50-70 · 蓝 &lt;50 · 健康评估结果为唯一依据 · 分级按日重算并保留时点可回溯</div>
+      </div>
+      <div class="flex wrap">
+        <select class="filter-select" onchange="showToast('已回溯至 '+this.value+' 时点快照 · 四色分布与清单同步刷新')">
+          <option>评分时点 2026-10-28 03:00</option>
+          <option>评分时点 2026-10-27 03:00</option>
+          <option>评分时点 2026-10-26 03:00</option>
+        </select>
+        <button class="btn btn-glass btn-sm" onclick="showToast('已触发按日重算 · 全量 32,486 段预计 40 分钟完成')"><i class="fa-solid fa-calculator"></i>按日重算</button>
+      </div>
+    </div>
+
+    <div class="grid g-4 mb-14">
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-circle" style="color:#FF3B30"></i>红色管段（≥85）</div>
+        <div class="stat-value red">187<span style="font-size:13px;font-weight:500"> km</span></div>
+        <div class="stat-sub">占比 1.7% · 11 段进入技改候选清单</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-circle" style="color:#FF9500"></i>橙色管段（70-85）</div>
+        <div class="stat-value orange">623<span style="font-size:13px;font-weight:500"> km</span></div>
+        <div class="stat-sub">占比 5.8% · 排班频次 ×2</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-circle" style="color:#FFCC00"></i>黄色管段（50-70）</div>
+        <div class="stat-value" style="color:#C67200">2,841<span style="font-size:13px;font-weight:500"> km</span></div>
+        <div class="stat-sub">占比 26.3% · 排班频次 ×1.5</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-circle" style="color:#34A8FF"></i>蓝色管段（&lt;50）</div>
+        <div class="stat-value blue">7,164<span style="font-size:13px;font-weight:500"> km</span></div>
+        <div class="stat-sub">占比 66.2% · 常规频次</div>
+      </div>
+    </div>
+
+    <div class="glass-card mb-14">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-palette"></i>四色渲染底图（点击图例切换各色图层）</div>
+        <div class="flex wrap" style="gap:8px">
+          <label class="layer-chip"><input type="checkbox" checked onchange="toggleLayerGroup('g-hz',this.parentNode,'隐患动态图层')">叠加隐患 <b>126</b></label>
+          <label class="layer-chip"><input type="checkbox" checked onchange="toggleLayerGroup('g-gd',this.parentNode,'工地图层')">叠加工地 <b>47</b></label>
+        </div>
+      </div>
+      <div class="map-canvas" style="min-height:480px">
+        <svg viewBox="0 0 1000 500" style="position:absolute;inset:0;width:100%;height:100%">
+          <g id="g-blue">
+            <path class="pipe" d="M40,430 L220,430 L300,340" stroke="#34A8FF" stroke-width="6"/>
+            <path class="pipe" d="M140,70 L300,70 L370,160 L530,160 L640,100 L880,100" stroke="#34A8FF" stroke-width="6"/>
+            <path class="pipe" d="M300,70 L300,340" stroke="#34A8FF" stroke-width="6"/>
+            <path class="pipe" d="M530,160 L560,250" stroke="#34A8FF" stroke-width="6"/>
+            <path class="pipe" d="M760,250 L800,180 L930,180" stroke="#34A8FF" stroke-width="6"/>
+          </g>
+          <g id="g-yellow">
+            <path class="pipe" d="M300,340 L470,340" stroke="#FFCC00" stroke-width="6"/>
+            <path class="pipe" d="M760,250 L850,330 L950,330" stroke="#FFCC00" stroke-width="6"/>
+            <path class="pipe" d="M500,420 L680,420" stroke="#FFCC00" stroke-width="6"/>
+          </g>
+          <g id="g-orange">
+            <path class="pipe" d="M560,250 L760,250" stroke="#FF9500" stroke-width="6"/>
+            <path class="pipe" d="M470,340 L500,420" stroke="#FF9500" stroke-width="6"/>
+          </g>
+          <g id="g-red">
+            <path class="pipe" d="M470,340 L560,250" stroke="#FF3B30" stroke-width="7" style="cursor:pointer" onclick="openModal('modal-评分构成')"/>
+          </g>
+          <g id="g-hz">
+            <polygon points="520,254 528,268 512,268" fill="#D93025"/>
+            <polygon points="310,322 318,336 302,336" fill="#D93025"/>
+            <polygon points="750,254 758,268 742,268" fill="#D93025"/>
+            <polygon points="660,404 668,418 652,418" fill="#D93025"/>
+          </g>
+          <g id="g-gd">
+            <rect x="445" y="295" width="11" height="11" rx="2" fill="#FFCC00" stroke="#B98A00" stroke-width="1"/>
+            <rect x="695" y="295" width="11" height="11" rx="2" fill="#FFCC00" stroke="#B98A00" stroke-width="1"/>
+            <rect x="575" y="175" width="11" height="11" rx="2" fill="#FFCC00" stroke="#B98A00" stroke-width="1"/>
+          </g>
+          <text x="170" y="452" fill="#94A3B8" font-size="11">北大桥站</text>
+          <text x="48" y="404" fill="#94A3B8" font-size="11">转塘站</text>
+          <text x="600" y="236" fill="#94A3B8" font-size="11">天目站</text>
+          <text x="742" y="236" fill="#94A3B8" font-size="11">水湘站</text>
+          <text x="882" y="316" fill="#94A3B8" font-size="11">三塘站</text>
+        </svg>
+        <div class="map-legend">
+          <button class="legend-btn" onclick="toggleLayerGroup('g-red',this,'红色管段图层')"><span class="sw" style="background:#FF3B30"></span>红 187km</button>
+          <button class="legend-btn" onclick="toggleLayerGroup('g-orange',this,'橙色管段图层')"><span class="sw" style="background:#FF9500"></span>橙 623km</button>
+          <button class="legend-btn" onclick="toggleLayerGroup('g-yellow',this,'黄色管段图层')"><span class="sw" style="background:#FFCC00"></span>黄 2,841km</button>
+          <button class="legend-btn" onclick="toggleLayerGroup('g-blue',this,'蓝色管段图层')"><span class="sw" style="background:#34A8FF"></span>蓝 7,164km</button>
+        </div>
+      </div>
+      <div class="tiny mt-8"><i class="fa-solid fa-circle-info"></i> 叠加隐患 / 工地图层可识别风险加剧因素：红色管段 GD-2023-0447 周边 500m 存在 1 处活跃工地，第三方施工因子已上调。</div>
+    </div>
+
+    <div class="glass-card mb-14">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-fire-flame-curved" style="color:#FF3B30"></i>红色管段清单（按综合评分降序）</div>
+        <span class="tag tag-red">11 段 · 展示前 5</span>
+      </div>
+      <div class="table-scroll">
+        <table class="glass-table">
+          <thead><tr><th>管段编号</th><th>综合评分<i class="fa-solid fa-sort-down"></i></th><th>所属站</th><th>主因子</th><th>关联隐患</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">GD-2023-0447</td><td class="mono" style="color:#D93025"><b>92.1</b></td><td>天目站</td><td>管龄材质（23.5 分贡献）</td><td>2 项</td>
+              <td><button class="btn btn-glass btn-xs" onclick="openModal('modal-评分构成')"><i class="fa-solid fa-chart-pie"></i>评分构成</button></td></tr>
+            <tr><td class="mono">GD-2021-0158</td><td class="mono" style="color:#D93025"><b>89.1</b></td><td>三塘站</td><td>腐蚀防腐（22.4 分贡献）</td><td>3 项</td>
+              <td><button class="btn btn-glass btn-xs" onclick="openModal('modal-评分构成')"><i class="fa-solid fa-chart-pie"></i>评分构成</button></td></tr>
+            <tr><td class="mono">GD-2019-0063</td><td class="mono" style="color:#D93025"><b>87.6</b></td><td>水湘站</td><td>第三方施工（19.8 分贡献）</td><td>2 项</td>
+              <td><button class="btn btn-glass btn-xs" onclick="openModal('modal-评分构成')"><i class="fa-solid fa-chart-pie"></i>评分构成</button></td></tr>
+            <tr><td class="mono">GD-2024-0821</td><td class="mono" style="color:#D93025"><b>85.3</b></td><td>北大桥站</td><td>历史抢修频次（14.7 分贡献）</td><td>1 项</td>
+              <td><button class="btn btn-glass btn-xs" onclick="openModal('modal-评分构成')"><i class="fa-solid fa-chart-pie"></i>评分构成</button></td></tr>
+            <tr><td class="mono">GD-2018-0234</td><td class="mono" style="color:#D93025"><b>85.1</b></td><td>北大桥站</td><td>周边环境（13.2 分贡献）</td><td>1 项</td>
+              <td><button class="btn btn-glass btn-xs" onclick="openModal('modal-评分构成')"><i class="fa-solid fa-chart-pie"></i>评分构成</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="alert-strip orange"><i class="fa-solid fa-circle-info"></i>红 / 橙管段已输出至巡检排班频次因子（红 ×2 · 橙 ×2 · 黄 ×1.5）；红色 11 段已进入 2027 年技改候选清单。</div>
+
+    <div class="modal-mask" id="modal-评分构成" onclick="if(event.target===this)closeModal('modal-评分构成')">
+      <div class="glass-modal wide">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-chart-pie" style="color:#FF3B30"></i>评分构成逐因子溯源 · GD-2023-0447</div>
+          <button class="modal-close" onclick="closeModal('modal-评分构成')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="flex-between mb-14">
+            <span class="tag tag-red">综合评分 92.1（红）· 计算时点 2026-10-28 03:00</span>
+            <span class="tag tag-gray">六类风险因子加权模型</span>
+          </div>
+          <table class="glass-table">
+            <thead><tr><th>风险因子</th><th>因子取值</th><th>权重</th><th>贡献度</th><th>贡献占比</th></tr></thead>
+            <tbody>
+              <tr style="background:rgba(255,59,48,.05)"><td><b>管龄材质</b>（主因子）</td><td class="mono">0.94</td><td class="mono">0.25</td><td class="mono" style="color:#D93025"><b>23.5</b></td><td><div class="meter"><div class="meter-fill red" style="width:94%"></div></div></td></tr>
+              <tr><td>腐蚀与防腐</td><td class="mono">0.92</td><td class="mono">0.20</td><td class="mono">18.4</td><td><div class="meter"><div class="meter-fill orange" style="width:74%"></div></div></td></tr>
+              <tr><td>第三方施工</td><td class="mono">0.90</td><td class="mono">0.20</td><td class="mono">18.0</td><td><div class="meter"><div class="meter-fill orange" style="width:72%"></div></div></td></tr>
+              <tr><td>历史抢修频次</td><td class="mono">0.96</td><td class="mono">0.15</td><td class="mono">14.4</td><td><div class="meter"><div class="meter-fill orange" style="width:58%"></div></div></td></tr>
+              <tr><td>周边环境</td><td class="mono">0.91</td><td class="mono">0.12</td><td class="mono">10.9</td><td><div class="meter"><div class="meter-fill" style="width:44%"></div></div></td></tr>
+              <tr><td>压力流量工况</td><td class="mono">0.86</td><td class="mono">0.08</td><td class="mono">6.9</td><td><div class="meter"><div class="meter-fill" style="width:28%"></div></div></td></tr>
+            </tbody>
+          </table>
+          <div class="alert-strip red mt-14"><i class="fa-solid fa-lightbulb"></i>主因子：管龄材质（2003 年投运钢管，无内衬）· 处置建议：纳入 2027 技改候选、排班频次 ×2、优先开展防腐检测。</div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-评分构成')">关闭</button>
+          <button class="btn btn-glass btn-sm" onclick="showToast('已输出至巡检排班频次因子 · 红色频次 ×2 已生效')"><i class="fa-solid fa-person-walking"></i>输出至排班因子</button>
+          <button class="btn btn-primary btn-sm" onclick="showToast('GD-2023-0447 已加入 2027 年技改候选清单')"><i class="fa-solid fa-hammer"></i>加入技改候选</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== 页面5 巡检盲区覆盖分析 ============================== -->
+  <section class="view" id="v-巡检盲区覆盖分析">
+    <div class="page-head">
+      <div>
+        <div class="page-title">巡检盲区覆盖分析</div>
+        <div class="page-desc">轨迹按日清洗（剔除速度突变漂移点 / 低精度点 / 长时间静止点并抽稀）后 30 米缓冲区与管段求交 · 盲区判定：近 90 天内连续 60 天覆盖率 &lt;60%</div>
+      </div>
+      <div class="flex wrap">
+        <span class="tag tag-cyan"><i class="fa-solid fa-clock-rotate-left"></i>统计窗口 2026-07-30 ~ 2026-10-27</span>
+      </div>
+    </div>
+
+    <div class="grid g-4 mb-14">
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-shoe-prints"></i>90 日轨迹点（清洗后）</div>
+        <div class="stat-value">486.2<span style="font-size:13px;font-weight:500"> 万</span></div>
+        <div class="stat-sub">轨迹按日清洗 · 30m 缓冲区求交</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-percent"></i>管段覆盖率</div>
+        <div class="stat-value blue">92.4<span style="font-size:13px;font-weight:500"> %</span></div>
+        <div class="stat-sub">按长度加权 · 环比 +1.8pt</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-eye-slash"></i>盲区管段（连续 60 天 &lt;60%）</div>
+        <div class="stat-value red">47<span style="font-size:13px;font-weight:500"> 段</span></div>
+        <div class="stat-sub">排班覆盖 22 · 通行受阻 15 · 责任交界 10</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-clipboard-check"></i>强制补检与销号</div>
+        <div class="stat-value orange">31<span style="font-size:13px;font-weight:500"> / 47</span></div>
+        <div class="stat-sub">复算达标销号 31 · 未达标 16 进入下一周期并升级</div>
+      </div>
+    </div>
+
+    <div class="grid g-main-side">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-map"></i>盲区热力图（按未覆盖时长着色）</div>
+          <button class="btn btn-primary btn-sm" onclick="showToast('47 项强制补检任务已回流排班任务池 · 人工不可删除')"><i class="fa-solid fa-arrows-rotate"></i>批量生成强制补检</button>
+        </div>
+        <div class="map-canvas" style="min-height:460px">
+          <svg viewBox="0 0 1000 500" style="position:absolute;inset:0;width:100%;height:100%">
+            <path class="pipe" d="M40,430 L220,430 L300,340 L470,340 L560,250 L760,250 L850,330 L950,330" stroke="#7FB3C8" stroke-width="4"/>
+            <path class="pipe" d="M140,70 L300,70 L370,160 L530,160 L640,100 L880,100" stroke="#7FB3C8" stroke-width="4"/>
+            <path class="pipe" d="M300,70 L300,340" stroke="#7FB3C8" stroke-width="4"/>
+            <path class="pipe" d="M530,160 L560,250" stroke="#7FB3C8" stroke-width="4"/>
+            <path class="pipe" d="M470,340 L500,420 L680,420" stroke="#7FB3C8" stroke-width="4"/>
+            <path class="pipe" d="M760,250 L800,180 L930,180" stroke="#7FB3C8" stroke-width="4"/>
+            <path class="pipe" d="M680,420 L760,250" stroke="#7FB3C8" stroke-width="4"/>
+            <circle cx="520" cy="262" r="20" fill="#FF3B30" opacity=".5"/>
+            <circle cx="310" cy="330" r="16" fill="#FF3B30" opacity=".45"/>
+            <circle cx="750" cy="262" r="14" fill="#FF9500" opacity=".5"/>
+            <circle cx="660" cy="412" r="13" fill="#FF9500" opacity=".45"/>
+            <circle cx="450" cy="300" r="12" fill="#FF9500" opacity=".4"/>
+            <circle cx="240" cy="410" r="9" fill="#FFCC00" opacity=".45"/>
+            <circle cx="860" cy="140" r="8" fill="#FFCC00" opacity=".4"/>
+            <circle cx="380" cy="150" r="7" fill="#34C759" opacity=".35"/>
+            <circle cx="700" cy="330" r="7" fill="#34C759" opacity=".3"/>
+            <text x="170" y="452" fill="#94A3B8" font-size="11">北大桥站</text>
+            <text x="48" y="404" fill="#94A3B8" font-size="11">转塘站</text>
+            <text x="600" y="236" fill="#94A3B8" font-size="11">天目站</text>
+            <text x="742" y="236" fill="#94A3B8" font-size="11">水湘站</text>
+            <text x="882" y="316" fill="#94A3B8" font-size="11">三塘站</text>
+          </svg>
+          <div class="map-legend">
+            <span><span class="sw" style="background:#FF3B30"></span>盲区（&lt;60%）</span>
+            <span><span class="sw" style="background:#FF9500"></span>低覆盖（60-80%）</span>
+            <span><span class="sw" style="background:#34C759"></span>达标</span>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="glass-card mb-14">
+          <div class="card-head"><div class="card-title"><i class="fa-solid fa-broom"></i>轨迹清洗规则（按日执行）</div></div>
+          <ul class="icon-list">
+            <li><i class="fa-solid fa-gauge-high"></i>速度突变漂移点剔除 21,364 个</li>
+            <li><i class="fa-solid fa-satellite-dish"></i>低精度定位点剔除 58,127 个</li>
+            <li><i class="fa-solid fa-pause"></i>长时间静止点剔除 33,892 个</li>
+            <li><i class="fa-solid fa-compress"></i>轨迹抽稀保留率 47%</li>
+            <li><i class="fa-solid fa-ruler-combined"></i>30 米缓冲区与管段求交计算覆盖率</li>
+          </ul>
+        </div>
+        <div class="glass-card">
+          <div class="card-head"><div class="card-title"><i class="fa-solid fa-diagram-project"></i>三类堵点成因分类处置</div></div>
+          <table class="glass-table">
+            <thead><tr><th>成因</th><th>段数</th><th>处置流向</th></tr></thead>
+            <tbody>
+              <tr><td>排班覆盖</td><td class="mono">22</td><td>自动回流强制任务池</td></tr>
+              <tr><td>通行受阻</td><td class="mono">15</td><td>推送工地协调</td></tr>
+              <tr><td>责任交界</td><td class="mono">10</td><td>上报分公司裁定</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="glass-card mt-14">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-list-ol"></i>盲区管段清单（按连续未覆盖时长降序）</div>
+        <span class="tag tag-red">47 段 · 展示前 6</span>
+      </div>
+      <div class="table-scroll">
+        <table class="glass-table">
+          <thead><tr><th>管段编号</th><th>所属站</th><th>90 日覆盖率</th><th>连续未覆盖<i class="fa-solid fa-sort-down"></i></th><th>成因</th><th>状态</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">GD-2023-0447</td><td>天目站</td><td class="mono">31%</td><td class="mono" style="color:#D93025"><b>68 天</b></td><td>排班覆盖</td><td><span class="tag tag-orange">强制补检中</span></td>
+              <td><button class="btn btn-glass btn-xs disabled" disabled onclick="showToast('该段已回流强制任务池 · 人工不可删除')"><i class="fa-solid fa-ban"></i>已回流任务池</button></td></tr>
+            <tr><td class="mono">GD-2020-0509</td><td>水湘站</td><td class="mono">42%</td><td class="mono">63 天</td><td>通行受阻</td><td><span class="tag tag-orange">工地协调中</span></td>
+              <td><button class="btn btn-glass btn-xs" onclick="showToast('已推送工地协调：绿城工地占用巡检通道 · 责任人 李*明')"><i class="fa-solid fa-helmet-safety"></i>推送工地协调</button></td></tr>
+            <tr><td class="mono">GD-2019-0063</td><td>水湘站</td><td class="mono">48%</td><td class="mono">61 天</td><td>责任交界</td><td><span class="tag tag-yellow">待裁定</span></td>
+              <td><button class="btn btn-glass btn-xs" onclick="showToast('已上报城东分公司裁定 · 责任站划分 3 个工作日内回复')"><i class="fa-solid fa-scale-balanced"></i>上报分公司裁定</button></td></tr>
+            <tr><td class="mono">GD-2018-0234</td><td>北大桥站</td><td class="mono">52%</td><td class="mono">55 天</td><td>排班覆盖</td><td><span class="tag tag-orange">强制补检中</span></td>
+              <td><button class="btn btn-glass btn-xs disabled" disabled onclick="showToast('该段已回流强制任务池 · 人工不可删除')"><i class="fa-solid fa-ban"></i>已回流任务池</button></td></tr>
+            <tr><td class="mono">GD-2021-0158</td><td>三塘站</td><td class="mono">57%</td><td class="mono">52 天</td><td>排班覆盖</td><td><span class="tag tag-green">已销号</span></td>
+              <td><button class="btn btn-glass btn-xs" onclick="showToast('补检执行后按同一算法复算：覆盖率 86%，达标销号')"><i class="fa-solid fa-circle-check"></i>复算记录</button></td></tr>
+            <tr><td class="mono">GD-2022-0777</td><td>天目站</td><td class="mono">58%</td><td class="mono">49 天</td><td>通行受阻</td><td><span class="tag tag-orange">工地协调中</span></td>
+              <td><button class="btn btn-glass btn-xs" onclick="showToast('已推送工地协调：天目山路整治工程 · 协调改道巡检路径')"><i class="fa-solid fa-helmet-safety"></i>推送工地协调</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="tiny mt-8"><i class="fa-solid fa-circle-info"></i> 补检执行后按同一算法复算覆盖率：达标销号；未达标进入下一周期并自动升级通报至分公司。</div>
+    </div>
+  </section>
+
+  <!-- ============================== 页面6 爆管关阀策略生成与停气影响评估 ============================== -->
+  <section class="view screen-dark" id="v-爆管关阀策略生成与停气影响评估">
+    <div class="page-head">
+      <div>
+        <div class="page-title">爆管关阀策略生成与停气影响评估</div>
+        <div class="page-desc">压力突降 + 用户报修自动触发研判（本次耗时 3.6 秒）· 多套关阀隔离方案多目标加权排序 · 停气影响域计算 · 远程阀控执行 · 一键推送大屏</div>
+      </div>
+      <div class="flex wrap">
+        <button class="btn btn-glass btn-sm" onclick="showToast('方案与影响域已一键推送指挥大屏 · 与指挥端同一份数据')"><i class="fa-solid fa-tv"></i>一键推送大屏</button>
+        <button class="btn btn-primary btn-sm" onclick="openModal('modal-方案对比')"><i class="fa-solid fa-code-compare"></i>多方案对比</button>
+      </div>
+    </div>
+
+    <div class="alert-strip mb-14"><i class="fa-solid fa-circle-exclamation"></i><b>一级事件 E-2621</b> · 天目山路×古翠路 DN300 中压管疑似爆管 · 10-28 09:12 由压力突降 + 3 户报修自动触发 · 研判耗时 3.6 秒</div>
+
+    <div class="grid g-4 mb-14">
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-diagram-project"></i>候选隔离方案</div>
+        <div class="stat-value">3<span style="font-size:13px;font-weight:500"> 套</span></div>
+        <div class="stat-sub">多目标加权：停气用户 0.40 · 关阀数量 0.20 · 执行耗时 0.20 · 阀门可靠性 0.20</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-users"></i>推荐方案停气用户</div>
+        <div class="stat-value orange">386<span style="font-size:13px;font-weight:500"> 户</span></div>
+        <div class="stat-sub">居民 352 · 非居 34（重点非居 6 户优先电话告知）</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-door-closed"></i>待关阀门（方案 A）</div>
+        <div class="stat-value">4<span style="font-size:13px;font-weight:500"> 座</span></div>
+        <div class="stat-sub">V-1024 · V-1027 · V-1031 · V-1036（均为远程可控）</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-regular fa-clock"></i>预计执行耗时</div>
+        <div class="stat-value green">12<span style="font-size:13px;font-weight:500"> 分钟</span></div>
+        <div class="stat-sub">按执行顺序逐座下发 · 阀位反馈到位为唯一成功判据</div>
+      </div>
+    </div>
+
+    <div class="grid g-main-side">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-map"></i>隔离方案地图（点选方案卡切换）</div>
+          <span class="tag tag-green">当前方案 A · 推荐</span>
+        </div>
+        <div class="scheme-card active" id="card-scheme-A" onclick="switchScheme('A')">
+          <div class="flex-between"><b>方案 A · 推荐（加权 0.86）</b><span class="tag tag-green">最优</span></div>
+          <div class="tiny mt-8">关阀 4 座 · 停气 386 户 · 耗时 12 分钟 · 阀门可靠性 0.92 · 隔离区段 5 段 1.8 km</div>
+        </div>
+        <div class="scheme-card" id="card-scheme-B" onclick="switchScheme('B')">
+          <div class="flex-between"><b>方案 B（加权 0.74）</b><span class="tag tag-gray">备选</span></div>
+          <div class="tiny mt-8">关阀 2 座 · 停气 1,247 户 · 耗时 8 分钟 · 阀门可靠性 0.88 · 隔离区段 9 段 3.4 km</div>
+        </div>
+        <div class="scheme-card" id="card-scheme-C" onclick="switchScheme('C')">
+          <div class="flex-between"><b>方案 C（加权 0.79）</b><span class="tag tag-yellow">受限</span></div>
+          <div class="tiny mt-8">关阀 6 座 · 停气 158 户 · 耗时 18 分钟 · 阀门可靠性 0.85 · V-1038 近期有检修记录</div>
+        </div>
+        <div class="map-canvas" style="min-height:420px">
+          <svg viewBox="0 0 1000 500" style="position:absolute;inset:0;width:100%;height:100%">
+            <path class="pipe" d="M40,430 L220,430 L300,340 L470,340 L560,250 L760,250 L850,330 L950,330" stroke="#2E8FB8"/>
+            <path class="pipe" d="M140,70 L300,70 L370,160 L530,160 L640,100 L880,100" stroke="#2E8FB8"/>
+            <path class="pipe" d="M300,70 L300,340" stroke="#1F6488"/>
+            <path class="pipe" d="M530,160 L560,250" stroke="#1F6488"/>
+            <path class="pipe" d="M470,340 L500,420 L680,420" stroke="#1F6488"/>
+            <path class="pipe" d="M680,420 L760,250" stroke="#1F6488"/>
+            <g id="g-scheme-A">
+              <path class="pipe" d="M470,340 L560,250" stroke="#FF3B30" stroke-width="7"/>
+              <polygon points="430,200 620,200 640,300 440,340" fill="rgba(52,199,89,.08)" stroke="#34C759" stroke-width="2" stroke-dasharray="8 6"/>
+              <rect x="552" y="236" width="14" height="14" rx="3" fill="#FFCC00" stroke="#fff" stroke-width="1.5"/>
+              <text x="572" y="248" fill="#FFCC00" font-size="11" font-weight="600">V-1024</text>
+              <rect x="462" y="330" width="14" height="14" rx="3" fill="#FFCC00" stroke="#fff" stroke-width="1.5"/>
+              <text x="418" y="326" fill="#FFCC00" font-size="11" font-weight="600">V-1027</text>
+              <rect x="642" y="243" width="14" height="14" rx="3" fill="#FFCC00" stroke="#fff" stroke-width="1.5"/>
+              <text x="662" y="255" fill="#FFCC00" font-size="11" font-weight="600">V-1031</text>
+              <rect x="534" y="188" width="14" height="14" rx="3" fill="#FFCC00" stroke="#fff" stroke-width="1.5"/>
+              <text x="554" y="200" fill="#FFCC00" font-size="11" font-weight="600">V-1036</text>
+            </g>
+            <g id="g-scheme-B" style="display:none">
+              <path class="pipe" d="M470,340 L560,250 L760,250" stroke="#FF3B30" stroke-width="7"/>
+              <path class="pipe" d="M300,340 L470,340" stroke="#FF3B30" stroke-width="7"/>
+              <polygon points="300,180 780,180 800,300 320,360" fill="rgba(255,149,0,.08)" stroke="#FF9500" stroke-width="2" stroke-dasharray="8 6"/>
+              <rect x="552" y="236" width="14" height="14" rx="3" fill="#FFCC00" stroke="#fff" stroke-width="1.5"/>
+              <text x="572" y="248" fill="#FFCC00" font-size="11" font-weight="600">V-1024</text>
+              <rect x="534" y="188" width="14" height="14" rx="3" fill="#FFCC00" stroke="#fff" stroke-width="1.5"/>
+              <text x="554" y="200" fill="#FFCC00" font-size="11" font-weight="600">V-1036</text>
+            </g>
+            <g id="g-scheme-C" style="display:none">
+              <path class="pipe" d="M500,420 L560,250" stroke="#FF3B30" stroke-width="7"/>
+              <polygon points="470,250 620,250 620,340 500,400" fill="rgba(52,168,255,.08)" stroke="#34A8FF" stroke-width="2" stroke-dasharray="8 6"/>
+              <rect x="552" y="236" width="14" height="14" rx="3" fill="#FFCC00" stroke="#fff" stroke-width="1.5"/>
+              <rect x="462" y="330" width="14" height="14" rx="3" fill="#FFCC00" stroke="#fff" stroke-width="1.5"/>
+              <rect x="642" y="243" width="14" height="14" rx="3" fill="#FFCC00" stroke="#fff" stroke-width="1.5"/>
+              <rect x="534" y="188" width="14" height="14" rx="3" fill="#FFCC00" stroke="#fff" stroke-width="1.5"/>
+              <rect x="292" y="330" width="14" height="14" rx="3" fill="#FFCC00" stroke="#fff" stroke-width="1.5"/>
+              <rect x="632" y="92" width="14" height="14" rx="3" fill="#FFCC00" stroke="#fff" stroke-width="1.5"/>
+            </g>
+            <g id="g-event">
+              <circle cx="518" cy="292" r="16" fill="rgba(255,59,48,.25)"/>
+              <circle cx="518" cy="292" r="7" fill="#FF3B30" stroke="#fff" stroke-width="2"/>
+              <text x="534" y="288" fill="#FF9B94" font-size="12" font-weight="600">DN300 爆管点</text>
+            </g>
+            <text x="170" y="452" fill="#7C97A6" font-size="11">北大桥站</text>
+            <text x="600" y="236" fill="#7C97A6" font-size="11">天目站</text>
+            <text x="742" y="236" fill="#7C97A6" font-size="11">水湘站</text>
+          </svg>
+          <div class="map-legend">
+            <span><span class="sw" style="background:#FF3B30"></span>失气管段</span>
+            <span><span class="sw" style="background:#FFCC00"></span>待关阀门</span>
+            <span><span class="sw" style="background:#34C759"></span>隔离区（方案 A）</span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="glass-card mb-14">
+          <div class="card-head"><div class="card-title"><i class="fa-solid fa-file-lines"></i>方案详情（随地图切换）</div></div>
+          <div id="detail-scheme-A">
+            <dl class="kv">
+              <dt>隔离区段</dt><dd class="mono">GD-2024-0819 ~ GD-2024-0823（5 段 1.8 km）</dd>
+              <dt>关阀清单</dt><dd class="mono">V-1024 · V-1027 · V-1031 · V-1036</dd>
+              <dt>四目标评分</dt><dd>停气用户 0.91（386 户）· 关阀数量 0.78（4 座）· 执行耗时 0.80（12 分钟）· 阀门可靠性 0.92</dd>
+              <dt>加权得分</dt><dd class="mono" style="color:#34C759"><b>0.86 · 推荐</b></dd>
+              <dt>推荐理由</dt><dd>停气影响与可靠性的最优平衡；4 座阀近 12 个月阀位反馈全部正常</dd>
+            </dl>
+          </div>
+          <div id="detail-scheme-B" style="display:none">
+            <dl class="kv">
+              <dt>隔离区段</dt><dd class="mono">GD-2024-0815 ~ GD-2024-0823（9 段 3.4 km）</dd>
+              <dt>关阀清单</dt><dd class="mono">V-1024 · V-1036</dd>
+              <dt>四目标评分</dt><dd>停气用户 0.52（1,247 户）· 关阀数量 0.95（2 座）· 执行耗时 0.90（8 分钟）· 阀门可靠性 0.88</dd>
+              <dt>加权得分</dt><dd class="mono" style="color:#FF9500"><b>0.74 · 备选</b></dd>
+              <dt>受限说明</dt><dd>停气范围扩大至 3 个小区，仅作方案 A 阀门失效时的兜底</dd>
+            </dl>
+          </div>
+          <div id="detail-scheme-C" style="display:none">
+            <dl class="kv">
+              <dt>隔离区段</dt><dd class="mono">GD-2024-0821 ~ GD-2024-0822（2 段 0.7 km）</dd>
+              <dt>关阀清单</dt><dd class="mono">V-1024 · V-1027 · V-1031 · V-1036 · V-1038 · V-1039</dd>
+              <dt>四目标评分</dt><dd>停气用户 0.96（158 户）· 关阀数量 0.60（6 座）· 执行耗时 0.62（18 分钟）· 阀门可靠性 0.85</dd>
+              <dt>加权得分</dt><dd class="mono" style="color:#FFCC00"><b>0.79 · 受限</b></dd>
+              <dt>受限说明</dt><dd>V-1038 于 2026-09-18 检修记录存在响应迟滞，可靠性扣分</dd>
+            </dl>
+          </div>
+          <div class="flex mt-14" style="gap:10px">
+            <button class="btn btn-danger btn-sm" onclick="openModal('modal-阀控校验')"><i class="fa-solid fa-lock"></i>确认方案 A · 远程关阀执行</button>
+            <button class="btn btn-glass btn-sm" onclick="showToast('已推送短信 386 条 + 公众号批量告知 · 重点非居 6 户人工电话已完成')"><i class="fa-solid fa-bullhorn"></i>用户告知</button>
+          </div>
+        </div>
+
+        <div class="glass-card mb-14">
+          <div class="card-head"><div class="card-title"><i class="fa-solid fa-users-viewfinder"></i>停气影响用户分列（方案 A）</div></div>
+          <table class="glass-table">
+            <thead><tr><th>类型</th><th>户数</th><th>清单摘要</th></tr></thead>
+            <tbody>
+              <tr><td>居民用户</td><td class="mono">352</td><td>天目新村 12 幢 · 古翠路 45 号院等 3 个小区</td></tr>
+              <tr><td>非居用户</td><td class="mono">34</td><td>沿街餐饮 21 · 便利店 8 · 其他 5</td></tr>
+              <tr><td><span class="tag tag-red">重点非居</span></td><td class="mono">6</td><td>市三院食堂 · 绿城育华学校食堂 · 天目里商业中心等</td></tr>
+            </tbody>
+          </table>
+          <div class="tiny mt-8"><i class="fa-solid fa-phone-volume"></i> 重点非居已人工电话优先告知（6/6 完成），短信/公众号批量告知已发送。</div>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-head"><div class="card-title"><i class="fa-solid fa-clock-rotate-left"></i>周边管线 36 个月抢维修记录</div></div>
+          <ul class="icon-list">
+            <li><i class="fa-solid fa-screwdriver-wrench"></i>2026-06-15 GD-2024-0821 第三方破坏泄漏 · 卡具修复（QX-2026-0521）</li>
+            <li><i class="fa-solid fa-screwdriver-wrench"></i>2024-11-08 阀井 V-1031 密封更换（QX-2024-1022）· 方案阀门检修史已纳入可靠性评分</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="glass-card mt-14">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-list-check"></i>逐座阀门执行记录（以阀位反馈到位为唯一成功判据）</div>
+        <span class="tag tag-orange">执行中 2/4</span>
+      </div>
+      <div class="table-scroll">
+        <table class="glass-table">
+          <thead><tr><th>执行顺序</th><th>阀门编号</th><th>指令下发</th><th>阀位反馈</th><th>状态</th><th>超时处置</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">1</td><td class="mono">V-1024</td><td class="mono">10:18:44</td><td class="mono">10:19:02</td><td><span class="tag tag-green">到位</span></td><td>—</td></tr>
+            <tr><td class="mono">2</td><td class="mono">V-1027</td><td class="mono">10:19:05</td><td class="mono">10:19:31</td><td><span class="tag tag-green">到位</span></td><td>—</td></tr>
+            <tr><td class="mono">3</td><td class="mono">V-1031</td><td class="mono">10:19:33</td><td>—</td><td><span class="tag tag-orange">执行中</span></td><td>超时 90 秒自动告警并改派</td></tr>
+            <tr><td class="mono">4</td><td class="mono">V-1036</td><td>待顺序下发</td><td>—</td><td><span class="tag tag-gray">待执行</span></td><td>—</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="alert-strip mt-14" style="border:1px solid rgba(255,149,0,.4);background:rgba(255,149,0,.12);color:#FFC48A"><i class="fa-solid fa-circle-info"></i>任一阀门超时或阀位未到位：立即告警 + 自动派现场手动关阀任务 + 重算剩余方案。</div>
+    </div>
+
+    <div class="modal-mask" id="modal-方案对比" onclick="if(event.target===this)closeModal('modal-方案对比')">
+      <div class="glass-modal wide">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-code-compare" style="color:#0E7490"></i>关阀隔离方案多目标对比</div>
+          <button class="modal-close" onclick="closeModal('modal-方案对比')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <table class="glass-table">
+            <thead><tr><th>对比项</th><th>权重</th><th>方案 A（推荐）</th><th>方案 B（备选）</th><th>方案 C（受限）</th></tr></thead>
+            <tbody>
+              <tr><td>隔离区段</td><td>—</td><td class="mono">5 段 1.8 km</td><td class="mono">9 段 3.4 km</td><td class="mono">2 段 0.7 km</td></tr>
+              <tr><td>关阀数量</td><td class="mono">0.20</td><td class="mono">4 座（0.78）</td><td class="mono">2 座（0.95）</td><td class="mono">6 座（0.60）</td></tr>
+              <tr><td>停气用户</td><td class="mono">0.40</td><td class="mono">386 户（0.91）</td><td class="mono">1,247 户（0.52）</td><td class="mono">158 户（0.96）</td></tr>
+              <tr><td>执行耗时</td><td class="mono">0.20</td><td class="mono">12 分钟（0.80）</td><td class="mono">8 分钟（0.90）</td><td class="mono">18 分钟（0.62）</td></tr>
+              <tr><td>阀门可靠性</td><td class="mono">0.20</td><td class="mono">0.92</td><td class="mono">0.88</td><td class="mono">0.85（V-1038 有检修史）</td></tr>
+              <tr style="background:rgba(52,199,89,.08)"><td><b>加权得分</b></td><td>—</td><td class="mono" style="color:#1E9E44"><b>0.86</b></td><td class="mono">0.74</td><td class="mono">0.79</td></tr>
+            </tbody>
+          </table>
+          <div class="alert-strip cyan mt-14"><i class="fa-solid fa-circle-info"></i>推荐理由：方案 A 在停气影响与阀门可靠性之间取得最优平衡，4 座阀门近 12 个月阀位反馈全部正常；方案 C 虽停气最少，但 V-1038 存在响应迟滞检修记录且耗时最长。</div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-方案对比')">关闭</button>
+          <button class="btn btn-primary btn-sm" onclick="closeModal('modal-方案对比');switchScheme('A');openModal('modal-阀控校验')"><i class="fa-solid fa-check"></i>采纳方案 A 并执行</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-mask" id="modal-阀控校验" onclick="if(event.target===this)closeModal('modal-阀控校验')">
+      <div class="glass-modal blocking">
+        <div class="blocking-strip"><i class="fa-solid fa-lock"></i>远程阀控执行 · 权限校验与二次口令</div>
+        <div class="modal-head">
+          <div class="modal-title">方案 A · 执行顺序 V-1024 → V-1027 → V-1031 → V-1036</div>
+          <button class="modal-close" onclick="closeModal('modal-阀控校验')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <dl class="kv">
+            <dt>指挥人员</dt><dd>王*强（调度指挥岗）· 指挥权限校验通过</dd>
+            <dt>执行对象</dt><dd class="mono">V-1024 · V-1027 · V-1031 · V-1036（4 座远程可控阀门）</dd>
+            <dt>影响告知</dt><dd>短信 386 条 + 公众号批量告知已发送 · 重点非居电话 6/6 完成</dd>
+          </dl>
+          <div style="margin-top:14px">
+            <label class="form-label">二次口令<span class="req"> *</span></label>
+            <input type="password" class="form-input" id="valve-pwd" placeholder="请输入指挥员二次口令" style="width:100%">
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-阀控校验')">取消</button>
+          <button class="btn btn-danger btn-sm" onclick="execValve()"><i class="fa-solid fa-bolt"></i>确认执行关阀</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== 页面7 抢修资源配给与就近调度 ============================== -->
+  <section class="view" id="v-抢修资源配给与就近调度">
+    <div class="page-head">
+      <div>
+        <div class="page-title">抢修资源配给与就近调度</div>
+        <div class="page-desc">人员与车辆三态实时分布（30 秒刷新）· 按路网到达时间就近匹配 · 一级事件多资源组合与资源抢占 · 指令 APP + 短信双通道下发</div>
+      </div>
+      <div class="flex wrap">
+        <span class="tag tag-cyan"><i class="fa-solid fa-rotate"></i>30 秒自动刷新</span>
+        <button class="btn btn-glass btn-sm" onclick="showToast('资源状态由派单、到场回执、工单办结自动驱动 · 不设人工改状态入口')"><i class="fa-solid fa-circle-info"></i>状态规则说明</button>
+      </div>
+    </div>
+
+    <div class="alert-strip red mb-14"><i class="fa-solid fa-bolt"></i><b>正在为一级事件 E-2621（天目山路×古翠路 DN300 爆管）匹配资源</b> · 候选按路网到达时间升序排列 · 作业中资源不参与匹配</div>
+
+    <div class="grid g-4 mb-14">
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-people-group"></i>抢修班组</div>
+        <div class="stat-value">12<span style="font-size:13px;font-weight:500"> 组</span></div>
+        <div class="stat-sub"><span class="tag tag-green">空闲 5</span> <span class="tag tag-blue">在途 3</span> <span class="tag tag-orange">作业中 4</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-truck-fast"></i>应急抢修车</div>
+        <div class="stat-value">8<span style="font-size:13px;font-weight:500"> 辆</span></div>
+        <div class="stat-sub"><span class="tag tag-green">空闲 3</span> <span class="tag tag-blue">在途 2</span> <span class="tag tag-orange">作业中 3</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-user-gear"></i>阀控人员</div>
+        <div class="stat-value">18<span style="font-size:13px;font-weight:500"> 人</span></div>
+        <div class="stat-sub"><span class="tag tag-green">空闲 8</span> <span class="tag tag-blue">在途 5</span> <span class="tag tag-orange">作业中 5</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-location-crosshairs"></i>本次建议组合</div>
+        <div class="stat-value accent">1+1+1</div>
+        <div class="stat-sub">抢修班组 R-03 + 应急车 E-02 + 阀控人员 F-12</div>
+      </div>
+    </div>
+
+    <div class="grid g-main-side">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-route"></i>候选资源（按路网到达时间升序）</div>
+          <span class="tag tag-gray">路网服务：高德引擎 · 30 秒重算</span>
+        </div>
+        <div class="table-scroll">
+          <table class="glass-table">
+            <thead><tr><th>资源</th><th>类型</th><th>状态</th><th>实时位置</th><th>路网到达<i class="fa-solid fa-sort-up"></i></th><th>直线距离</th><th>对照结论</th><th>操作</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">E-02</td><td>应急抢修车</td><td><span class="tag tag-green">空闲</span></td><td>天目山路停保点</td><td class="mono" style="color:#1E9E44"><b>6 分钟</b></td><td class="mono">2.4 km</td><td><span class="tag tag-green">路网最优</span></td>
+                <td><button class="btn btn-primary btn-xs" onclick="openModal('modal-派单确认')"><i class="fa-solid fa-paper-plane"></i>派单</button></td></tr>
+              <tr><td class="mono">R-03</td><td>抢修班组</td><td><span class="tag tag-green">空闲</span></td><td>文一路停保点</td><td class="mono" style="color:#1E9E44"><b>7 分钟</b></td><td class="mono">3.2 km</td><td><span class="tag tag-green">推荐</span></td>
+                <td><button class="btn btn-primary btn-xs" onclick="openModal('modal-派单确认')"><i class="fa-solid fa-paper-plane"></i>派单</button></td></tr>
+              <tr><td class="mono">R-07</td><td>抢修班组</td><td><span class="tag tag-green">空闲</span></td><td>教工路值守点</td><td class="mono">11 分钟</td><td class="mono">1.8 km</td><td><span class="tag tag-orange">反例：直线最近但需绕行秋石高架</span></td>
+                <td><button class="btn btn-glass btn-xs" onclick="openModal('modal-派单确认')"><i class="fa-solid fa-paper-plane"></i>派单</button></td></tr>
+              <tr><td class="mono">F-12</td><td>阀控人员</td><td><span class="tag tag-green">空闲</span></td><td>三塘站</td><td class="mono">13 分钟</td><td class="mono">5.1 km</td><td><span class="tag tag-gray">常规候选</span></td>
+                <td><button class="btn btn-glass btn-xs" onclick="openModal('modal-派单确认')"><i class="fa-solid fa-paper-plane"></i>派单</button></td></tr>
+              <tr><td class="mono">R-09</td><td>抢修班组</td><td><span class="tag tag-green">空闲</span></td><td>转塘基地</td><td class="mono">19 分钟</td><td class="mono">8.6 km</td><td><span class="tag tag-gray">常规候选</span></td>
+                <td><button class="btn btn-glass btn-xs" onclick="openModal('modal-派单确认')"><i class="fa-solid fa-paper-plane"></i>派单</button></td></tr>
+              <tr style="opacity:.55"><td class="mono">R-05</td><td>抢修班组</td><td><span class="tag tag-orange">作业中</span></td><td>E-2607 现场</td><td class="mono">—</td><td class="mono">—</td><td>不参与本次匹配</td>
+                <td><button class="btn btn-glass btn-xs disabled" disabled onclick="showToast('作业中资源不参与匹配')"><i class="fa-solid fa-ban"></i>不可派</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="tiny mt-8"><i class="fa-solid fa-circle-info"></i> 路网到达时间与直线距离并列展示并标注反例，避免「直线最近」误判。</div>
+      </div>
+
+      <div>
+        <div class="glass-card mb-14">
+          <div class="card-head"><div class="card-title"><i class="fa-solid fa-angles-up"></i>资源冲突抢占记录</div></div>
+          <ul class="icon-list">
+            <li><i class="fa-solid fa-triangle-exclamation" style="color:#FF9500"></i>
+              <div><b>10-28 09:15 · 一级事件 E-2621 抢占 R-05</b><div class="tiny">原派二级事件 E-2618（三塘站阀井渗漏）· 已自动改派次优 R-09 · APP+短信双通道通知已送达原事件调度员</div></div>
+            </li>
+            <li><i class="fa-solid fa-circle-check" style="color:#34C759"></i>
+              <div><b>10-26 14:02 · 二级事件 E-2609 抢占 E-05</b><div class="tiny">原派三级事件 E-2603 · 改派 E-08 · 双通道通知已送达</div></div>
+            </li>
+          </ul>
+        </div>
+        <div class="glass-card">
+          <div class="card-head"><div class="card-title"><i class="fa-solid fa-receipt"></i>派单与回执记录</div></div>
+          <table class="glass-table">
+            <thead><tr><th>派单号</th><th>资源</th><th>状态</th><th>预计/实际到达</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">PD-20261028-03</td><td class="mono">R-03 + E-02 + F-12</td><td><span class="tag tag-blue">在途</span></td><td class="mono">10:50 / —</td></tr>
+              <tr><td class="mono">PD-20261028-02</td><td class="mono">R-09（改派）</td><td><span class="tag tag-blue">在途</span></td><td class="mono">10:58 / —</td></tr>
+              <tr><td class="mono">PD-20261028-01</td><td class="mono">R-05</td><td><span class="tag tag-orange">被抢占</span></td><td class="mono">— / —</td></tr>
+              <tr><td class="mono">PD-20261027-06</td><td class="mono">R-02</td><td><span class="tag tag-green">已办结</span></td><td class="mono">16:40 / 16:36</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-mask" id="modal-派单确认" onclick="if(event.target===this)closeModal('modal-派单确认')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-paper-plane" style="color:#0E7490"></i>派单确认 · 一级事件 E-2621 多资源组合</div>
+          <button class="modal-close" onclick="closeModal('modal-派单确认')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <dl class="kv">
+            <dt>资源组合</dt><dd>抢修班组 R-03（路网 7 分钟）+ 应急车 E-02（6 分钟）+ 阀控人员 F-12（13 分钟）</dd>
+            <dt>下发通道</dt><dd>APP + 短信双通道下发</dd>
+            <dt>状态流转</dt><dd>接单 → 在途（回传轨迹）→ 到场回执（留预计与实际到达）→ 工单办结</dd>
+            <dt>备注</dt><dd>状态由业务动作自动驱动，无人工改状态入口</dd>
+          </dl>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-派单确认')">取消</button>
+          <button class="btn btn-primary btn-sm" onclick="closeModal('modal-派单确认');showToast('派单已双通道下发 · 接单后自动转在途并回传轨迹')"><i class="fa-solid fa-check"></i>确认下发</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== 页面8 共性隐患研判（AI聚类与NLP） ============================== -->
+  <section class="view" id="v-共性隐患研判-AI聚类与NLP-">
+    <div class="page-head">
+      <div>
+        <div class="page-title">共性隐患研判（AI 聚类与 NLP）</div>
+        <div class="page-desc">工单文本预处理（燃气领域词表分词 + 停用词过滤）· 密度聚类自动定簇（单簇 &lt;10 单不成簇）· 大模型根因分析 + 事实校验 · 管理建议四类输出</div>
+      </div>
+      <div class="flex wrap">
+        <span class="tag tag-cyan"><i class="fa-solid fa-robot"></i>模型仅组织表述 · 不得生成工单中不存在的事实</span>
+      </div>
+    </div>
+
+    <div class="grid g-4 mb-14">
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-file-lines"></i>近 12 个月工单</div>
+        <div class="stat-value">48,213</div>
+        <div class="stat-sub">2025-10 ~ 2026-09 备注与处置说明全量抽取</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-filter"></i>有效文本</div>
+        <div class="stat-value">47,652</div>
+        <div class="stat-sub">领域词表 3,842 词分词 · 停用词 512 过滤</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-diagram-project"></i>密度聚类簇</div>
+        <div class="stat-value blue">9<span style="font-size:13px;font-weight:500"> 个</span></div>
+        <div class="stat-sub">簇数自动确定 · minPts = 10</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-scatter"></i>未成簇散点</div>
+        <div class="stat-value">3,147</div>
+        <div class="stat-sub">单簇 &lt;10 单不成簇 · 留待下期</div>
+      </div>
+    </div>
+
+    <div class="glass-card mb-14">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-ranking-star"></i>高频共性问题榜单（按簇内工单数排序 · 点击数值展开工单清单核对）</div>
+        <span class="tag tag-gray">本期复核命名 5 簇 · 回流标注样本 538 条</span>
+      </div>
+      <div class="table-scroll">
+        <table class="glass-table">
+          <thead><tr><th>排名</th><th>簇号</th><th>复核命名</th><th>簇内工单数</th><th>时间特征</th><th>空间特征</th><th>对象特征</th><th>复发率</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="mono">1</td><td class="mono">C03</td><td><b>调压箱皮膜老化渗漏</b></td>
+              <td><button class="btn btn-glass btn-xs" onclick="openModal('modal-簇工单清单')"><b class="mono" style="color:#0E7490">187</b> <i class="fa-solid fa-arrow-up-right-from-square"></i></button></td>
+              <td>冬季高峰（12-2 月占 58%）</td><td>北大桥站片区</td><td>调压箱（2016 同批次）</td><td class="mono">31%</td>
+              <td><button class="btn btn-primary btn-xs" onclick="openModal('modal-根因结论')"><i class="fa-solid fa-magnifying-glass"></i>根因结论</button></td>
+            </tr>
+            <tr>
+              <td class="mono">2</td><td class="mono">C07</td><td><b>第三方施工破坏预警类</b></td>
+              <td><button class="btn btn-glass btn-xs" onclick="showToast('簇 C07 工单清单 · 共 142 单 · 演示环境展示 C03 明细')"><b class="mono" style="color:#0E7490">142</b> <i class="fa-solid fa-arrow-up-right-from-square"></i></button></td>
+              <td>工作日白天（8-17 时占 81%）</td><td>城东管网交汇带</td><td>中压管段上方开挖</td><td class="mono">22%</td>
+              <td><button class="btn btn-glass btn-xs" onclick="showToast('C07 根因结论：交叉施工信息未提前推送 · 演示环境展示 C03 明细')"><i class="fa-solid fa-magnifying-glass"></i>根因结论</button></td>
+            </tr>
+            <tr>
+              <td class="mono">3</td><td class="mono">C01</td><td><b>阀井微量渗漏</b></td>
+              <td><button class="btn btn-glass btn-xs" onclick="showToast('簇 C01 工单清单 · 共 126 单 · 演示环境展示 C03 明细')"><b class="mono" style="color:#0E7490">126</b> <i class="fa-solid fa-arrow-up-right-from-square"></i></button></td>
+              <td>雨季后（6-8 月占 63%）</td><td>转塘站片区</td><td>铸铁阀井密封件</td><td class="mono">19%</td>
+              <td><button class="btn btn-glass btn-xs" onclick="showToast('C01 根因结论：雨季井室积水加速密封老化 · 演示环境展示 C03 明细')"><i class="fa-solid fa-magnifying-glass"></i>根因结论</button></td>
+            </tr>
+            <tr>
+              <td class="mono">4</td><td class="mono">C05</td><td><b>立管腐蚀穿孔</b></td>
+              <td><button class="btn btn-glass btn-xs" onclick="showToast('簇 C05 工单清单 · 共 98 单 · 演示环境展示 C03 明细')"><b class="mono" style="color:#0E7490">98</b> <i class="fa-solid fa-arrow-up-right-from-square"></i></button></td>
+              <td>全年均匀</td><td>水湘站老旧小区（1998-2005）</td><td>引入管 / 立管</td><td class="mono">26%</td>
+              <td><button class="btn btn-glass btn-xs" onclick="showToast('C05 根因结论：穿墙管未做防腐套管 · 演示环境展示 C03 明细')"><i class="fa-solid fa-magnifying-glass"></i>根因结论</button></td>
+            </tr>
+            <tr>
+              <td class="mono">5</td><td class="mono">C02</td><td><b>表具接头泄漏</b></td>
+              <td><button class="btn btn-glass btn-xs" onclick="showToast('簇 C02 工单清单 · 共 87 单 · 演示环境展示 C03 明细')"><b class="mono" style="color:#0E7490">87</b> <i class="fa-solid fa-arrow-up-right-from-square"></i></button></td>
+              <td>年检季（3-4 月占 47%）</td><td>三塘站片区</td><td>皮膜表接头</td><td class="mono">12%</td>
+              <td><button class="btn btn-glass btn-xs" onclick="showToast('C02 根因结论：安装扭矩标准缺失 · 演示环境展示 C03 明细')"><i class="fa-solid fa-magnifying-glass"></i>根因结论</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="grid g-2">
+      <div class="glass-card">
+        <div class="card-head"><div class="card-title"><i class="fa-solid fa-user-check"></i>复核命名与标注回流</div></div>
+        <ul class="icon-list">
+          <li><i class="fa-solid fa-pen"></i>安全人员已复核 5 个簇的业务含义并完成命名（C01/C02/C03/C05/C07）</li>
+          <li><i class="fa-solid fa-arrows-rotate"></i>复核结论已回流为标注样本 538 条，用于下期聚类与命名建议</li>
+          <li><i class="fa-solid fa-shield-halved"></i>大模型仅组织表述；事实校验不通过不予输出（本期通过 6/6）</li>
+        </ul>
+      </div>
+      <div class="glass-card">
+        <div class="card-head"><div class="card-title"><i class="fa-solid fa-lightbulb"></i>管理建议分类输出（制度 / 流程 / 标准 / 技术）</div></div>
+        <div class="table-scroll">
+          <table class="glass-table">
+            <thead><tr><th>类别</th><th>建议</th><th>责任部门</th></tr></thead>
+            <tbody>
+              <tr><td><span class="tag tag-blue">技术</span></td><td>2016 同批次皮膜 2027 年前分批更换</td><td>设备管理部</td></tr>
+              <tr><td><span class="tag tag-cyan">制度</span></td><td>皮膜寿命纳入年度资产盘点</td><td>安全监管部</td></tr>
+              <tr><td><span class="tag tag-green">标准</span></td><td>皮膜采购验收增加耐老化试验</td><td>物资采购部</td></tr>
+              <tr><td><span class="tag tag-orange">流程</span></td><td>冬季高峰前调压设施专项巡检</td><td>各运行站</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-mask" id="modal-簇工单清单" onclick="if(event.target===this)closeModal('modal-簇工单清单')">
+      <div class="glass-modal wide">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-list" style="color:#0E7490"></i>簇 C03 · 调压箱皮膜老化渗漏 · 共 187 单（展示前 10）</div>
+          <button class="modal-close" onclick="closeModal('modal-簇工单清单')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert-strip cyan"><i class="fa-solid fa-circle-info"></i>点击簇数值即展开对应工单集合核对，确保结论每项数值可回链。</div>
+          <table class="glass-table">
+            <thead><tr><th>工单号</th><th>来电时间</th><th>站点</th><th>对象</th><th>文本摘要</th><th>处置</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">GX-2026-0883</td><td class="mono">01-17 08:42</td><td>北大桥站</td><td>调压箱 RT-2116</td><td>调压箱有燃气味，皮膜处检测报警</td><td>更换皮膜总成</td></tr>
+              <tr><td class="mono">GX-2026-0861</td><td class="mono">01-16 19:20</td><td>北大桥站</td><td>调压箱 RT-2087</td><td>冬季低温后出口压力波动，伴轻微渗漏</td><td>更换皮膜总成</td></tr>
+              <tr><td class="mono">GX-2026-0844</td><td class="mono">01-15 11:05</td><td>北大桥站</td><td>调压箱 RT-2102</td><td>例行巡检发现皮膜龟裂泄漏</td><td>更换皮膜总成</td></tr>
+              <tr><td class="mono">GX-2026-0790</td><td class="mono">01-12 07:58</td><td>北大桥站</td><td>调压箱 RT-2093</td><td>用户报修燃气味，源头为调压箱皮膜</td><td>更换皮膜总成</td></tr>
+              <tr><td class="mono">GX-2026-0752</td><td class="mono">01-10 16:31</td><td>北大桥站</td><td>调压箱 RT-2118</td><td>皮膜处皂泡试验阳性</td><td>更换皮膜总成</td></tr>
+              <tr><td class="mono">GX-2026-0731</td><td class="mono">01-09 09:14</td><td>北大桥站</td><td>调压箱 RT-2076</td><td>调压箱出口压力异常，皮膜老化</td><td>更换皮膜总成</td></tr>
+              <tr><td class="mono">GX-2026-0702</td><td class="mono">01-08 13:47</td><td>北大桥站</td><td>调压箱 RT-2105</td><td>巡检测得泄漏 8ppm·m，皮膜部位</td><td>更换皮膜总成</td></tr>
+              <tr><td class="mono">GX-2026-0688</td><td class="mono">01-07 20:22</td><td>北大桥站</td><td>调压箱 RT-2098</td><td>夜间报修燃气味，确认皮膜渗漏</td><td>更换皮膜总成</td></tr>
+              <tr><td class="mono">GX-2026-0651</td><td class="mono">01-06 10:09</td><td>北大桥站</td><td>调压箱 RT-2111</td><td>皮膜更换后复测合格（复发工单）</td><td>复测销单</td></tr>
+              <tr><td class="mono">GX-2026-0617</td><td class="mono">01-05 08:36</td><td>北大桥站</td><td>调压箱 RT-2081</td><td>调压箱皮膜低温脆裂渗漏</td><td>更换皮膜总成</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-簇工单清单')">关闭</button>
+          <button class="btn btn-primary btn-sm" onclick="showToast('已导出簇 C03 全量 187 单工单清单')"><i class="fa-solid fa-file-export"></i>导出全量清单</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-mask" id="modal-根因结论" onclick="if(event.target===this)closeModal('modal-根因结论')">
+      <div class="glass-modal wide">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-magnifying-glass" style="color:#FF9F0A"></i>根因分析 · 簇 C03 调压箱皮膜老化渗漏</div>
+          <button class="modal-close" onclick="closeModal('modal-根因结论')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="card-title mb-8"><i class="fa-solid fa-circle-question"></i>根因结论（大模型组织表述 + 事实校验）</div>
+          <p style="font-size:13px;line-height:1.7">簇 C03 的共性原因为<b>调压箱皮膜批量超期服役</b>：187 单中 <button class="btn btn-glass btn-xs" onclick="closeModal('modal-根因结论');openModal('modal-簇工单清单')"><b class="mono" style="color:#0E7490">138 单（74%）</b></button> 涉及 2016 年同批次安装的皮膜总成，该批次材质耐低温性能不足，冬季温差收缩导致龟裂渗漏；<span class="mono">112 单（60%）</span>集中在 12 月至次年 2 月低温期。</p>
+          <div class="flex-between mt-14 mb-8"><span class="tag tag-green"><i class="fa-solid fa-shield-halved"></i>事实校验通过 6/6 项 · 数值均可回链工单集合</span><span class="tag tag-gray">模型版本 GLM-GUANWANG-3.2</span></div>
+          <hr class="divider">
+          <div class="card-title mb-8"><i class="fa-solid fa-lightbulb"></i>管理建议（制度 / 流程 / 标准 / 技术 + 责任部门）</div>
+          <ul class="icon-list">
+            <li><i class="fa-solid fa-screwdriver-wrench"></i><b>技术：</b>2016 同批次皮膜 2027 年前分批更换（责任部门：设备管理部）</li>
+            <li><i class="fa-solid fa-clipboard-list"></i><b>制度：</b>皮膜寿命纳入年度资产盘点（责任部门：安全监管部）</li>
+            <li><i class="fa-solid fa-ruler"></i><b>标准：</b>皮膜采购验收增加耐老化试验（责任部门：物资采购部）</li>
+            <li><i class="fa-solid fa-arrows-rotate"></i><b>流程：</b>冬季高峰前调压设施专项巡检（责任部门：各运行站）</li>
+          </ul>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-根因结论')">关闭</button>
+          <button class="btn btn-primary btn-sm" onclick="closeModal('modal-根因结论');showToast('建议已采纳转待办 · 纳入下期报告自动复评执行情况')"><i class="fa-solid fa-check"></i>采纳并转待办</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== 页面9 运营策略生成与决策报告推送 ============================== -->
+  <section class="view" id="v-运营策略生成与决策报告推送">
+    <div class="page-head">
+      <div>
+        <div class="page-title">运营策略生成与决策报告推送</div>
+        <div class="page-desc">低效环节规则识别（指标阈值比对，非大模型判断）· 决策报告四节模板生成 · 大模型组织表述 + 事实校验 · PDF / Word 双格式推送与阅读记录</div>
+      </div>
+      <div class="flex wrap">
+        <button class="btn btn-primary btn-sm" onclick="openModal('modal-报告预览')"><i class="fa-solid fa-file-lines"></i>生成 10 月报告预览</button>
+        <button class="btn btn-glass btn-sm" onclick="showToast('数值事实校验通过 41/41 项 · 校验不通过不发布')"><i class="fa-solid fa-shield-halved"></i>事实校验</button>
+      </div>
+    </div>
+
+    <div class="grid g-4 mb-14">
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-triangle-exclamation"></i>本期低效环节</div>
+        <div class="stat-value orange">4<span style="font-size:13px;font-weight:500"> 项</span></div>
+        <div class="stat-sub">规则触发 · 触发规则与命中数值已留痕</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-shield-halved"></i>事实校验</div>
+        <div class="stat-value green">41<span style="font-size:13px;font-weight:500"> / 41</span></div>
+        <div class="stat-sub">全部通过 · 不通过不发布</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-code-branch"></i>报告版本</div>
+        <div class="stat-value blue" style="font-size:22px">V-2026.10</div>
+        <div class="stat-sub">规则版本 R2026Q4 · 模型版本 GLM-GUANWANG-3.2</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-paper-plane"></i>本期推送对象</div>
+        <div class="stat-value">12<span style="font-size:13px;font-weight:500"> 人</span></div>
+        <div class="stat-sub">集团 3 · 分公司 6 · 站长及以上 3</div>
+      </div>
+    </div>
+
+    <div class="glass-card mb-14">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-ruler-combined"></i>低效环节识别（指标阈值比对 · 规则触发）</div>
+        <span class="tag tag-cyan">低效环节由规则触发而非大模型判断</span>
+      </div>
+      <div class="table-scroll">
+        <table class="glass-table">
+          <thead><tr><th>指标</th><th>阈值</th><th>本期值</th><th>命中</th><th>触发规则与留痕</th></tr></thead>
+          <tbody>
+            <tr><td>复核等待 &gt;3 天</td><td class="mono">0 单</td><td class="mono" style="color:#C67200">27 单</td><td><span class="tag tag-red">命中</span></td><td class="mono">R-11 · 2026-10-28 03:00 快照</td></tr>
+            <tr><td>盲区清零率</td><td class="mono">100%</td><td class="mono" style="color:#C67200">66.0%（31/47）</td><td><span class="tag tag-red">命中</span></td><td class="mono">R-12 · 2026-10-28 03:00 快照</td></tr>
+            <tr><td>隐患复发率</td><td class="mono">≤3%</td><td class="mono" style="color:#C67200">4.6%</td><td><span class="tag tag-red">命中</span></td><td class="mono">R-13 · 2026-10-28 03:00 快照</td></tr>
+            <tr><td>计划按期执行率</td><td class="mono">≥95%</td><td class="mono" style="color:#C67200">93.2%</td><td><span class="tag tag-red">命中</span></td><td class="mono">R-14 · 2026-10-28 03:00 快照</td></tr>
+            <tr><td>一次办结率</td><td class="mono">≥90%</td><td class="mono">91.5%</td><td><span class="tag tag-green">未命中</span></td><td class="mono">R-15 · 不触发</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="grid g-main-side">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-file-lines"></i>决策报告四节结构（模板生成 · 指标自动填充）</div>
+        </div>
+        <ul class="icon-list">
+          <li><i class="fa-solid fa-1"></i><div><b>运行概况</b><div class="tiny">10 月管网整体运行平稳 · 总里程 10,815 km · 巡检覆盖率 96.8% · 未闭环隐患 126 项（环比 -9 项）</div></div></li>
+          <li><i class="fa-solid fa-2"></i><div><b>低效环节</b><div class="tiny">4 项规则命中：复核等待 27 单 · 盲区清零率 66.0% · 隐患复发率 4.6% · 按期执行率 93.2%</div></div></li>
+          <li><i class="fa-solid fa-3"></i><div><b>提升建议</b><div class="tiny">复核时限督办（制度类）· 盲区补检与排班联动（流程类）· 同批次皮膜更换（技术类）</div></div></li>
+          <li><i class="fa-solid fa-4"></i><div><b>下月重点</b><div class="tiny">冬季高峰前调压设施专项巡检 · C03 皮膜分批更换启动 · 附 32 项指标附表</div></div></li>
+        </ul>
+        <div class="flex mt-14" style="gap:10px">
+          <button class="btn btn-glass btn-sm" onclick="showToast('已生成 PDF · V-2026.10 · 推送 12 人，阅读记录开始跟踪')"><i class="fa-solid fa-file-pdf"></i>PDF 推送</button>
+          <button class="btn btn-glass btn-sm" onclick="showToast('已生成 Word · V-2026.10 · 支持管理层在线修订并留前后对照')"><i class="fa-solid fa-file-word"></i>Word 推送</button>
+          <button class="btn btn-primary btn-sm" onclick="showToast('建议已一键转待办 · 下期报告自动复评执行情况')"><i class="fa-solid fa-list-check"></i>建议转待办</button>
+        </div>
+      </div>
+      <div>
+        <div class="glass-card mb-14">
+          <div class="card-head"><div class="card-title"><i class="fa-solid fa-fingerprint"></i>五项留痕</div></div>
+          <ul class="icon-list">
+            <li><i class="fa-solid fa-camera"></i>数据快照：2026-10-28 03:00</li>
+            <li><i class="fa-solid fa-code-branch"></i>规则版本：R2026Q4</li>
+            <li><i class="fa-solid fa-microchip"></i>模型版本：GLM-GUANWANG-3.2</li>
+            <li><i class="fa-solid fa-shield-halved"></i>事实校验结果：通过 41/41</li>
+            <li><i class="fa-solid fa-pen"></i>人工修订前后对照：2 处（建议三措辞调整 · 下月重点增补）</li>
+          </ul>
+        </div>
+        <div class="glass-card">
+          <div class="card-head"><div class="card-title"><i class="fa-solid fa-paper-plane"></i>推送对象与阅读情况</div></div>
+          <table class="glass-table">
+            <thead><tr><th>报告</th><th>频次</th><th>阅读</th></tr></thead>
+            <tbody>
+              <tr><td>10 月运营月报</td><td>每月 1 日 08:00 · 集团+5 分公司</td><td class="mono">6/6</td></tr>
+              <tr><td>第 44 周周报</td><td>每周一 09:00 · 站长及以上</td><td class="mono">18/21</td></tr>
+              <tr><td>E-2621 专题报告</td><td>事件后 24 小时 · 指挥线</td><td class="mono">9/9</td></tr>
+            </tbody>
+          </table>
+          <div class="tiny mt-8"><i class="fa-solid fa-circle-info"></i> 月报每月 1 日推送集团与分公司；周报每周一推送站长及以上；一级事件后 24 小时内出专题报告。</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-mask" id="modal-报告预览" onclick="if(event.target===this)closeModal('modal-报告预览')">
+      <div class="glass-modal wide">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-file-lines" style="color:#0E7490"></i>2026 年 10 月管网运营决策报告（V-2026.10 · 摘要预览）</div>
+          <button class="modal-close" onclick="closeModal('modal-报告预览')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="card-title mb-8"><i class="fa-solid fa-1"></i>运行概况</div>
+          <p style="font-size:12.5px;line-height:1.7">10 月管网整体运行平稳：总里程 10,815 km；巡检覆盖率 96.8%；未闭环隐患 126 项，环比下降 9 项；处置一级事件 1 起（E-2621），关阀准确率 100%，停气范围覆盖准确率 100%。</p>
+          <hr class="divider">
+          <div class="card-title mb-8"><i class="fa-solid fa-2"></i>低效环节（规则触发）</div>
+          <p style="font-size:12.5px;line-height:1.7">本期命中 4 项：复核等待超 3 天 27 单（R-11）；盲区清零率 66.0%（R-12）；隐患复发率 4.6%（R-13）；计划按期执行率 93.2%（R-14）。触发规则与命中数值均已留痕（快照 2026-10-28 03:00）。</p>
+          <hr class="divider">
+          <div class="card-title mb-8"><i class="fa-solid fa-3"></i>提升建议（大模型按模板组织 · 事实校验通过）</div>
+          <p style="font-size:12.5px;line-height:1.7">1）复核环节增设时限督办与超期升级（制度类）；2）盲区强制补检与排班任务池联动闭环（流程类）；3）2016 同批次调压箱皮膜分批更换（技术类，源自共性隐患研判 C03）。</p>
+          <hr class="divider">
+          <div class="card-title mb-8"><i class="fa-solid fa-4"></i>下月重点与附表</div>
+          <p style="font-size:12.5px;line-height:1.7">冬季高峰前调压设施专项巡检；C03 皮膜分批更换启动；附 32 项运营指标附表（数据快照与口径同源）。</p>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-报告预览')">关闭</button>
+          <button class="btn btn-primary btn-sm" onclick="closeModal('modal-报告预览');showToast('管理层审阅通过 · 修订前后对照已留痕 · 已按推送计划分发 PDF/Word')"><i class="fa-solid fa-check"></i>审阅发布</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+/* ===== M01 模块私有交互函数 ===== */
+function toggleLayer(cb,gid){
+  var g=document.getElementById(gid);
+  if(g){g.style.display=cb.checked?'':'none';}
+  var cbs=document.querySelectorAll('#v-公司级指挥驾驶舱 .layer-cb');
+  var on=0,sum=0;
+  cbs.forEach(function(b){
+    if(b.checked){on++;sum+=parseInt(b.getAttribute('data-count'),10)||0;}
+  });
+  var el=document.getElementById('layer-stat');
+  if(el){el.textContent='已叠加 '+on+'/5 层 · 点位 '+sum.toLocaleString('en-US')+' 个';}
+  showToast((cb.checked?'已叠加':'已收起')+cb.parentNode.textContent.trim().split(/\s+/)[0]+'图层');
+}
+function resetLayers(){
+  var cbs=document.querySelectorAll('#v-公司级指挥驾驶舱 .layer-cb');
+  cbs.forEach(function(b){b.checked=true;});
+  ['g-l1','g-l2','g-l3','g-l4','g-l5'].forEach(function(gid){
+    var g=document.getElementById(gid);
+    if(g){g.style.display='';}
+  });
+  var el=document.getElementById('layer-stat');
+  if(el){el.textContent='已叠加 5/5 层 · 点位 24,138 个';}
+  showToast('图层配置已重置为全部叠加');
+}
+function toggleLayerGroup(gid,el,name){
+  var g=document.getElementById(gid);
+  if(!g){return;}
+  var hidden=(g.style.display==='none');
+  g.style.display=hidden?'':'none';
+  el.style.opacity=hidden?'':'0.35';
+  showToast((hidden?'已显示 ':'已隐藏 ')+name);
+}
+function doQuery(){
+  var el=document.getElementById('hit-stat');
+  if(el){el.innerHTML='<i class="fa-solid fa-filter"></i>当前命中：3,286 段 · 合计长度 4,213 km · 涉及 5 个运行站';}
+  showToast('筛选已应用 · 命中管段已在地图高亮，其余图层自动收起');
+}
+function switchScheme(key){
+  ['A','B','C'].forEach(function(k){
+    var g=document.getElementById('g-scheme-'+k);
+    var d=document.getElementById('detail-scheme-'+k);
+    var c=document.getElementById('card-scheme-'+k);
+    if(g){g.style.display=(k===key)?'':'none';}
+    if(d){d.style.display=(k===key)?'block':'none';}
+    if(c){c.classList.toggle('active',k===key);}
+  });
+  showToast('已切换至方案 '+key+' · 地图与右侧详情同步更新');
+}
+function execValve(){
+  var p=document.getElementById('valve-pwd');
+  if(p&&!p.value){showToast('请先输入指挥员二次口令');return;}
+  closeModal('modal-阀控校验');
+  showToast('关阀指令已按 V-1024 → V-1027 → V-1031 → V-1036 逐座下发 · 以阀位反馈到位为唯一成功判据');
+}
+</script>
+<script>
+function switchView(vid){
+  document.querySelectorAll('.view').forEach(function(v){v.classList.remove('active');});
+  var el=document.getElementById(vid); if(el){el.classList.add('active');}
+  document.querySelectorAll('.seg-item[data-view]').forEach(function(b){
+    b.classList.toggle('active', b.getAttribute('data-view')===vid);
+  });
+  try{history.replaceState(null,'','#'+encodeURIComponent(vid));}catch(e){}
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function openModal(id){var m=document.getElementById(id); if(m){m.classList.add('open');}}
+function closeModal(id){var m=document.getElementById(id); if(m){m.classList.remove('open');}}
+function showToast(msg){
+  var t=document.getElementById('app-toast');
+  if(!t){t=document.createElement('div');t.id='app-toast';t.className='toast';document.body.appendChild(t);}
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._tm);t._tm=setTimeout(function(){t.classList.remove('show');},2200);
+}
+window.addEventListener('hashchange',function(){
+  var h=decodeURIComponent(location.hash.replace('#',''));
+  if(h&&document.getElementById(h)){switchView(h);}
+});
+(function(){
+  var h=decodeURIComponent(location.hash.replace('#',''));
+  if(h&&document.getElementById(h)){switchView(h);}
+})();
+</script>
+</body>
+</html>

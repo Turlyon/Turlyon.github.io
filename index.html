@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>杭州燃气 · 管网运营智能体平台（原型）</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="styles/liquid-glass.css">
+<style>
+  .shell { display: grid; grid-template-columns: 264px 1fr; gap: 16px; height: 100vh; padding: 16px; }
+  .sidebar {
+    display: flex; flex-direction: column; gap: 10px; overflow-y: auto;
+    background: var(--glass-bg); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border); border-radius: var(--radius-lg);
+    box-shadow: var(--glass-shadow), var(--glass-inner); padding: 18px 14px;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 12px; border-bottom: 1px solid var(--c-line); }
+  .brand-logo {
+    width: 38px; height: 38px; border-radius: 12px; flex-shrink: 0;
+    background: linear-gradient(135deg, #0E7490, #22B8CF);
+    display: flex; align-items: center; justify-content: center; color: #fff; font-size: 17px;
+    box-shadow: 0 4px 14px rgba(14,116,144,.35);
+  }
+  .brand-name { font-size: 14px; font-weight: 700; line-height: 1.3; }
+  .brand-sub { font-size: 10.5px; color: var(--c-text-3); }
+  .nav-group-label {
+    font-size: 10.5px; font-weight: 700; color: var(--c-text-3); letter-spacing: 1px;
+    padding: 10px 8px 4px; display: flex; align-items: center; gap: 6px;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    padding: 9px 10px; border: none; cursor: pointer; text-align: left;
+    background: transparent; border-radius: 12px; font-family: inherit; font-size: 12.5px;
+    color: var(--c-text-2); font-weight: 500; transition: all .18s ease;
+  }
+  .nav-item:hover { background: rgba(255,255,255,.65); color: var(--c-primary); }
+  .nav-item.active {
+    background: linear-gradient(90deg, rgba(14,116,144,.14), rgba(255,255,255,.55));
+    color: var(--c-primary); font-weight: 600;
+    box-shadow: var(--glass-inner);
+  }
+  .nav-item i.fa-solid { width: 16px; text-align: center; font-size: 13px; }
+  .nav-item .pages { margin-left: auto; font-size: 10px; color: var(--c-text-3); font-family: 'DM Mono', monospace; }
+  .nav-item.active .pages { color: var(--c-primary); }
+  .nav-foot { margin-top: auto; padding: 10px 8px 2px; border-top: 1px solid var(--c-line); font-size: 10.5px; color: var(--c-text-3); line-height: 1.6; }
+
+  .main-col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    background: var(--glass-bg); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border); border-radius: var(--radius-pill);
+    box-shadow: var(--glass-shadow), var(--glass-inner); padding: 10px 20px; flex-shrink: 0;
+  }
+  .topbar-title { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 9px; }
+  .topbar-crumb { font-size: 11px; color: var(--c-text-3); }
+
+  .stage { flex: 1; min-height: 0; position: relative; }
+  .home-view { height: 100%; overflow-y: auto; padding-right: 2px; }
+  .frame-wrap {
+    display: none; height: 100%; border-radius: var(--radius-lg);
+    overflow: hidden; background: var(--glass-bg-soft);
+    border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow);
+  }
+  .frame-wrap.active { display: block; }
+  .frame-wrap iframe { width: 100%; height: 100%; border: none; }
+
+  /* home */
+  .hero {
+    background: linear-gradient(120deg, rgba(14,116,144,.16), rgba(255,255,255,.3) 55%, rgba(255,159,10,.14));
+    border: 1px solid var(--glass-border); border-radius: var(--radius-lg);
+    backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+    box-shadow: var(--glass-shadow), var(--glass-inner);
+    padding: 26px 30px; margin-bottom: 16px;
+    display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap;
+  }
+  .hero h1 { font-size: 22px; font-weight: 700; letter-spacing: .5px; }
+  .hero p { font-size: 12.5px; color: var(--c-text-2); margin-top: 6px; max-width: 640px; }
+  .hero-badges { display: flex; gap: 8px; flex-wrap: wrap; }
+  .home-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .mod-card {
+    background: var(--glass-bg); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border); border-radius: var(--radius-md);
+    box-shadow: var(--glass-shadow), var(--glass-inner); padding: 18px 20px; cursor: pointer;
+    transition: transform .2s ease, box-shadow .2s ease; position: relative; overflow: hidden;
+  }
+  .mod-card:hover { transform: translateY(-3px); box-shadow: 0 14px 40px rgba(14,116,144,.18), var(--glass-inner); }
+  .mod-card .mc-top { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .mod-card .mc-icon {
+    width: 36px; height: 36px; border-radius: 11px; flex-shrink: 0; color: #fff; font-size: 15px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 12px rgba(14,50,60,.18);
+  }
+  .mod-card h3 { font-size: 14px; font-weight: 700; line-height: 1.3; }
+  .mod-card .mc-clause { font-size: 10.5px; color: var(--c-text-3); margin-top: 2px; }
+  .mod-card p { font-size: 11.5px; color: var(--c-text-2); line-height: 1.6; min-height: 54px; }
+  .mod-card .mc-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; }
+  .mod-card .mc-pages { font-size: 11px; font-weight: 600; color: var(--c-primary); font-family: 'DM Mono', monospace; }
+  .mod-card .mc-go { font-size: 11px; color: var(--c-text-3); transition: color .2s; }
+  .mod-card:hover .mc-go { color: var(--c-primary); }
+
+  @media (max-width: 1100px) { .shell { grid-template-columns: 220px 1fr; } .home-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 820px) { .shell { grid-template-columns: 1fr; height: auto; } .sidebar { max-height: 300px; } }
+</style>
+</head>
+<body>
+<div class="ambient-blob"></div>
+<div class="shell">
+
+  <!-- ========== Sidebar ========== -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-logo"><i class="fa-solid fa-fire-flame-curved"></i></div>
+      <div>
+        <div class="brand-name">管网运营智能体平台</div>
+        <div class="brand-sub">杭州燃气 · 原型 V1.0 · 液态玻璃</div>
+      </div>
+    </div>
+
+    <button class="nav-item active" data-home="1" onclick="goHome()" style="font-weight:600;">
+      <i class="fa-solid fa-house"></i>系统总览<span class="pages">70页</span>
+    </button>
+
+    <div class="nav-group-label"><i class="fa-solid fa-satellite-dish"></i>态势与风险</div>
+    <button class="nav-item" data-mod="m01-map" onclick="loadModule('m01-map','管网生命线一张图')"><i class="fa-solid fa-map-location-dot"></i>管网生命线一张图<span class="pages">9页</span></button>
+    <button class="nav-item" data-mod="m02-health" onclick="loadModule('m02-health','管网健康等级评估助手')"><i class="fa-solid fa-heart-pulse"></i>健康等级评估助手<span class="pages">8页</span></button>
+
+    <div class="nav-group-label"><i class="fa-solid fa-route"></i>巡检作业</div>
+    <button class="nav-item" data-mod="m03-schedule" onclick="loadModule('m03-schedule','管道巡检智能排班助手')"><i class="fa-solid fa-calendar-check"></i>巡检智能排班助手<span class="pages">11页</span></button>
+    <button class="nav-item" data-mod="m08-nav" onclick="loadModule('m08-nav','智能导航助手')"><i class="fa-solid fa-diamond-turn-right"></i>智能导航助手<span class="pages">6页</span></button>
+
+    <div class="nav-group-label"><i class="fa-solid fa-shield-halved"></i>管道保护</div>
+    <button class="nav-item" data-mod="m04-patrol-audit" onclick="loadModule('m04-patrol-audit','管道保护AI图像稽核助手')"><i class="fa-solid fa-camera"></i>AI图像稽核助手<span class="pages">4页</span></button>
+    <button class="nav-item" data-mod="m05-voice" onclick="loadModule('m05-voice','管道保护语音校验助手')"><i class="fa-solid fa-microphone"></i>语音校验助手<span class="pages">3页</span></button>
+
+    <div class="nav-group-label"><i class="fa-solid fa-bolt"></i>应急处置</div>
+    <button class="nav-item" data-mod="m06-rescue" onclick="loadModule('m06-rescue','应急抢修资源推荐助手')"><i class="fa-solid fa-truck-medical"></i>抢修资源推荐助手<span class="pages">6页</span></button>
+    <button class="nav-item" data-mod="m07-valve" onclick="loadModule('m07-valve','关阀方案推荐智能体')"><i class="fa-solid fa-circle-stop"></i>关阀方案推荐智能体<span class="pages">3页</span></button>
+
+    <div class="nav-group-label"><i class="fa-solid fa-gears"></i>设备管理</div>
+    <button class="nav-item" data-mod="m09-device-audit" onclick="loadModule('m09-device-audit','关键设备AI图像稽核助手')"><i class="fa-solid fa-eye"></i>设备AI图像稽核<span class="pages">6页</span></button>
+    <button class="nav-item" data-mod="m10-device" onclick="loadModule('m10-device','关键设备管理')"><i class="fa-solid fa-screwdriver-wrench"></i>关键设备管理<span class="pages">6页</span></button>
+
+    <div class="nav-group-label"><i class="fa-solid fa-chart-line"></i>运营效能与决策</div>
+    <button class="nav-item" data-mod="m11-efficiency" onclick="loadModule('m11-efficiency','员工工作效能统计与提升')"><i class="fa-solid fa-users-gear"></i>员工效能统计与提升<span class="pages">5页</span></button>
+    <button class="nav-item" data-mod="m12-compare" onclick="loadModule('m12-compare','气源设计方案比选推荐助手')"><i class="fa-solid fa-scale-balanced"></i>气源方案比选推荐<span class="pages">3页</span></button>
+
+    <div class="nav-foot">
+      依据《管网运营场景页面清单》（12模块/70页）与 2026-10 调研报告构建。<br>
+      管网 10,815km · 巡检员 178 · 抢修员 123
+    </div>
+  </aside>
+
+  <!-- ========== Main ========== -->
+  <div class="main-col">
+    <div class="topbar">
+      <div>
+        <div class="topbar-title" id="tb-title"><i class="fa-solid fa-house" style="color:var(--c-primary)"></i>系统总览</div>
+        <div class="topbar-crumb" id="tb-crumb">管网运营场景 · 12 个智能体模块 · 70 个功能页面</div>
+      </div>
+      <div class="flex" style="gap:8px;">
+        <button class="btn btn-glass btn-sm" id="btn-open" style="display:none;" onclick="openFrameNew()"><i class="fa-solid fa-arrow-up-right-from-square"></i>新窗口打开</button>
+        <button class="btn btn-primary btn-sm" onclick="loadModule('m01-map','管网生命线一张图')"><i class="fa-solid fa-play"></i>进入一张图</button>
+      </div>
+    </div>
+
+    <div class="stage">
+      <!-- Home -->
+      <div class="home-view" id="home-view">
+        <div class="hero">
+          <div>
+            <h1>管网运营智能体平台</h1>
+            <p>杭州燃气 AI 赋能产业升级 · 第二阶段管网运营场景。12 个智能体覆盖「态势与风险 → 巡检作业 → 管道保护 → 应急处置 → 设备管理 → 运营效能」全链路，智能体以接口调用、页面嵌入、消息推送三种形态长在既有系统之上。</p>
+          </div>
+          <div class="hero-badges">
+            <span class="badge badge-high">高优先级 4</span>
+            <span class="badge badge-mid">中优先级 6</span>
+            <span class="badge badge-low">低优先级 1</span>
+            <span class="badge badge-new">新增 1</span>
+          </div>
+        </div>
+
+        <div class="home-grid" id="home-grid">
+          <div class="mod-card" onclick="loadModule('m01-map','管网生命线一张图')">
+            <div class="mc-top">
+              <div class="mc-icon" style="background:linear-gradient(135deg,#0E7490,#22B8CF)"><i class="fa-solid fa-map-location-dot"></i></div>
+              <div><h3>管网生命线一张图</h3><div class="mc-clause">条款 5.4.1 · 优先级 中</div></div>
+            </div>
+            <p>五层业务数据同源融合、四级驾驶舱下钻、一张表、四色图、盲区分析、爆管关阀调度与共性隐患研判。</p>
+            <div class="mc-foot"><span class="mc-pages">9 个页面</span><span class="mc-go">点击进入 <i class="fa-solid fa-arrow-right"></i></span></div>
+          </div>
+
+          <div class="mod-card" onclick="loadModule('m02-health','管网健康等级评估助手')">
+            <div class="mc-top">
+              <div class="mc-icon" style="background:linear-gradient(135deg,#0B7285,#0E7490)"><i class="fa-solid fa-heart-pulse"></i></div>
+              <div><h3>管网健康等级评估助手</h3><div class="mc-clause">条款 5.4.2 · 优先级 高</div></div>
+            </div>
+            <p>四组14项因子可配置权重与影子试算，前100条最不健康管段清单，分项溯源与API推送。只对钢管评级。</p>
+            <div class="mc-foot"><span class="mc-pages">8 个页面</span><span class="mc-go">点击进入 <i class="fa-solid fa-arrow-right"></i></span></div>
+          </div>
+
+          <div class="mod-card" onclick="loadModule('m03-schedule','管道巡检智能排班助手')">
+            <div class="mc-top">
+              <div class="mc-icon" style="background:linear-gradient(135deg,#34A8FF,#5CC2FF)"><i class="fa-solid fa-calendar-check"></i></div>
+              <div><h3>管道巡检智能排班助手</h3><div class="mc-clause">条款 5.4.3 · 优先级 中</div></div>
+            </div>
+            <p>L0-L3四级频次规则引擎+季节模版，七步可视排班与七项硬约束，合规红色阻断，隐患转化率回流优化。</p>
+            <div class="mc-foot"><span class="mc-pages">11 个页面</span><span class="mc-go">点击进入 <i class="fa-solid fa-arrow-right"></i></span></div>
+          </div>
+
+          <div class="mod-card" onclick="loadModule('m08-nav','智能导航助手')">
+            <div class="mc-top">
+              <div class="mc-icon" style="background:linear-gradient(135deg,#1E9E44,#6ED88F)"><i class="fa-solid fa-diamond-turn-right"></i></div>
+              <div><h3>智能导航助手</h3><div class="mc-clause">条款 5.4.6 · 优先级 中</div></div>
+            </div>
+            <p>GIS坐标每日同源，汽车/电瓶车/步行三模式算路，终点设备历史照片弹窗，打点纠偏经审核回写GIS。</p>
+            <div class="mc-foot"><span class="mc-pages">6 个页面</span><span class="mc-go">点击进入 <i class="fa-solid fa-arrow-right"></i></span></div>
+          </div>
+
+          <div class="mod-card" onclick="loadModule('m04-patrol-audit','管道保护AI图像稽核助手')">
+            <div class="mc-top">
+              <div class="mc-icon" style="background:linear-gradient(135deg,#FF3B30,#FF7A5C)"><i class="fa-solid fa-camera"></i></div>
+              <div><h3>管道保护AI图像稽核助手</h3><div class="mc-clause">条款 5.4.4 · 优先级 高（核心）</div></div>
+            </div>
+            <p>五类单据签章稽核+影像四道闸，施工现场场景识别与保护措施三状态预警，不合格记录整改闭环。</p>
+            <div class="mc-foot"><span class="mc-pages">4 个页面</span><span class="mc-go">点击进入 <i class="fa-solid fa-arrow-right"></i></span></div>
+          </div>
+
+          <div class="mod-card" onclick="loadModule('m05-voice','管道保护语音校验助手')">
+            <div class="mc-top">
+              <div class="mc-icon" style="background:linear-gradient(135deg,#FF9F0A,#FFC148)"><i class="fa-solid fa-microphone"></i></div>
+              <div><h3>管道保护语音校验助手</h3><div class="mc-clause">需求概要 四（二）5 · 新增</div></div>
+            </div>
+            <p>移动端工单伴随录音与交底提纲提示，复杂噪音环境高精度转写，语义质检规则与逐单成绩单看板。</p>
+            <div class="mc-foot"><span class="mc-pages">3 个页面</span><span class="mc-go">点击进入 <i class="fa-solid fa-arrow-right"></i></span></div>
+          </div>
+
+          <div class="mod-card" onclick="loadModule('m06-rescue','应急抢修资源推荐助手')">
+            <div class="mc-top">
+              <div class="mc-icon" style="background:linear-gradient(135deg,#C67200,#FF9F0A)"><i class="fa-solid fa-truck-medical"></i></div>
+              <div><h3>应急抢修资源推荐助手</h3><div class="mc-clause">条款 5.4.5 · 优先级 中</div></div>
+            </div>
+            <p>四类资源三态实时可视化，网格责任映射与四步归属判定，工单落库1秒弹窗推荐，跨区域首响指派。</p>
+            <div class="mc-foot"><span class="mc-pages">6 个页面</span><span class="mc-go">点击进入 <i class="fa-solid fa-arrow-right"></i></span></div>
+          </div>
+
+          <div class="mod-card" onclick="loadModule('m07-valve','关阀方案推荐智能体')">
+            <div class="mc-top">
+              <div class="mc-icon" style="background:linear-gradient(135deg,#9A3412,#C2410C)"><i class="fa-solid fa-circle-stop"></i></div>
+              <div><h3>关阀方案推荐智能体</h3><div class="mc-clause">调研报告 智能体7 · 优先级 中</div></div>
+            </div>
+            <p>管网拓扑回溯定位阀门组合，多套方案影响因子加权排序，远程/现场关阀区分执行与停气测算。</p>
+            <div class="mc-foot"><span class="mc-pages">3 个页面</span><span class="mc-go">点击进入 <i class="fa-solid fa-arrow-right"></i></span></div>
+          </div>
+
+          <div class="mod-card" onclick="loadModule('m09-device-audit','关键设备AI图像稽核助手')">
+            <div class="mc-top">
+              <div class="mc-icon" style="background:linear-gradient(135deg,#0891B2,#06B6D4)"><i class="fa-solid fa-eye"></i></div>
+              <div><h3>关键设备AI图像稽核助手</h3><div class="mc-clause">条款 5.4.7 · 优先级 高</div></div>
+            </div>
+            <p>台账录入强校验与影像防伪三道闸，9类设备主体识别防图文不符，缺陷识别与生命周期四类预警。</p>
+            <div class="mc-foot"><span class="mc-pages">6 个页面</span><span class="mc-go">点击进入 <i class="fa-solid fa-arrow-right"></i></span></div>
+          </div>
+
+          <div class="mod-card" onclick="loadModule('m10-device','关键设备管理')">
+            <div class="mc-top">
+              <div class="mc-icon" style="background:linear-gradient(135deg,#475569,#64748B)"><i class="fa-solid fa-screwdriver-wrench"></i></div>
+              <div><h3>关键设备管理</h3><div class="mc-clause">条款 5.4.8 · 优先级 中</div></div>
+            </div>
+            <p>中修/维保基准表自动排定，新增通气设备强制插入，备件反推与执行四态监控，阴保六类检测计划。</p>
+            <div class="mc-foot"><span class="mc-pages">6 个页面</span><span class="mc-go">点击进入 <i class="fa-solid fa-arrow-right"></i></span></div>
+          </div>
+
+          <div class="mod-card" onclick="loadModule('m11-efficiency','员工工作效能统计与提升')">
+            <div class="mc-top">
+              <div class="mc-icon" style="background:linear-gradient(135deg,#0E7490,#34A8FF)"><i class="fa-solid fa-users-gear"></i></div>
+              <div><h3>员工工作效能统计与提升</h3><div class="mc-clause">条款 5.4.9 · 优先级 中</div></div>
+            </div>
+            <p>七类18项统一口径指标与六路自动归集，效能图表与考核报表，AI提升建议与培训复评闭环。</p>
+            <div class="mc-foot"><span class="mc-pages">5 个页面</span><span class="mc-go">点击进入 <i class="fa-solid fa-arrow-right"></i></span></div>
+          </div>
+
+          <div class="mod-card" onclick="loadModule('m12-compare','气源设计方案比选推荐助手')">
+            <div class="mc-top">
+              <div class="mc-icon" style="background:linear-gradient(135deg,#64748B,#94A3B8)"><i class="fa-solid fa-scale-balanced"></i></div>
+              <div><h3>气源设计方案比选推荐助手</h3><div class="mc-clause">条款 5.4.10 · 优先级 低</div></div>
+            </div>
+            <p>五类审核意见构建评判基准，六维度18评分项智能比选，大模型推荐理由强制引用与事实校验。</p>
+            <div class="mc-foot"><span class="mc-pages">3 个页面</span><span class="mc-go">点击进入 <i class="fa-solid fa-arrow-right"></i></span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Module iframe -->
+      <div class="frame-wrap" id="frame-wrap">
+        <iframe id="moduleFrame" name="moduleFrame" title="模块原型"></iframe>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var MOD_TITLES = {
+  'm01-map': '管网生命线一张图', 'm02-health': '管网健康等级评估助手',
+  'm03-schedule': '管道巡检智能排班助手', 'm08-nav': '智能导航助手',
+  'm04-patrol-audit': '管道保护AI图像稽核助手', 'm05-voice': '管道保护语音校验助手',
+  'm06-rescue': '应急抢修资源推荐助手', 'm07-valve': '关阀方案推荐智能体',
+  'm09-device-audit': '关键设备AI图像稽核助手', 'm10-device': '关键设备管理',
+  'm11-efficiency': '员工工作效能统计与提升', 'm12-compare': '气源设计方案比选推荐助手'
+};
+
+function setActiveNav(mod) {
+  document.querySelectorAll('.nav-item').forEach(function (n) {
+    var isHome = n.getAttribute('data-home');
+    var isMod = n.getAttribute('data-mod');
+    n.classList.toggle('active', mod === null ? !!isHome : isMod === mod);
+  });
+}
+
+function goHome() {
+  setActiveNav(null);
+  document.getElementById('home-view').style.display = 'block';
+  document.getElementById('frame-wrap').classList.remove('active');
+  document.getElementById('tb-title').innerHTML = '<i class="fa-solid fa-house" style="color:var(--c-primary)"></i>系统总览';
+  document.getElementById('tb-crumb').textContent = '管网运营场景 · 12 个智能体模块 · 70 个功能页面';
+  document.getElementById('btn-open').style.display = 'none';
+  try { history.replaceState(null, '', '#'); } catch (e) {}
+  window.scrollTo({ top: 0 });
+}
+
+function loadModule(mod, title) {
+  setActiveNav(mod);
+  document.getElementById('home-view').style.display = 'none';
+  var fw = document.getElementById('frame-wrap');
+  fw.classList.add('active');
+  document.getElementById('moduleFrame').src = 'modules/' + mod + '.html';
+  document.getElementById('tb-title').innerHTML = '<i class="fa-solid fa-cube" style="color:var(--c-primary)"></i>' + (title || MOD_TITLES[mod] || mod);
+  document.getElementById('tb-crumb').textContent = '模块原型 · ' + (MOD_TITLES[mod] || mod) + ' · 页内可切换各功能视图';
+  document.getElementById('btn-open').style.display = 'inline-flex';
+  try { history.replaceState(null, '', '#' + mod); } catch (e) {}
+}
+
+function openFrameNew() {
+  var src = document.getElementById('moduleFrame').src;
+  if (src) window.open(src, '_blank');
+}
+
+window.addEventListener('hashchange', function () {
+  var h = decodeURIComponent(location.hash.replace('#', ''));
+  if (!h) { goHome(); return; }
+  if (MOD_TITLES[h]) loadModule(h);
+});
+
+(function () {
+  var h = decodeURIComponent(location.hash.replace('#', ''));
+  if (h && MOD_TITLES[h]) loadModule(h);
+})();
+</script>
+</body>
+</html>

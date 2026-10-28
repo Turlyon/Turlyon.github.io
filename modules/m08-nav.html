@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M08 智能导航助手 · 杭州燃气管网运营智能体平台</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="../styles/liquid-glass.css">
+<style>
+/* M08 模块内辅助样式（仅布局辅助，配色全部取自设计令牌，无紫色系） */
+.seg-sm .seg-item { font-size: 11px; padding: 5px 12px; }
+.mode-opt { border: 1.5px solid var(--c-line); border-radius: 14px; padding: 10px 12px; background: rgba(255,255,255,.55); transition: all .2s ease; }
+.mode-opt.active { border-color: rgba(14,116,144,.45); background: var(--c-primary-soft); box-shadow: 0 4px 14px rgba(14,116,144,.14); }
+.mode-opt .mo-head { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 700; }
+.mode-opt .mo-line { font-size: 11px; color: var(--c-text-2); margin-top: 4px; }
+.mode-opt .mo-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
+.photo-view { height: 150px; border-radius: 12px; border: 1px solid rgba(22,50,60,.08); background: linear-gradient(150deg,#D7E7EE 0%,#C4DCE9 55%,#BCD8C4 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: rgba(22,50,60,.45); }
+.photo-view i { font-size: 28px; }
+.photo-thumb { width: 64px; height: 46px; border-radius: 8px; border: 1px solid rgba(22,50,60,.08); background: linear-gradient(150deg,#D7E7EE,#BCD8C4); margin: 0 auto 6px; }
+.pin-label { position: absolute; z-index: 6; font-size: 10.5px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: var(--glass-bg-strong); border: 1px solid var(--glass-border); color: var(--c-text); box-shadow: 0 2px 8px rgba(22,50,60,.10); white-space: nowrap; }
+.target-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border-radius: 12px; border: 1px solid var(--c-line); margin-bottom: 8px; font-size: 12px; }
+.target-item.current { border-color: rgba(14,116,144,.45); background: var(--c-primary-soft); }
+.evi-num { width: 22px; height: 22px; border-radius: 50%; background: var(--c-primary); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+.prio-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px dashed var(--c-line); font-size: 12.5px; }
+.prio-row:last-child { border-bottom: none; }
+.req-row { display: flex; align-items: center; gap: 8px; padding: 7px 0; font-size: 12.5px; flex-wrap: wrap; }
+.req-row input[type=checkbox] { width: 15px; height: 15px; accent-color: var(--c-primary); }
+</style>
+</head>
+<body>
+<div class="ambient-blob"></div>
+<div class="module-wrap">
+
+  <div class="module-top">
+    <div>
+      <div class="flex wrap" style="gap:10px;">
+        <div class="module-title"><i class="fa-solid fa-route" style="color:var(--c-primary);"></i> 智能导航助手</div>
+        <span class="badge badge-mid">优先级 中</span>
+      </div>
+      <div class="module-sub">对应条款 5.4.6 ｜ 与 GIS 取数同步开展（调研） ｜ 考核指标：设备坐标同源率 100%（系统硬约束）</div>
+    </div>
+    <div class="seg">
+      <button class="seg-item active" data-view="v-设备智能定位-坐标同步与同源率看板" onclick="switchView('v-设备智能定位-坐标同步与同源率看板')">坐标同步看板</button>
+      <button class="seg-item" data-view="v-设备智能定位-终点历史照片弹窗" onclick="switchView('v-设备智能定位-终点历史照片弹窗')">终点照片弹窗</button>
+      <button class="seg-item" data-view="v-多模式智能导航" onclick="switchView('v-多模式智能导航')">多模式导航</button>
+      <button class="seg-item" data-view="v-任务联动与坐标纠偏-工单锁定与打点上报" onclick="switchView('v-任务联动与坐标纠偏-工单锁定与打点上报')">工单锁定打点</button>
+      <button class="seg-item" data-view="v-任务联动与坐标纠偏-后台审核与回写GIS" onclick="switchView('v-任务联动与坐标纠偏-后台审核与回写GIS')">审核回写GIS</button>
+      <button class="seg-item" data-view="v-道路管道巡检导航路线" onclick="switchView('v-道路管道巡检导航路线')">巡检导航路线</button>
+    </div>
+  </div>
+
+  <!-- ======================= 页面1：坐标同步与同源率看板（PC后台） ======================= -->
+  <section class="view active" id="v-设备智能定位-坐标同步与同源率看板">
+    <div class="page-head">
+      <div>
+        <div class="page-title">设备智能定位 · 坐标同步与同源率看板</div>
+        <div class="page-desc">PC端 · 数据管理后台 · GIS数据管理岗 ｜ 每日 01:00 从 GIS 增量同步设备坐标（只取变更设备），按类型容差逐台比对判定同源率，多来源冲突按优先级裁决</div>
+      </div>
+      <div class="flex wrap">
+        <button class="btn btn-glass" onclick="showToast('已导出本次同步批次日志')"><i class="fa-solid fa-file-export"></i>导出日志</button>
+        <button class="btn btn-primary" onclick="showToast('已发起手动增量同步：仅取变更设备，预计 3 分钟完成')"><i class="fa-solid fa-rotate"></i>手动同步</button>
+      </div>
+    </div>
+
+    <div class="grid g-4 mb-14">
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-bullseye"></i>设备坐标同源率</div>
+        <div class="stat-value green">99.2%</div>
+        <div class="stat-sub">考核目标 100%（系统硬约束） · 较昨日 +0.1pp</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-layer-group"></i>纳入同步设备</div>
+        <div class="stat-value">16,832</div>
+        <div class="stat-sub">阀门 / 调压器 / 测试桩 / 井盖窨井 / 阴保测试点 / 场站调压柜</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-code-compare"></i>本批冲突挂起</div>
+        <div class="stat-value orange">37</div>
+        <div class="stat-sub">多来源冲突按优先级裁决，未裁决不覆盖现值</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-triangle-exclamation"></i>同步失败</div>
+        <div class="stat-value red">12 台</div>
+        <div class="stat-sub">井盖窨井批次 1 类告警 · 已保留上一份可用快照</div>
+      </div>
+    </div>
+
+    <div class="grid g-main-side">
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div class="glass-card">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-table-list"></i>今日同步批次（SYNC-20261028 · 01:00 增量）</div>
+            <span class="tag tag-cyan"><i class="fa-solid fa-arrow-right-long"></i>同步单向：GIS → 导航坐标库</span>
+          </div>
+          <div class="table-scroll">
+            <table class="glass-table">
+              <thead>
+                <tr><th>设备类型</th><th>设备数</th><th>变更数</th><th>冲突数</th><th>失败数</th><th>批次状态</th><th>操作</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>阀门</td><td class="mono">3,214</td><td class="mono">38</td><td class="mono">6</td><td class="mono">0</td><td><span class="tag tag-green"><i class="fa-solid fa-check"></i>已同步</span></td><td><button class="btn btn-ghost btn-xs" onclick="openModal('m-history')">变更履历</button></td></tr>
+                <tr><td>调压器</td><td class="mono">1,086</td><td class="mono">21</td><td class="mono">4</td><td class="mono">0</td><td><span class="tag tag-green"><i class="fa-solid fa-check"></i>已同步</span></td><td><button class="btn btn-ghost btn-xs" onclick="openModal('m-history')">变更履历</button></td></tr>
+                <tr><td>测试桩</td><td class="mono">2,458</td><td class="mono">12</td><td class="mono">3</td><td class="mono">0</td><td><span class="tag tag-green"><i class="fa-solid fa-check"></i>已同步</span></td><td><button class="btn btn-ghost btn-xs" onclick="openModal('m-history')">变更履历</button></td></tr>
+                <tr><td>井盖窨井</td><td class="mono">8,932</td><td class="mono">842</td><td class="mono">18</td><td class="mono">12</td><td><span class="tag tag-red"><i class="fa-solid fa-bell"></i>失败告警</span></td><td><button class="btn btn-ghost btn-xs" style="color:var(--c-danger);" onclick="openModal('m-sync-alert')">查看告警</button></td></tr>
+                <tr><td>阴保测试点</td><td class="mono">964</td><td class="mono">9</td><td class="mono">2</td><td class="mono">0</td><td><span class="tag tag-green"><i class="fa-solid fa-check"></i>已同步</span></td><td><button class="btn btn-ghost btn-xs" onclick="openModal('m-history')">变更履历</button></td></tr>
+                <tr><td>场站调压柜</td><td class="mono">178</td><td class="mono">6</td><td class="mono">4</td><td class="mono">0</td><td><span class="tag tag-green"><i class="fa-solid fa-check"></i>已同步</span></td><td><button class="btn btn-ghost btn-xs" onclick="openModal('m-history')">变更履历</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-pause"></i>冲突挂起明细（37 条 · 演示前 4 条）</div>
+            <span class="tiny">挂起不覆盖：等待纠偏队列审核裁决后方可生效</span>
+          </div>
+          <div class="table-scroll">
+            <table class="glass-table">
+              <thead>
+                <tr><th>设备编号</th><th>类型</th><th>GIS 值（经,纬）</th><th>竞争来源值</th><th>偏移量</th><th>挂起原因</th><th>状态</th><th>操作</th></tr>
+              </thead>
+              <tbody>
+                <tr><td class="mono">FM-2087</td><td>阀门</td><td class="mono">120.15532,30.27418</td><td class="mono">120.15529,30.27412</td><td class="mono">7.2米</td><td>已审核纠偏值与 GIS 值冲突</td><td><span class="tag tag-blue">待裁决</span></td><td><button class="btn btn-ghost btn-xs" onclick="openModal('m-history')">履历</button></td></tr>
+                <tr><td class="mono">JG-0572</td><td>井盖窨井</td><td class="mono">120.15532,30.27418</td><td class="mono">120.15538,30.27402</td><td class="mono">15.2米</td><td>台账人工录入与竣工测量冲突</td><td><span class="tag tag-blue">待裁决</span></td><td><button class="btn btn-ghost btn-xs" onclick="openModal('m-history')">履历</button></td></tr>
+                <tr><td class="mono">TSC-0311</td><td>测试桩</td><td class="mono">120.10456,30.28912</td><td class="mono">120.10461,30.28920</td><td class="mono">9.8米</td><td>绿化改造后桩位迁移待复测</td><td><span class="tag tag-blue">待裁决</span></td><td><button class="btn btn-ghost btn-xs" onclick="openModal('m-history')">履历</button></td></tr>
+                <tr><td class="mono">CZ-0142</td><td>场站调压柜</td><td class="mono">120.09012,30.21145</td><td class="mono">120.09005,30.21151</td><td class="mono">8.6米</td><td>站区改造，纠偏待审核</td><td><span class="tag tag-blue">待裁决</span></td><td><button class="btn btn-ghost btn-xs" onclick="openModal('m-history')">履历</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div class="glass-card">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-ranking-star"></i>三类坐标来源优先级</div>
+          </div>
+          <div class="prio-row"><span class="evi-num">1</span><b>已审核纠偏值</b><span class="tag tag-green">最优先</span></div>
+          <div class="prio-row"><span class="evi-num">2</span><span>GIS 竣工测量值</span><span class="tag tag-blue">常规默认来源</span></div>
+          <div class="prio-row"><span class="evi-num">3</span><span>台账人工录入</span><span class="tag tag-gray">仅前两类缺失时兜底</span></div>
+          <div class="tiny mt-8">裁决规则：多来源冲突时取优先级最高者；未审核纠偏值挂起、不覆盖现值。</div>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-shield-halved"></i>同步单向 · 快照保留策略</div>
+          </div>
+          <ul class="icon-list">
+            <li><i class="fa-solid fa-arrow-right-long"></i>同步单向：GIS → 导航坐标库，导航侧只读、不反向修改</li>
+            <li><i class="fa-solid fa-pause"></i>未审核纠偏值挂起不覆盖，保留在纠偏队列等待审核</li>
+            <li><i class="fa-solid fa-camera-retro"></i>任一类型失败即告警，并保留上一份可用快照 —— 宁可用昨天的可信坐标，不半份落库</li>
+            <li><i class="fa-solid fa-list-check"></i>同源未达标设备自动生成数据治理待办，闭环到人</li>
+          </ul>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-chart-line"></i>近七日同步日志</div>
+          </div>
+          <table class="glass-table">
+            <thead><tr><th>日期</th><th>变更设备</th><th>同源率</th><th>告警</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">10-28</td><td class="mono">928</td><td class="mono">99.2%</td><td><span class="tag tag-red">1 类</span></td></tr>
+              <tr><td class="mono">10-27</td><td class="mono">861</td><td class="mono">99.1%</td><td><span class="tag tag-green">无</span></td></tr>
+              <tr><td class="mono">10-26</td><td class="mono">903</td><td class="mono">99.3%</td><td><span class="tag tag-green">无</span></td></tr>
+              <tr><td class="mono">10-25</td><td class="mono">877</td><td class="mono">99.1%</td><td><span class="tag tag-green">无</span></td></tr>
+              <tr><td class="mono">10-24</td><td class="mono">912</td><td class="mono">99.2%</td><td><span class="tag tag-orange">1 类</span></td></tr>
+              <tr><td class="mono">10-23</td><td class="mono">854</td><td class="mono">98.9%</td><td><span class="tag tag-green">无</span></td></tr>
+              <tr><td class="mono">10-22</td><td class="mono">889</td><td class="mono">99.0%</td><td><span class="tag tag-green">无</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 弹窗：设备坐标变更履历 -->
+    <div class="modal-mask" id="m-history" onclick="if(event.target===this)closeModal('m-history')">
+      <div class="glass-modal wide">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-clock-rotate-left"></i>设备坐标变更履历 · FM-2087（阀门 · 文一西路）</div>
+          <button class="modal-close" onclick="closeModal('m-history')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <table class="glass-table">
+            <thead><tr><th>时点</th><th>来源</th><th>坐标（经,纬）</th><th>偏移量</th><th>操作人</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">2026-10-21 14:36</td><td><span class="tag tag-green">已审核纠偏值</span></td><td class="mono">120.15529,30.27412</td><td class="mono">+7.2米</td><td>GIS审核岗 陈*芳</td></tr>
+              <tr><td class="mono">2026-06-15 02:00</td><td><span class="tag tag-blue">GIS竣工测量值</span></td><td class="mono">120.15532,30.27418</td><td class="mono">—</td><td>系统 · SYNC-20260615</td></tr>
+              <tr><td class="mono">2025-11-02 10:12</td><td><span class="tag tag-gray">台账人工录入</span></td><td class="mono">120.15528,30.27405</td><td class="mono">—</td><td>李*明</td></tr>
+            </tbody>
+          </table>
+          <div class="alert-strip cyan mt-14" style="margin-bottom:0;"><i class="fa-solid fa-circle-info"></i>未审核纠偏值挂起不覆盖现值，进入后台审核队列裁决后方可生效。</div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-glass" onclick="closeModal('m-history')">关闭</button>
+          <button class="btn btn-primary" onclick="closeModal('m-history');showToast('已发起该设备的坐标同源复核')">发起同源复核</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 弹窗：同步失败告警（阻断式） -->
+    <div class="modal-mask" id="m-sync-alert" onclick="if(event.target===this)closeModal('m-sync-alert')">
+      <div class="glass-modal blocking">
+        <div class="blocking-strip"><i class="fa-solid fa-triangle-exclamation"></i>同步失败告警 · 井盖窨井批次（失败 12 台）</div>
+        <div class="modal-body">
+          <dl class="kv">
+            <dt>告警时间</dt><dd class="mono">2026-10-28 01:04</dd>
+            <dt>失败原因</dt><dd>GIS 接口超时：8,932 台中 12 台坐标未返回</dd>
+            <dt>影响范围</dt><dd>导航坐标库仍使用上一份可用快照（2026-10-27 批次）</dd>
+          </dl>
+          <div class="alert-strip orange mt-14" style="margin-bottom:0;"><i class="fa-solid fa-camera-retro"></i>处置策略：保留上一份可用快照 —— 宁可用昨天的可信坐标，不半份落库。</div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-glass" onclick="closeModal('m-sync-alert')">我知道了</button>
+          <button class="btn btn-danger" onclick="closeModal('m-sync-alert');showToast('已生成数据治理待办并推送 GIS 数据管理岗 王*敏')">生成数据治理待办</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= 页面2：终点历史照片弹窗（外勤APP） ======================= -->
+  <section class="view" id="v-设备智能定位-终点历史照片弹窗">
+    <div class="page-head">
+      <div>
+        <div class="page-title">设备智能定位 · 终点历史照片弹窗</div>
+        <div class="page-desc">外勤APP · 现场作业人员 ｜ 导航进入终点半径自动弹窗展示设备历史照片，作为到场确认的视觉辅助</div>
+      </div>
+    </div>
+
+    <div class="alert-strip cyan"><i class="fa-solid fa-circle-info"></i><b>调研口径：</b>现状设备照片只能放应用内地图、到场后人工翻查对位 → 目标：进入终点半径自动弹出最近一次有效影像，先认设备、再作业。</div>
+
+    <div class="grid g-pc-phone">
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div class="glass-card">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-bell"></i>触发与翻阅规则</div>
+          </div>
+          <ul class="icon-list">
+            <li><i class="fa-solid fa-location-crosshairs"></i>进入终点半径自动触发，导航过程中也可手动调阅</li>
+            <li><i class="fa-solid fa-draw-polygon"></i>终点半径阈值按设备类型：井盖类 30 米 / 立柱类 50 米 / 场站柜体类 80 米</li>
+            <li><i class="fa-solid fa-image"></i>照片按设备编号关联影像库（巡检与稽核回传影像），默认展示最近一次有效影像</li>
+            <li><i class="fa-solid fa-left-right"></i>可左右翻阅近三次影像，确认设备外观无异常变化</li>
+            <li><i class="fa-solid fa-file-lines"></i>照片调阅记录随工单留存，可追溯「看过哪张、何时看的」</li>
+          </ul>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-clipboard-check"></i>有效影像三校验（全过才算有效）</div>
+          </div>
+          <div class="grid g-3">
+            <div class="stat-card soft">
+              <div class="stat-label"><i class="fa-solid fa-expand"></i>分辨率校验</div>
+              <div class="flex mt-8"><span class="tag tag-green"><i class="fa-solid fa-check"></i>通过</span><span class="tiny">≥ 1080p 可辨识</span></div>
+            </div>
+            <div class="stat-card soft">
+              <div class="stat-label"><i class="fa-solid fa-clock"></i>拍摄时间校验</div>
+              <div class="flex mt-8"><span class="tag tag-green"><i class="fa-solid fa-check"></i>通过</span><span class="tiny">水印时间与回传一致</span></div>
+            </div>
+            <div class="stat-card soft">
+              <div class="stat-label"><i class="fa-solid fa-barcode"></i>编号标注校验</div>
+              <div class="flex mt-8"><span class="tag tag-green"><i class="fa-solid fa-check"></i>通过</span><span class="tiny">照片标注与设备一致</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-circle-exclamation"></i>无有效影像 · 降级为属性卡</div>
+          </div>
+          <ul class="icon-list">
+            <li><i class="fa-solid fa-right-left"></i>近三次影像均未通过三校验时，自动降级展示设备属性卡（编号 / 类型 / 口径 / 地址）</li>
+            <li><i class="fa-solid fa-triangle-exclamation"></i>降级时明确提示「暂无有效影像」，属性卡同样支持到场确认，不阻断作业流程</li>
+          </ul>
+          <button class="btn btn-accent mt-8" onclick="togglePhotoFallback()"><i class="fa-solid fa-right-left"></i>切换「暂无有效影像」降级演示</button>
+        </div>
+      </div>
+
+      <div class="phone-frame">
+        <div class="phone-screen">
+          <div class="phone-notch"></div>
+          <div class="phone-statusbar"><span>09:41</span><span><i class="fa-solid fa-signal"></i> <i class="fa-solid fa-wifi"></i> <i class="fa-solid fa-battery-three-quarters"></i></span></div>
+          <div class="phone-body">
+            <div class="flex-between mb-8">
+              <span class="tag tag-cyan"><i class="fa-solid fa-location-dot"></i>导航中 · 工单 GD-2026-1021</span>
+              <span class="tiny mono">剩余 42 米</span>
+            </div>
+            <div class="map-canvas" style="min-height:170px;">
+              <svg viewBox="0 0 330 170" style="position:absolute;inset:0;width:100%;height:100%;">
+                <path class="pipe" d="M10 150 C 90 140, 150 70, 322 44" stroke="#0E7490" stroke-width="5"></path>
+                <path class="pipe" d="M10 150 C 90 140, 150 70, 300 52" stroke="#FF9F0A" stroke-width="3"></path>
+              </svg>
+              <div class="map-pin" style="left:calc(97% - 11px);top:calc(26% - 11px);background:var(--c-accent);"><i class="fa-solid fa-flag"></i></div>
+              <div style="position:absolute;left:calc(97% - 44px);top:calc(26% - 44px);width:88px;height:88px;border:2px dashed rgba(255,159,10,.7);border-radius:50%;"></div>
+              <div class="map-pin" style="left:4%;top:78%;background:var(--c-primary);"><i class="fa-solid fa-person-walking"></i></div>
+              <div class="pin-label" style="right:10px;top:8px;">终点半径 30 米（井盖类）</div>
+              <div class="map-legend" style="font-size:10px;"><span><span class="sw" style="background:#0E7490;"></span>管线</span><span><span class="sw" style="background:#FF9F0A;"></span>步行接驳</span></div>
+            </div>
+            <div class="alert-strip blue mt-8" style="margin-bottom:10px;"><i class="fa-solid fa-bell"></i>已进入井盖类 30 米终点半径，自动弹出历史照片</div>
+
+            <div id="photoCard" class="glass-card strong" style="padding:14px;">
+              <div class="flex-between mb-8">
+                <b style="font-size:13px;"><i class="fa-solid fa-image" style="color:var(--c-primary);"></i> 最近一次有效影像</b>
+                <span class="tag tag-green"><i class="fa-solid fa-check"></i>三校验通过</span>
+              </div>
+              <div class="photo-view"><i class="fa-solid fa-camera-retro"></i><span class="tiny">JG-0572 · 文一西路与紫金港路口 · 井盖（东）</span></div>
+              <dl class="kv mt-8">
+                <dt>设备编号</dt><dd class="mono">JG-0572</dd>
+                <dt>拍摄时间</dt><dd class="mono">2026-10-21 14:32</dd>
+                <dt>拍摄方位</dt><dd>东侧路面 · 路缘石旁</dd>
+                <dt>影像来源</dt><dd>巡检回传 · QX-0126 李*明</dd>
+              </dl>
+              <div class="flex mt-8" style="justify-content:space-between;">
+                <button class="btn btn-glass btn-sm" onclick="showToast('已翻到上一次有效影像（近三次可翻阅）')"><i class="fa-solid fa-chevron-left"></i>上一次</button>
+                <button class="btn btn-glass btn-sm" onclick="openModal('m-photo-big')"><i class="fa-solid fa-expand"></i>查看大图</button>
+                <button class="btn btn-glass btn-sm" onclick="showToast('已翻到下一次有效影像（共三次）')">下一次<i class="fa-solid fa-chevron-right"></i></button>
+              </div>
+            </div>
+
+            <div id="propCard" class="glass-card strong" style="padding:14px;display:none;">
+              <div class="flex-between mb-8">
+                <b style="font-size:13px;"><i class="fa-solid fa-circle-info" style="color:var(--c-warn);"></i> 暂无有效影像 · 已降级为属性卡</b>
+              </div>
+              <div class="alert-strip orange" style="margin-bottom:10px;"><i class="fa-solid fa-triangle-exclamation"></i>该设备近三次影像均未通过三校验，请到场后按属性卡确认位置</div>
+              <dl class="kv">
+                <dt>设备编号</dt><dd class="mono">JG-0572</dd>
+                <dt>类型</dt><dd>井盖窨井 · DN200</dd>
+                <dt>地址</dt><dd>文一西路与紫金港路口东北侧</dd>
+                <dt>最近巡检</dt><dd class="mono">2026-10-21 · 李*明</dd>
+              </dl>
+              <button class="btn btn-primary btn-sm mt-8" onclick="showToast('已确认到场，继续作业流程')"><i class="fa-solid fa-check"></i>确认到场</button>
+            </div>
+          </div>
+          <div class="phone-tabbar">
+            <div class="phone-tab" onclick="showToast('演示：切换到首页')"><i class="fa-solid fa-house"></i>首页</div>
+            <div class="phone-tab active" onclick="showToast('演示：当前在工单页')"><i class="fa-solid fa-clipboard-list"></i>工单</div>
+            <div class="phone-tab" onclick="showToast('演示：切换到导航页')"><i class="fa-solid fa-route"></i>导航</div>
+            <div class="phone-tab" onclick="showToast('演示：切换到我的')"><i class="fa-solid fa-user"></i>我的</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 弹窗：历史影像大图 -->
+    <div class="modal-mask" id="m-photo-big" onclick="if(event.target===this)closeModal('m-photo-big')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-image"></i>历史影像大图 · JG-0572</div>
+          <button class="modal-close" onclick="closeModal('m-photo-big')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="photo-view" style="height:220px;"><i class="fa-solid fa-camera-retro"></i><span class="tiny">文一西路与紫金港路口 · 井盖（东）· 影像原图</span></div>
+          <div class="grid g-3 mt-14">
+            <div style="text-align:center;"><div class="photo-thumb"></div><span class="tag tag-green"><i class="fa-solid fa-check"></i>最近一次 · 有效</span></div>
+            <div style="text-align:center;"><div class="photo-thumb"></div><span class="tag tag-green"><i class="fa-solid fa-check"></i>第二次 · 有效</span></div>
+            <div style="text-align:center;"><div class="photo-thumb"></div><span class="tag tag-red"><i class="fa-solid fa-xmark"></i>编号标注缺失 · 无效</span></div>
+          </div>
+          <dl class="kv mt-14">
+            <dt>拍摄时间</dt><dd class="mono">2026-10-21 14:32</dd>
+            <dt>分辨率</dt><dd class="mono">4096 × 3072 · 校验通过</dd>
+            <dt>影像来源</dt><dd>巡检回传 · QX-0126 李*明</dd>
+            <dt>调阅记录</dt><dd>已随工单 GD-2026-1021 留存</dd>
+          </dl>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-glass" onclick="closeModal('m-photo-big')">关闭</button>
+          <button class="btn btn-primary" onclick="closeModal('m-photo-big');showToast('已确认按该影像到场，调阅记录随工单留存')">按此影像确认到场</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= 页面3：多模式智能导航（外勤APP） ======================= -->
+  <section class="view" id="v-多模式智能导航">
+    <div class="page-head">
+      <div>
+        <div class="page-title">多模式智能导航</div>
+        <div class="page-desc">外勤APP · 巡检 / 抢修 / 调压维护人员 ｜ 汽车 / 电瓶车 / 步行三模式独立算路、并行比选，六类节点全程语音播报，偏航重算与离线包弱网降级</div>
+      </div>
+    </div>
+
+    <div class="alert-strip cyan"><i class="fa-solid fa-circle-info"></i><b>调研口径：</b>现状为点到点跳转百度 / 高德，无法按出行方式选择路线 → 目标：三模式并行算路并列展示，比选后一键出发，终点为设备点位本身 + 最后一段步行接驳。</div>
+
+    <div class="grid g-pc-phone">
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div class="glass-card">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-volume-high"></i>六类语音播报节点</div>
+            <span class="tiny">转向播报按当前速度动态提前</span>
+          </div>
+          <ul class="icon-list">
+            <li><i class="fa-solid fa-play"></i><b>起步</b>：播报目的地、选定模式与预计用时</li>
+            <li><i class="fa-solid fa-turn-up"></i><b>转向</b>：转向前 300 米预告 + 50 米提醒（按当前速度动态提前）</li>
+            <li><i class="fa-solid fa-gauge-high"></i><b>限速变更</b>：路段限速变化即时提示</li>
+            <li><i class="fa-solid fa-rotate-left"></i><b>偏航</b>：即时播报并重算（优先本地缓存）</li>
+            <li><i class="fa-solid fa-flag-checkered"></i><b>进入终点</b>：进入终点半径播报，联动历史照片弹窗</li>
+            <li><i class="fa-solid fa-location-check"></i><b>到达</b>：切设备确认页（定位偏差 + 历史照片 + 作业入口）</li>
+          </ul>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-wifi"></i>离线包与弱网降级</div>
+            <button class="btn btn-glass btn-sm" onclick="openModal('m-offline')"><i class="fa-solid fa-tower-broadcast"></i>模拟弱网降级提示</button>
+          </div>
+          <ul class="icon-list">
+            <li><i class="fa-solid fa-box-archive"></i>离线包按运行站辖区下发、按周更新，覆盖辖区路网与设备点位</li>
+            <li><i class="fa-solid fa-arrow-down-short-wide"></i>弱网自动切换离线包，并逐项告知可用范围（路况修正、影像原图不可用）</li>
+            <li><i class="fa-solid fa-route"></i>偏航重算优先本地缓存，隧道 / 高架下不丢导航</li>
+            <li><i class="fa-solid fa-clock-rotate-left"></i>到达后回传预计与实际用时，持续修正算路模型</li>
+          </ul>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-user-gear"></i>模式预选与到达闭环</div>
+          </div>
+          <ul class="icon-list">
+            <li><i class="fa-solid fa-clipboard-list"></i>打开工单时按工单类型与人员出行方式档案预选默认模式</li>
+            <li><i class="fa-solid fa-shoe-prints"></i>终点为设备点位本身，最后一段步行接驳自动加入路线</li>
+            <li><i class="fa-solid fa-flag-checkered"></i>到达后切设备确认页：定位偏差提示 + 历史照片 + 作业入口</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="phone-frame">
+        <div class="phone-screen">
+          <div class="phone-notch"></div>
+          <div class="phone-statusbar"><span>09:41</span><span><i class="fa-solid fa-signal"></i> <i class="fa-solid fa-wifi"></i> <i class="fa-solid fa-battery-three-quarters"></i></span></div>
+          <div class="phone-body">
+            <div class="flex-between mb-8">
+              <span class="tag tag-cyan"><i class="fa-solid fa-clipboard-list"></i>GD-2026-1021 · 调压维护</span>
+              <span class="tiny">目标 TY-1132</span>
+            </div>
+            <div class="seg seg-sm mb-8" id="navModeSeg">
+              <button class="seg-item active" onclick="switchNavMode(this,'car')"><i class="fa-solid fa-car"></i> 汽车</button>
+              <button class="seg-item" onclick="switchNavMode(this,'moto')"><i class="fa-solid fa-motorcycle"></i> 电瓶车</button>
+              <button class="seg-item" onclick="switchNavMode(this,'walk')"><i class="fa-solid fa-person-walking"></i> 步行</button>
+            </div>
+
+            <div class="mode-opt active mb-8" data-mode="car">
+              <div class="mo-head"><i class="fa-solid fa-car" style="color:var(--c-info);"></i>汽车 <span class="tag tag-green"><i class="fa-solid fa-wand-magic-sparkles"></i>档案预选</span></div>
+              <div class="mo-line">里程 8.6 km · 预计 22 分钟</div>
+              <div class="mo-line">通行限制：避开限行路段与单行线</div>
+              <div class="mo-foot"><span class="tiny">沿文一西路 → 筒桥路</span><button class="btn btn-primary btn-sm" onclick="showToast('已按汽车模式发起导航，预计 22 分钟到达')">选择出发</button></div>
+            </div>
+            <div class="mode-opt mb-8" data-mode="moto">
+              <div class="mo-head"><i class="fa-solid fa-motorcycle" style="color:var(--c-primary);"></i>电瓶车</div>
+              <div class="mo-line">里程 6.4 km · 预计 27 分钟</div>
+              <div class="mo-line">通行限制：走非机动车道，禁高架与隧道</div>
+              <div class="mo-foot"><span class="tiny">沿余杭塘河绿道辅路</span><button class="btn btn-glass btn-sm" onclick="showToast('已按电瓶车模式发起导航，预计 27 分钟到达')">选择出发</button></div>
+            </div>
+            <div class="mode-opt mb-8" data-mode="walk">
+              <div class="mo-head"><i class="fa-solid fa-person-walking" style="color:var(--c-ok);"></i>步行</div>
+              <div class="mo-line">里程 2.8 km · 预计 52 分钟</div>
+              <div class="mo-line">通行限制：可穿小区绿道，禁快速路</div>
+              <div class="mo-foot"><span class="tiny">距目标较近时推荐</span><button class="btn btn-glass btn-sm" onclick="showToast('已按步行模式发起导航，预计 52 分钟到达')">选择出发</button></div>
+            </div>
+
+            <div class="map-canvas" style="min-height:150px;">
+              <svg viewBox="0 0 330 170" style="position:absolute;inset:0;width:100%;height:100%;">
+                <path class="pipe" d="M12 140 L 120 140 L 200 84 L 318 40" stroke="#0E7490" stroke-width="5"></path>
+                <path class="pipe" d="M12 140 C 110 150, 210 120, 316 52" stroke="#34A8FF" stroke-width="3"></path>
+                <path class="pipe" d="M12 140 L 150 108 L 240 70 L 316 52" stroke="#0891B2" stroke-width="3" stroke-dasharray="10 7"></path>
+                <path class="pipe" d="M12 140 C 80 90, 170 60, 300 46" stroke="#34C759" stroke-width="3" stroke-dasharray="3 6"></path>
+              </svg>
+              <div class="map-pin" style="left:calc(94% - 11px);top:calc(26% - 11px);background:var(--c-accent);"><i class="fa-solid fa-flag"></i></div>
+              <div class="map-legend" style="font-size:9.5px;"><span><span class="sw" style="background:#34A8FF;"></span>汽车</span><span><span class="sw" style="background:#0891B2;"></span>电瓶车</span><span><span class="sw" style="background:#34C759;"></span>步行</span><span><span class="sw" style="background:#0E7490;"></span>管线</span></div>
+            </div>
+            <div class="alert-strip blue mt-8" style="margin-bottom:0;"><i class="fa-solid fa-shoe-prints"></i>终点为设备点位本身 · 最后 120 米步行接驳</div>
+          </div>
+          <div class="phone-tabbar">
+            <div class="phone-tab" onclick="showToast('演示：切换到首页')"><i class="fa-solid fa-house"></i>首页</div>
+            <div class="phone-tab" onclick="showToast('演示：切换到工单页')"><i class="fa-solid fa-clipboard-list"></i>工单</div>
+            <div class="phone-tab active" onclick="showToast('演示：当前在导航页')"><i class="fa-solid fa-route"></i>导航</div>
+            <div class="phone-tab" onclick="showToast('演示：切换到我的')"><i class="fa-solid fa-user"></i>我的</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 弹窗：弱网降级提示 -->
+    <div class="modal-mask" id="m-offline" onclick="if(event.target===this)closeModal('m-offline')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-wifi" style="color:var(--c-warn);"></i>弱网降级 · 已自动切换离线包</div>
+          <button class="modal-close" onclick="closeModal('m-offline')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <dl class="kv">
+            <dt>离线包</dt><dd>城西所辖区 · 本周一 06:00 更新</dd>
+            <dt>触发条件</dt><dd>弱网 / 无网环境自动切换，无需人工操作</dd>
+          </dl>
+          <div class="alert-strip cyan mt-14" style="margin-bottom:10px;"><i class="fa-solid fa-circle-check"></i>仍可用：基础算路、转向语音播报、离线包内管线与设备点位、偏航重算（本地缓存优先）</div>
+          <div class="alert-strip orange" style="margin-bottom:0;"><i class="fa-solid fa-circle-exclamation"></i>暂不可用：实时路况修正、影像原图调阅（可查看缩略图）；恢复网络后自动回传轨迹与用时</div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-primary" onclick="closeModal('m-offline')">我知道了</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= 页面4：工单锁定与打点上报（外勤APP） ======================= -->
+  <section class="view" id="v-任务联动与坐标纠偏-工单锁定与打点上报">
+    <div class="page-head">
+      <div>
+        <div class="page-title">任务联动与坐标纠偏 · 工单锁定与打点上报</div>
+        <div class="page-desc">外勤APP · 现场作业人员 ｜ 打开工单自动锁定导航目标免手动输入；现场长按打点上报坐标修正（三要素缺一不可）</div>
+      </div>
+    </div>
+
+    <div class="grid g-pc-phone">
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div class="glass-card">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-lock"></i>目标锁定规则</div>
+          </div>
+          <ul class="icon-list">
+            <li><i class="fa-solid fa-link"></i>打开工单自动锁定导航目标，免手动输入</li>
+            <li><i class="fa-solid fa-ban"></i>目标锁定后导航侧不可改，改动须回工单侧 —— 保证「到场记录」与工单同对象</li>
+            <li><i class="fa-solid fa-shuffle"></i>多目标按排班点位顺序或路网就近串联，完成一个自动切换下一个</li>
+            <li><i class="fa-solid fa-ruler"></i>偏差在设备类型容差内提示「无需纠偏」，避免无效上报</li>
+            <li><i class="fa-solid fa-cloud-arrow-up"></i>断网本地暂存，恢复后自动补传，不丢打点</li>
+          </ul>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-toolbox"></i>三类异常处置</div>
+          </div>
+          <ul class="icon-list">
+            <li><i class="fa-solid fa-tag"></i><b>未关联设备</b> → 引导补录设备编号后再导航</li>
+            <li><i class="fa-solid fa-map-pin"></i><b>坐标缺失</b> → 按地址粗导航到场，现场打点补全坐标</li>
+            <li><i class="fa-solid fa-triangle-exclamation"></i><b>冲突挂起</b> → 照常导航，终点提示「坐标存在冲突挂起，请现场核偏」</li>
+          </ul>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-file-circle-check"></i>上报去向</div>
+          </div>
+          <ul class="icon-list">
+            <li><i class="fa-solid fa-stamp"></i>提交即进入后台纠偏审核队列，返回纠偏单号后可继续作业</li>
+            <li><i class="fa-solid fa-user-shield"></i>现场无权直接修改 GIS 坐标 —— 入口近、把关严</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="phone-frame">
+        <div class="phone-screen">
+          <div class="phone-notch"></div>
+          <div class="phone-statusbar"><span>09:41</span><span><i class="fa-solid fa-signal"></i> <i class="fa-solid fa-wifi"></i> <i class="fa-solid fa-battery-three-quarters"></i></span></div>
+          <div class="phone-body">
+            <div class="flex-between mb-8">
+              <span class="tag tag-cyan"><i class="fa-solid fa-clipboard-list"></i>GD-2026-1033 · 计量异常核查</span>
+              <span class="tiny">3 个目标</span>
+            </div>
+
+            <div class="glass-card" style="padding:12px;">
+              <div class="flex-between mb-8"><b style="font-size:12.5px;"><i class="fa-solid fa-lock" style="color:var(--c-primary);"></i>工单锁定目标</b><span class="tag tag-green"><i class="fa-solid fa-check"></i>已锁定</span></div>
+              <div class="target-item current">
+                <span><i class="fa-solid fa-location-dot" style="color:var(--c-primary);"></i> TY-1132 调压器（筒桥路）</span>
+                <span class="flex" style="gap:6px;"><span class="tag tag-blue">当前目标</span><span class="tiny mono">320 米</span></span>
+              </div>
+              <div class="target-item">
+                <span><i class="fa-solid fa-location-dot" style="color:var(--c-text-3);"></i> FM-2087 阀门（文一西路）</span>
+                <span class="tiny">待前往</span>
+              </div>
+              <div class="target-item">
+                <span><i class="fa-solid fa-location-dot" style="color:var(--c-text-3);"></i> JG-0572 井盖窨井（紫金港路）</span>
+                <span class="tiny">待前往</span>
+              </div>
+              <div class="tiny">完成一个自动切换下一个；导航侧不可改目标，改动须回工单侧。</div>
+            </div>
+
+            <div class="glass-card strong mt-8" style="padding:14px;">
+              <div class="flex-between mb-8">
+                <b style="font-size:13px;"><i class="fa-solid fa-crosshairs" style="color:var(--c-primary);"></i> 长按打点 · 坐标纠偏上报</b>
+                <span class="tag tag-orange">现场打点演示</span>
+              </div>
+              <button class="btn btn-glass btn-sm mb-8" onclick="showToast('已长按打点：连续采样 10 秒取中位数完成')"><i class="fa-solid fa-hand-pointer"></i>长按打点（演示）</button>
+
+              <dl class="kv">
+                <dt>实测坐标</dt><dd class="mono">120.15529, 30.27412</dd>
+                <dt>采样方式</dt><dd>连续采样 10 秒 · 中位数 · 精度 ±0.8m</dd>
+                <dt>偏差距离</dt><dd><span class="mono">7.8 米</span> <span class="tag tag-orange">超出井盖类容差 5 米</span></dd>
+              </dl>
+
+              <hr class="divider">
+              <div class="tiny mb-8">三要素缺一不可 —— 缺项时提交按钮不可用并逐项标缺：</div>
+              <div class="req-row">
+                <input type="checkbox" id="reqCoord" checked onchange="refreshSubmit()">
+                <span>实测坐标（10 秒中位数采样）</span>
+                <span class="tag tag-red" id="lackCoord" style="display:none;"><i class="fa-solid fa-xmark"></i>缺</span>
+              </div>
+              <div class="req-row">
+                <input type="checkbox" id="reqPhoto" onchange="refreshSubmit()">
+                <span>带时间位置水印的现场照片</span>
+                <span class="tag tag-red" id="lackPhoto" style="display:inline-flex;"><i class="fa-solid fa-xmark"></i>缺</span>
+              </div>
+              <div class="req-row">
+                <input type="checkbox" id="reqNote" onchange="refreshSubmit()">
+                <span>偏差说明</span>
+                <span class="tag tag-red" id="lackNote" style="display:inline-flex;"><i class="fa-solid fa-xmark"></i>缺</span>
+              </div>
+
+              <div class="photo-view" style="height:80px;margin-top:6px;"><i class="fa-solid fa-camera-retro"></i><span class="tiny">需含时间 + 位置水印的现场照片</span></div>
+              <textarea class="form-textarea mt-8" rows="2" placeholder="偏差说明：如井盖随非机动车道改造整体东移，现场路面标线可佐证" oninput="document.getElementById('reqNote').checked=this.value.trim().length>0;refreshSubmit();"></textarea>
+
+              <button class="btn btn-primary mt-8" id="btnSubmit" disabled onclick="submitReport()" style="width:100%;justify-content:center;"><i class="fa-solid fa-paper-plane"></i>提交纠偏（进入审核队列）</button>
+            </div>
+          </div>
+          <div class="phone-tabbar">
+            <div class="phone-tab" onclick="showToast('演示：切换到首页')"><i class="fa-solid fa-house"></i>首页</div>
+            <div class="phone-tab active" onclick="showToast('演示：当前在工单页')"><i class="fa-solid fa-clipboard-list"></i>工单</div>
+            <div class="phone-tab" onclick="showToast('演示：切换到导航页')"><i class="fa-solid fa-route"></i>导航</div>
+            <div class="phone-tab" onclick="showToast('演示：切换到我的')"><i class="fa-solid fa-user"></i>我的</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 弹窗：提交成功 -->
+    <div class="modal-mask" id="m-submitted" onclick="if(event.target===this)closeModal('m-submitted')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-circle-check" style="color:var(--c-ok);"></i>纠偏上报已提交</div>
+          <button class="modal-close" onclick="closeModal('m-submitted')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <dl class="kv">
+            <dt>纠偏单号</dt><dd class="mono">JB-2026-1105</dd>
+            <dt>目标设备</dt><dd>JG-0572 · 井盖窨井</dd>
+            <dt>进入队列</dt><dd>后台纠偏审核队列（GIS 审核岗）</dd>
+          </dl>
+          <ul class="icon-list mt-14">
+            <li><i class="fa-solid fa-user-shield"></i>现场无权直接修改 GIS 坐标 —— 入口近、把关严，审核通过次日 01:00 批次生效</li>
+            <li><i class="fa-solid fa-arrow-right"></i>可继续作业：完成当前目标后自动切换下一目标 FM-2087（阀门）</li>
+            <li><i class="fa-solid fa-file-lines"></i>提交即留痕：上报时间、位置水印与采样记录全程可查</li>
+          </ul>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-glass" onclick="closeModal('m-submitted')">关闭</button>
+          <button class="btn btn-primary" onclick="closeModal('m-submitted');showToast('已切换到下一目标：FM-2087 阀门（文一西路），继续导航')">继续作业</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= 页面5：后台审核与回写GIS（PC后台） ======================= -->
+  <section class="view" id="v-任务联动与坐标纠偏-后台审核与回写GIS">
+    <div class="page-head">
+      <div>
+        <div class="page-title">任务联动与坐标纠偏 · 后台审核与回写 GIS</div>
+        <div class="page-desc">PC端 · 后台 · GIS 审核岗 ｜ 三项证据对照审核，通过即时回写 GIS 生成新版本坐标，上报 → 审核 → 回写三段留痕</div>
+      </div>
+      <div class="flex wrap">
+        <button class="btn btn-glass" onclick="showToast('已导出纠偏台账（按设备类型与区域分组）')"><i class="fa-solid fa-file-export"></i>导出台账</button>
+      </div>
+    </div>
+
+    <div class="filter-bar">
+      <div class="filter-item">
+        <span class="filter-label">设备类型</span>
+        <select class="filter-select"><option>全部类型</option><option>阀门</option><option>调压器</option><option>测试桩</option><option>井盖窨井</option><option>阴保测试点</option><option>场站调压柜</option></select>
+      </div>
+      <div class="filter-item">
+        <span class="filter-label">审核状态</span>
+        <select class="filter-select"><option>全部状态</option><option>待审核</option><option>待补证</option><option>已驳回</option><option>已回写</option></select>
+      </div>
+      <div class="filter-item">
+        <span class="filter-label">关键词</span>
+        <input class="filter-input" placeholder="单号 / 设备编号 / 上报人">
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="showToast('已刷新审核队列（演示数据）')"><i class="fa-solid fa-magnifying-glass"></i>查询</button>
+      <button class="btn btn-ghost btn-sm" onclick="showToast('已重置筛选条件')">重置</button>
+    </div>
+
+    <div class="grid g-4 mb-14">
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-inbox"></i>待审核</div>
+        <div class="stat-value blue">42</div>
+        <div class="stat-sub">纠偏单 · 平均滞留 0.8 天</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-check"></i>今日通过回写</div>
+        <div class="stat-value green">18</div>
+        <div class="stat-sub">即时更新 GIS 几何 · 次日批次生效</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-ban"></i>今日驳回</div>
+        <div class="stat-value red">6</div>
+        <div class="stat-sub">理由已回推上报人修改后重新上报</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-ruler-horizontal"></i>容差内驳回</div>
+        <div class="stat-value orange">3</div>
+        <div class="stat-sub">审核不是走过场：容差范围内一律驳回</div>
+      </div>
+    </div>
+
+    <div class="glass-card mb-14">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-list-check"></i>纠偏审核队列</div>
+        <span class="tiny">演示数据（前 5 条 / 共 42 条）</span>
+      </div>
+      <div class="table-scroll">
+        <table class="glass-table">
+          <thead><tr><th>纠偏单号</th><th>设备编号</th><th>类型</th><th>偏差距离</th><th>定位精度</th><th>上报人</th><th>上报时间</th><th>状态</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">JB-2026-1105</td><td class="mono">JG-0572</td><td>井盖窨井</td><td class="mono">7.8米</td><td class="mono">±0.8m</td><td>王*强</td><td class="mono">10-27 14:32</td><td><span class="tag tag-blue">待审核</span></td><td><button class="btn btn-primary btn-xs" onclick="openModal('d-audit')">审核</button></td></tr>
+            <tr><td class="mono">JB-2026-1104</td><td class="mono">FM-2087</td><td>阀门</td><td class="mono">7.2米</td><td class="mono">±0.6m</td><td>陈*芳</td><td class="mono">10-27 11:05</td><td><span class="tag tag-blue">待审核</span></td><td><button class="btn btn-primary btn-xs" onclick="openModal('d-audit')">审核</button></td></tr>
+            <tr><td class="mono">JB-2026-1101</td><td class="mono">TSC-0311</td><td>测试桩</td><td class="mono">9.8米</td><td class="mono">±1.2m</td><td>李*明</td><td class="mono">10-26 16:47</td><td><span class="tag tag-yellow">待补证</span></td><td><button class="btn btn-glass btn-xs" onclick="showToast('已通知上报人 李*明补充道路改造佐证材料')">通知补证</button></td></tr>
+            <tr><td class="mono">JB-2026-0998</td><td class="mono">TY-1132</td><td>调压器</td><td class="mono">1.2米</td><td class="mono">±0.5m</td><td>王*强</td><td class="mono">10-26 09:12</td><td><span class="tag tag-red">已驳回</span></td><td><button class="btn btn-ghost btn-xs" onclick="showToast('驳回理由：偏差在容差范围内（调压器类 5 米），无需纠偏')">查看理由</button></td></tr>
+            <tr><td class="mono">JB-2026-0996</td><td class="mono">JG-1204</td><td>井盖窨井</td><td class="mono">9.6米</td><td class="mono">±0.7m</td><td>周*涛</td><td class="mono">10-25 15:20</td><td><span class="tag tag-green">已回写</span></td><td><button class="btn btn-ghost btn-xs" onclick="showToast('已回写 GIS：10-25 16:02 生成新版本坐标，次日 01:00 批次全公司生效')">回写记录</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="glass-card">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-book"></i>纠偏台账（按区域 × 设备类型分组）</div>
+        <span class="tiny">上报 - 审核 - 回写三段留痕</span>
+      </div>
+      <div class="table-scroll">
+        <table class="glass-table">
+          <thead><tr><th>区域</th><th>设备类型</th><th>纠偏上报</th><th>通过回写</th><th>驳回</th><th>通过率</th><th>最近回写时点</th></tr></thead>
+          <tbody>
+            <tr><td>西湖区</td><td>井盖窨井</td><td class="mono">26</td><td class="mono">18</td><td class="mono">8</td><td><div class="flex"><div class="meter" style="width:90px;"><div class="meter-fill" style="width:69%;"></div></div><span class="tiny mono">69%</span></div></td><td class="mono">10-25 16:02</td></tr>
+            <tr><td>西湖区</td><td>阀门</td><td class="mono">14</td><td class="mono">11</td><td class="mono">3</td><td><div class="flex"><div class="meter" style="width:90px;"><div class="meter-fill" style="width:79%;"></div></div><span class="tiny mono">79%</span></div></td><td class="mono">10-27 11:40</td></tr>
+            <tr><td>拱墅区</td><td>调压器</td><td class="mono">9</td><td class="mono">7</td><td class="mono">2</td><td><div class="flex"><div class="meter" style="width:90px;"><div class="meter-fill" style="width:78%;"></div></div><span class="tiny mono">78%</span></div></td><td class="mono">10-24 09:55</td></tr>
+            <tr><td>滨江区</td><td>测试桩</td><td class="mono">11</td><td class="mono">6</td><td class="mono">5</td><td><div class="flex"><div class="meter" style="width:90px;"><div class="meter-fill orange" style="width:55%;"></div></div><span class="tiny mono">55%</span></div></td><td class="mono">10-23 14:18</td></tr>
+            <tr><td><b>全市合计</b></td><td><b>全部类型</b></td><td class="mono"><b>60</b></td><td class="mono"><b>42</b></td><td class="mono"><b>18</b></td><td><div class="flex"><div class="meter" style="width:90px;"><div class="meter-fill" style="width:70%;"></div></div><span class="tiny mono"><b>70%</b></span></div></td><td class="mono">10-27 11:40</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 抽屉：审核详情（三项证据对照） -->
+    <div class="glass-drawer" id="d-audit">
+      <div class="modal-head">
+        <div class="modal-title"><i class="fa-solid fa-stamp"></i>纠偏审核 · JB-2026-1105</div>
+        <button class="modal-close" onclick="closeModal('d-audit')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="flex-between mb-8">
+          <span class="tag tag-blue"><i class="fa-solid fa-clock"></i>待审核</span>
+          <span class="tiny">上报人 王*强 · 2026-10-27 14:32 · 工单 GD-2026-1033</span>
+        </div>
+
+        <div class="flex mb-8"><span class="evi-num">1</span><b style="font-size:13px;">上报照片（带时间位置水印）</b></div>
+        <div class="photo-view" style="height:120px;"><i class="fa-solid fa-camera-retro"></i><span class="tiny">JG-0572 井盖 · 水印：2026-10-27 14:28 · 30.2741,120.1553 · 工号 QX-0735</span></div>
+
+        <div class="flex mt-14 mb-8"><span class="evi-num">2</span><b style="font-size:13px;">实测坐标与偏差示意</b></div>
+        <dl class="kv">
+          <dt>实测坐标</dt><dd class="mono">120.15529, 30.27412（10 秒中位数）</dd>
+          <dt>GIS 现值</dt><dd class="mono">120.15532, 30.27418</dd>
+          <dt>偏差距离</dt><dd><span class="tag tag-orange"><i class="fa-solid fa-arrows-up-down-left-right"></i>7.8 米 · 超出井盖类容差 5 米</span></dd>
+          <dt>定位精度</dt><dd class="mono">±0.8m（±2 米内采信）</dd>
+          <dt>偏差说明</dt><dd>井盖随非机动车道改造整体东移，现场路面标线可佐证</dd>
+        </dl>
+
+        <div class="flex mt-14 mb-8"><span class="evi-num">3</span><b style="font-size:13px;">历史变更履历对照</b></div>
+        <table class="glass-table">
+          <thead><tr><th>时点</th><th>来源</th><th>偏移</th><th>操作人</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">06-15 02:00</td><td>GIS 竣工测量</td><td class="mono">—</td><td>系统同步</td></tr>
+            <tr><td class="mono">2025-11-02</td><td>台账人工录入</td><td class="mono">—</td><td>李*明</td></tr>
+            <tr><td class="mono">2024-05-20</td><td>GIS 竣工测量</td><td class="mono">—</td><td>系统同步</td></tr>
+          </tbody>
+        </table>
+
+        <hr class="divider">
+        <b style="font-size:13px;"><i class="fa-solid fa-clipboard-check" style="color:var(--c-primary);"></i> 判定标准</b>
+        <ul class="icon-list mt-8">
+          <li><i class="fa-solid fa-ruler-horizontal"></i>偏差是否超出设备类型容差（井盖类 5 米）—— 容差范围内一律驳回，审核不是走过场</li>
+          <li><i class="fa-solid fa-image"></i>照片能否支持偏差说明（水印时间 / 位置与上报一致）</li>
+          <li><i class="fa-solid fa-satellite-dish"></i>定位精度是否可信（±2 米以内采信）</li>
+          <li><i class="fa-solid fa-road"></i>是否有道路改造、管线迁改等佐证材料</li>
+        </ul>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-glass btn-sm" onclick="showToast('已通知上报人 王*强补充照片或佐证材料')"><i class="fa-solid fa-envelope-open-text"></i>要求补证</button>
+        <button class="btn btn-danger btn-sm" onclick="openModal('m-reject')"><i class="fa-solid fa-ban"></i>驳回</button>
+        <button class="btn btn-primary btn-sm" onclick="openModal('m-pass')"><i class="fa-solid fa-check"></i>通过并回写</button>
+      </div>
+    </div>
+
+    <!-- 弹窗：通过即时回写 -->
+    <div class="modal-mask" id="m-pass" onclick="if(event.target===this)closeModal('m-pass')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-check-double"></i>审核通过 · 即时回写 GIS</div>
+          <button class="modal-close" onclick="closeModal('m-pass')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <dl class="kv">
+            <dt>纠偏单号</dt><dd class="mono">JB-2026-1105</dd>
+            <dt>设备</dt><dd>JG-0572 · 井盖窨井 · 文一西路与紫金港路口</dd>
+            <dt>回写坐标</dt><dd class="mono">120.15529, 30.27412</dd>
+          </dl>
+          <ul class="icon-list mt-14">
+            <li><i class="fa-solid fa-bolt"></i>即时更新 GIS 几何并生成新版本坐标</li>
+            <li><i class="fa-solid fa-tag"></i>变更来源记纠偏单号，原值保留、全程可追溯</li>
+            <li><i class="fa-solid fa-clock-rotate-left"></i>次日 01:00 同步批次全公司生效（导航端次日可见）</li>
+            <li><i class="fa-solid fa-user-shield"></i>上报 → 审核 → 回写三段留痕，全链路可查</li>
+          </ul>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-glass" onclick="closeModal('m-pass')">取消</button>
+          <button class="btn btn-primary" onclick="closeModal('m-pass');closeModal('d-audit');showToast('已即时回写 GIS 并生成新版本坐标，次日 01:00 批次生效')">确认回写</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 弹窗：驳回填理由 -->
+    <div class="modal-mask" id="m-reject" onclick="if(event.target===this)closeModal('m-reject')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-ban" style="color:var(--c-danger);"></i>驳回 · 填写理由（回推上报人）</div>
+          <button class="modal-close" onclick="closeModal('m-reject')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="flex wrap mb-8" style="gap:8px;">
+            <button class="btn btn-glass btn-sm" onclick="fillReason('偏差在设备类型容差范围内，无需纠偏')">容差范围内无需纠偏</button>
+            <button class="btn btn-glass btn-sm" onclick="fillReason('照片无法支持偏差说明，请补拍带水印现场照片')">照片不支持说明</button>
+            <button class="btn btn-glass btn-sm" onclick="fillReason('定位精度存疑（大于±2米），请择时复测')">定位精度存疑</button>
+            <button class="btn btn-glass btn-sm" onclick="fillReason('请补充道路改造或管线迁改佐证材料')">缺佐证材料</button>
+          </div>
+          <label class="form-label">驳回理由 <span class="req">*</span></label>
+          <textarea id="rejectText" class="form-textarea" rows="4" placeholder="请填写驳回理由，将回推上报人修改后重新上报"></textarea>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-glass" onclick="closeModal('m-reject')">取消</button>
+          <button class="btn btn-danger" onclick="closeModal('m-reject');closeModal('d-audit');showToast('已驳回并回推上报人 王*强：请修改后重新上报')">确认驳回</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= 页面6：道路管道巡检导航路线（APP+PC） ======================= -->
+  <section class="view" id="v-道路管道巡检导航路线">
+    <div class="page-head">
+      <div>
+        <div class="page-title">道路管道巡检导航路线</div>
+        <div class="page-desc">外勤APP + PC端 · 巡检人员 / 巡检管理岗 ｜ 沿管线中心线（非道路中心线）生成巡检导航路线，实时偏离提醒与事后轨迹合规复核</div>
+      </div>
+      <div class="flex wrap">
+        <button class="btn btn-glass" onclick="showToast('已重新按当前管线数据生成巡检路线')"><i class="fa-solid fa-rotate"></i>重新生成</button>
+        <button class="btn btn-primary" onclick="showToast('已下发巡检导航路线至巡检员 李*明 的 APP')"><i class="fa-solid fa-paper-plane"></i>下发至APP</button>
+      </div>
+    </div>
+
+    <div class="alert-strip cyan"><i class="fa-solid fa-circle-info"></i><b>调研口径：</b>现状导航到单个巡检点（点到点），非沿线路线 → 目标：沿管线中心线生成整段巡检导航路线，一次巡完一条管线。</div>
+
+    <div class="grid g-pc-phone">
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div class="glass-card">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-map"></i>沿管线基准路线 · GD-2026-M08（文一路段中压干管 3.02 km · 沿线设备 6 处）</div>
+            <div class="seg seg-sm">
+              <button class="seg-item active" onclick="showToast('当前展示：管道上方模式（压中心线），自动推荐规则不变')"><i class="fa-solid fa-arrow-up"></i> 管道上方</button>
+              <button class="seg-item" onclick="showToast('已切换：管道侧模式（侧向偏移 3.5 米）展示')"><i class="fa-solid fa-arrows-left-right"></i> 管道侧</button>
+            </div>
+          </div>
+          <div class="map-canvas" style="min-height:380px;">
+            <svg viewBox="0 0 800 380" style="position:absolute;inset:0;width:100%;height:100%;">
+              <path class="pipe" d="M40 310 L 250 310 L 360 190 L 640 190 L 760 96" stroke="#0E7490" stroke-width="7"></path>
+              <path class="pipe" d="M40 334 L 250 334 L 384 214 L 640 214" stroke="#34A8FF" stroke-width="4" stroke-dasharray="12 8"></path>
+              <path class="pipe" d="M360 190 C 430 96, 560 96, 640 190" stroke="#FF9500" stroke-width="4"></path>
+              <path class="pipe" d="M40 310 L 250 310" stroke="#FF9F0A" stroke-width="3"></path>
+              <path class="pipe" d="M360 190 L 640 190" stroke="#FF9F0A" stroke-width="3"></path>
+            </svg>
+            <div class="pin-label" style="left:12%;top:68%;"><i class="fa-solid fa-arrow-up" style="color:var(--c-accent);"></i> 上方模式 · 压管线中心线</div>
+            <div class="pin-label" style="left:12%;top:88%;"><i class="fa-solid fa-arrows-left-right" style="color:var(--c-info);"></i> 侧模式 · 侧向偏移 3.5 米</div>
+            <div class="pin-label" style="left:48%;top:14%;"><span style="color:var(--c-warn);">绕行段 · 河道穿越 180 米</span></div>
+            <div class="map-pin" style="left:11%;top:74%;background:var(--c-primary);"><i class="fa-solid fa-gauge"></i></div>
+            <div class="map-pin" style="left:30%;top:74%;background:var(--c-primary);"><i class="fa-solid fa-circle"></i></div>
+            <div class="map-pin" style="left:44%;top:42%;background:var(--c-primary);"><i class="fa-solid fa-circle"></i></div>
+            <div class="map-pin" style="left:60%;top:42%;background:var(--c-primary);"><i class="fa-solid fa-circle"></i></div>
+            <div class="map-pin" style="left:78%;top:42%;background:var(--c-primary);"><i class="fa-solid fa-circle"></i></div>
+            <div class="map-pin" style="left:93%;top:18%;background:var(--c-accent);"><i class="fa-solid fa-flag"></i></div>
+            <div class="map-legend">
+              <span><span class="sw" style="background:#0E7490;"></span>管线中心线</span>
+              <span><span class="sw" style="background:#FF9F0A;"></span>巡线 · 上方模式</span>
+              <span><span class="sw" style="background:repeating-linear-gradient(90deg,#34A8FF 0 6px,transparent 6px 10px);"></span>巡线 · 侧模式</span>
+              <span><span class="sw" style="background:#FF9500;"></span>绕行段</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-diagram-project"></i>五步生成流程</div>
+            <span class="tiny">三种模式共用基准路线，按可通行规则过滤</span>
+          </div>
+          <div class="steps">
+            <div class="step done"><span class="dot"><i class="fa-solid fa-check"></i></span>取管线中心线</div>
+            <div class="step done"><span class="dot"><i class="fa-solid fa-check"></i></span>缓冲区匹配可通行路段</div>
+            <div class="step active"><span class="dot">3</span>断点连接绕行</div>
+            <div class="step"><span class="dot">4</span>逐段模式判定：人行道绿化带默认上方 · 车行道默认侧</div>
+            <div class="step"><span class="dot">5</span>按模式输出路线</div>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-sliders"></i>偏离阈值分档（按管线类型 × 路面条件）</div>
+          </div>
+          <div class="table-scroll">
+            <table class="glass-table">
+              <thead><tr><th>管线类型</th><th>路面条件</th><th>偏离提醒阈值</th><th>说明</th></tr></thead>
+              <tbody>
+                <tr><td>中压干管</td><td>车行道</td><td class="mono">15 米</td><td>巡线走人行道侧，阈值放宽</td></tr>
+                <tr><td>中压干管</td><td>人行道 / 绿化带</td><td class="mono">10 米</td><td>上方模式为主，阈值从严</td></tr>
+                <tr><td>支管</td><td>小区内</td><td class="mono">8 米</td><td>管位密集，阈值最严</td></tr>
+                <tr><td>穿越段</td><td>河岸 / 高架旁</td><td class="mono">25 米</td><td>存在绕行段，阈值放宽</td></tr>
+                <tr><td>阀井集中段</td><td>施工便道</td><td class="mono">12 米</td><td>兼顾井盖窨井打点精度</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-route"></i>事后轨迹合规复核 · XJ-2026-1027-08</div>
+            <button class="btn btn-glass btn-sm" onclick="openModal('m-track')">查看复核详情</button>
+          </div>
+          <div class="grid g-3">
+            <div class="stat-card soft">
+              <div class="stat-label"><i class="fa-solid fa-person-walking"></i>轨迹长度</div>
+              <div class="stat-value">2.86 <span style="font-size:14px;">km</span></div>
+              <div class="stat-sub">巡检员 李*明 · 10-27 09:12–11:40</div>
+            </div>
+            <div class="stat-card soft">
+              <div class="stat-label"><i class="fa-solid fa-arrows-left-right-to-line"></i>管线长度</div>
+              <div class="stat-value">3.02 <span style="font-size:14px;">km</span></div>
+              <div class="stat-sub">轨迹 / 管线比对 <span class="mono">94.7%</span></div>
+            </div>
+            <div class="stat-card soft">
+              <div class="stat-label"><i class="fa-solid fa-bell"></i>偏离区段占比</div>
+              <div class="stat-value orange">6.1%</div>
+              <div class="stat-sub">超阈区段 2 段 · 已实时提醒并记录</div>
+            </div>
+          </div>
+          <div class="flex-between mt-14">
+            <span class="tag tag-orange"><i class="fa-solid fa-file-circle-xmark"></i>复核结论：不合规 —— 不计入巡线覆盖率（轨迹短于管线是最直接漏巡信号）</span>
+            <span class="tiny">合规结论仅作有效性判定，不作考核依据</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="phone-frame">
+        <div class="phone-screen">
+          <div class="phone-notch"></div>
+          <div class="phone-statusbar"><span>09:41</span><span><i class="fa-solid fa-signal"></i> <i class="fa-solid fa-wifi"></i> <i class="fa-solid fa-battery-three-quarters"></i></span></div>
+          <div class="phone-body">
+            <div class="flex-between mb-8">
+              <span class="tag tag-cyan"><i class="fa-solid fa-route"></i>巡线中 · GD-2026-M08</span>
+              <span class="tiny mono">1.9 / 3.02 km</span>
+            </div>
+
+            <div class="seg seg-sm mb-8">
+              <button class="seg-item active" onclick="showToast('当前段为人行道，自动推荐：管道上方模式（压中心线）')"><i class="fa-solid fa-arrow-up"></i> 管道上方</button>
+              <button class="seg-item" onclick="showToast('已人工切换：管道侧模式（侧向偏移 3.5 米），下一段为车行道')"><i class="fa-solid fa-arrows-left-right"></i> 管道侧</button>
+            </div>
+
+            <div class="map-canvas" style="min-height:170px;">
+              <svg viewBox="0 0 330 170" style="position:absolute;inset:0;width:100%;height:100%;">
+                <path class="pipe" d="M14 130 L 130 130 L 210 60 L 316 60" stroke="#0E7490" stroke-width="6"></path>
+                <path class="pipe" d="M14 146 L 130 146 L 222 76" stroke="#34A8FF" stroke-width="3" stroke-dasharray="10 7"></path>
+              </svg>
+              <div class="map-pin" style="left:62%;top:28%;background:var(--c-danger);"><i class="fa-solid fa-person-walking"></i></div>
+              <div class="pin-label" style="left:48%;top:6%;color:var(--c-danger);">偏离管位 12.4 米</div>
+              <div class="map-legend" style="font-size:10px;"><span><span class="sw" style="background:#0E7490;"></span>管线中心线</span><span><span class="sw" style="background:repeating-linear-gradient(90deg,#34A8FF 0 6px,transparent 6px 10px);"></span>侧模式</span></div>
+            </div>
+
+            <div class="alert-strip orange mt-8" style="margin-bottom:10px;"><i class="fa-solid fa-volume-high"></i>已偏离管位 12.4 米（阈值 10 米），已语音提醒并记录（不打断巡线流程）</div>
+
+            <div class="glass-card" style="padding:12px;">
+              <div class="flex-between mb-8"><b style="font-size:12.5px;"><i class="fa-solid fa-list-ol" style="color:var(--c-primary);"></i>沿线设备巡检进度</b><span class="tag tag-blue">3 / 6</span></div>
+              <div class="meter mb-8"><div class="meter-fill" style="width:50%;"></div></div>
+              <div class="flex-between" style="font-size:12px;"><span>FM-2087 阀门</span><span class="tag tag-green"><i class="fa-solid fa-check"></i>已巡</span></div>
+              <div class="flex-between" style="font-size:12px;"><span>JG-0572 井盖窨井</span><span class="tag tag-green"><i class="fa-solid fa-check"></i>已巡</span></div>
+              <div class="flex-between" style="font-size:12px;"><span>TY-1132 调压器</span><span class="tag tag-green"><i class="fa-solid fa-check"></i>已巡</span></div>
+              <div class="flex-between" style="font-size:12px;"><span>TSC-0311 测试桩</span><span class="tag tag-gray">待巡</span></div>
+              <div class="flex-between" style="font-size:12px;"><span>CZ-0142 场站调压柜</span><span class="tag tag-gray">待巡</span></div>
+            </div>
+
+            <button class="btn btn-primary mt-8" onclick="showToast('已结束巡线，生成轨迹复核任务并提交管理岗复核')" style="width:100%;justify-content:center;"><i class="fa-solid fa-flag-checkered"></i>结束巡检并提交复核</button>
+          </div>
+          <div class="phone-tabbar">
+            <div class="phone-tab" onclick="showToast('演示：切换到首页')"><i class="fa-solid fa-house"></i>首页</div>
+            <div class="phone-tab" onclick="showToast('演示：切换到工单页')"><i class="fa-solid fa-clipboard-list"></i>工单</div>
+            <div class="phone-tab active" onclick="showToast('演示：当前在导航页')"><i class="fa-solid fa-route"></i>导航</div>
+            <div class="phone-tab" onclick="showToast('演示：切换到我的')"><i class="fa-solid fa-user"></i>我的</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 弹窗：轨迹合规复核详情 -->
+    <div class="modal-mask" id="m-track" onclick="if(event.target===this)closeModal('m-track')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-route"></i>轨迹合规复核 · XJ-2026-1027-08</div>
+          <button class="modal-close" onclick="closeModal('m-track')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <dl class="kv">
+            <dt>巡检任务</dt><dd>GD-2026-M08 · 文一路段中压干管 · 3.02 km</dd>
+            <dt>巡检员</dt><dd>李*明（QX-0126）· 2026-10-27 09:12–11:40</dd>
+            <dt>轨迹长度</dt><dd class="mono">2.86 km（管线长度 3.02 km · 比对 94.7%）</dd>
+            <dt>偏离区段占比</dt><dd class="mono">6.1%（超阈区段 2 段）</dd>
+          </dl>
+          <div class="meter mt-14"><div class="meter-fill orange" style="width:94.7%;"></div></div>
+          <div class="alert-strip red mt-14" style="margin-bottom:10px;"><i class="fa-solid fa-file-circle-xmark"></i>复核结论：不合规 —— 轨迹短于管线（最直接漏巡信号），本任务不计入巡线覆盖率</div>
+          <ul class="icon-list">
+            <li><i class="fa-solid fa-scissors"></i>缺失段：GD-2026-M08-K3（文一路桥东侧约 180 米，河道穿越绕行段）</li>
+            <li><i class="fa-solid fa-bell"></i>偏离段 2 处已实时语音提醒并记录（提醒即时不打断巡线流程）</li>
+            <li><i class="fa-solid fa-people-group"></i>该区段近 30 天 3 人 4 次超阈，已进入管线几何专项复测建议清单</li>
+            <li><i class="fa-solid fa-scale-balanced"></i>合规结论仅作有效性判定，不作个人考核依据</li>
+          </ul>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-glass" onclick="closeModal('m-track')">关闭</button>
+          <button class="btn btn-accent" onclick="closeModal('m-track');showToast('已加入管线几何专项复测建议清单（GD-2026-M08-K3）')">生成复测建议</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+function switchView(vid){
+  document.querySelectorAll('.view').forEach(function(v){v.classList.remove('active');});
+  var el=document.getElementById(vid); if(el){el.classList.add('active');}
+  document.querySelectorAll('.seg-item[data-view]').forEach(function(b){
+    b.classList.toggle('active', b.getAttribute('data-view')===vid);
+  });
+  try{history.replaceState(null,'','#'+encodeURIComponent(vid));}catch(e){}
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function openModal(id){var m=document.getElementById(id); if(m){m.classList.add('open');}}
+function closeModal(id){var m=document.getElementById(id); if(m){m.classList.remove('open');}}
+function showToast(msg){
+  var t=document.getElementById('app-toast');
+  if(!t){t=document.createElement('div');t.id='app-toast';t.className='toast';document.body.appendChild(t);}
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._tm);t._tm=setTimeout(function(){t.classList.remove('show');},2200);
+}
+window.addEventListener('hashchange',function(){
+  var h=decodeURIComponent(location.hash.replace('#',''));
+  if(h&&document.getElementById(h)){switchView(h);}
+});
+(function(){
+  var h=decodeURIComponent(location.hash.replace('#',''));
+  if(h&&document.getElementById(h)){switchView(h);}
+})();
+</script>
+<script>
+/* M08 模块交互 */
+function togglePhotoFallback(){
+  var p=document.getElementById('photoCard'),q=document.getElementById('propCard');
+  if(!p||!q){return;}
+  var showingPhoto=(q.style.display!=='block');
+  p.style.display=showingPhoto?'none':'block';
+  q.style.display=showingPhoto?'block':'none';
+  showToast(showingPhoto?'降级演示：暂无有效影像，已展示设备属性卡':'已恢复历史照片卡展示');
+}
+function switchNavMode(btn,mode){
+  var box=document.getElementById('navModeSeg');
+  if(box){box.querySelectorAll('.seg-item').forEach(function(b){b.classList.remove('active');});}
+  if(btn){btn.classList.add('active');}
+  document.querySelectorAll('.mode-opt').forEach(function(c){
+    c.classList.toggle('active',c.getAttribute('data-mode')===mode);
+  });
+  var names={car:'汽车',moto:'电瓶车',walk:'步行'};
+  showToast('已切换至'+(names[mode]||mode)+'模式并行算路结果');
+}
+function refreshSubmit(){
+  var c1=document.getElementById('reqCoord'),c2=document.getElementById('reqPhoto'),c3=document.getElementById('reqNote');
+  var b=document.getElementById('btnSubmit');
+  if(!c1||!c2||!c3||!b){return;}
+  var ok=c1.checked&&c2.checked&&c3.checked;
+  b.disabled=!ok;
+  document.getElementById('lackCoord').style.display=c1.checked?'none':'inline-flex';
+  document.getElementById('lackPhoto').style.display=c2.checked?'none':'inline-flex';
+  document.getElementById('lackNote').style.display=c3.checked?'none':'inline-flex';
+}
+function submitReport(){openModal('m-submitted');}
+function fillReason(t){
+  var el=document.getElementById('rejectText');
+  if(el){el.value=t;}
+  showToast('已填入常用驳回理由');
+}
+refreshSubmit();
+</script>
+</body>
+</html>

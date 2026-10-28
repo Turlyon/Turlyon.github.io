@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M09 · 关键设备AI图像稽核助手</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="../styles/liquid-glass.css">
+<style>
+/* ---------- M09 module specific ---------- */
+.dtype-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;}
+.dtype-chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:7px 14px;border-radius:var(--radius-pill);background:rgba(255,255,255,.6);border:1px solid var(--glass-border);color:var(--c-text-2);cursor:pointer;transition:all .2s ease;font-family:inherit;}
+.dtype-chip:hover{color:var(--c-primary);border-color:rgba(14,116,144,.35);}
+.dtype-chip.active{background:linear-gradient(135deg,var(--c-primary),var(--c-primary-hi));color:#fff;border-color:transparent;box-shadow:0 3px 10px rgba(14,116,144,.3);}
+.dtype-chip i{font-size:11px;}
+.form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;}
+.form-cell{display:flex;flex-direction:column;gap:5px;}
+.field-hint{font-size:11px;color:var(--c-text-3);}
+.field-hint.err{color:#C42B22;font-weight:600;}
+.form-input.err,.form-select.err{border-color:var(--c-danger);background:rgba(255,59,48,.06);box-shadow:0 0 0 3px var(--c-danger-soft);}
+.judg{font-size:11.5px;font-weight:400;margin-top:2px;opacity:.92;}
+.photo-mock{position:relative;border-radius:var(--radius-md);border:1px solid var(--glass-border);min-height:250px;overflow:hidden;background:linear-gradient(160deg,#D9E8F0 0%,#E3EDDF 55%,#EDE3CE 100%);}
+.photo-mock::before{content:'';position:absolute;inset:0;background:linear-gradient(rgba(22,50,60,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(22,50,60,.05) 1px,transparent 1px);background-size:28px 28px;}
+.dt-box{position:absolute;border:2px solid #0891B2;border-radius:6px;box-shadow:0 0 0 3px rgba(8,145,178,.15);}
+.dt-box .dt-tag{position:absolute;top:2px;left:2px;background:#0891B2;color:#fff;font-size:10px;font-weight:600;font-family:'DM Mono',monospace;padding:2px 8px;border-radius:4px;white-space:nowrap;}
+.dt-box.warn{border-color:#FF9500;box-shadow:0 0 0 3px rgba(255,149,0,.18);}
+.dt-box.warn .dt-tag{background:#FF9500;}
+.wm-strip{position:absolute;left:10px;bottom:10px;right:10px;background:rgba(22,50,60,.78);color:#DCEBF2;padding:9px 12px;border-radius:8px;font-family:'DM Mono',monospace;font-size:10px;line-height:1.7;z-index:4;}
+.wm-strip .wm-sign{color:#FFC148;}
+.timeline{position:relative;}
+.tl-item{position:relative;padding:0 0 16px 34px;}
+.tl-item::before{content:'';position:absolute;left:9px;top:24px;bottom:-2px;width:2px;background:rgba(14,116,144,.16);}
+.tl-item:last-child::before{display:none;}
+.tl-dot{position:absolute;left:0;top:3px;width:20px;height:20px;border-radius:50%;background:var(--c-primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;box-shadow:0 2px 6px rgba(14,116,144,.3);}
+.tl-item.done .tl-dot{background:var(--c-ok);}
+.tl-item.warn .tl-dot{background:var(--c-warn);box-shadow:0 0 0 5px var(--c-warn-soft);}
+.tl-item.future .tl-dot{background:#94A3B8;}
+.tl-date{font-family:'DM Mono',monospace;font-size:11px;color:var(--c-text-2);}
+.tl-title{font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.tl-desc{font-size:12px;color:var(--c-text-2);margin-top:2px;}
+.tl-item.warn .tl-title{color:#C67200;}
+.gate-no{width:26px;height:26px;border-radius:50%;background:var(--c-primary-soft);color:var(--c-primary);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-family:'DM Mono',monospace;font-size:12px;flex-shrink:0;}
+.mini-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;}
+.mini-card{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--radius-sm);background:rgba(255,255,255,.55);border:1px solid var(--c-line);font-size:12px;font-weight:600;}
+.mini-card i{color:var(--c-primary);font-size:12px;}
+.mini-card .mono{margin-left:auto;font-size:11px;color:var(--c-primary);}
+</style>
+</head>
+<body>
+<div class="ambient-blob"></div>
+<div class="module-wrap">
+  <div class="module-top">
+    <div class="module-title">关键设备AI图像稽核助手</div>
+    <span class="badge badge-high"><i class="fa-solid fa-triangle-exclamation"></i>优先级 高</span>
+    <div class="module-sub">M09 · 条款 5.4.7 · 关键设备稽核场景识别准确率 ≥90% · 与管道保护稽核共用训练流程（调研）</div>
+  </div>
+
+  <div class="seg">
+    <button class="seg-item active" data-view="v-录入数据校验-设备台账录入" onclick="switchView('v-录入数据校验-设备台账录入')">台账录入</button>
+    <button class="seg-item" data-view="v-录入数据校验-规则配置与例外统计" onclick="switchView('v-录入数据校验-规则配置与例外统计')">规则配置与例外</button>
+    <button class="seg-item" data-view="v-影像防伪-三道闸稽核-" onclick="switchView('v-影像防伪-三道闸稽核-')">影像防伪三道闸</button>
+    <button class="seg-item" data-view="v-设备主体与缺陷识别" onclick="switchView('v-设备主体与缺陷识别')">主体与缺陷识别</button>
+    <button class="seg-item" data-view="v-设备生命周期档案" onclick="switchView('v-设备生命周期档案')">生命周期档案</button>
+    <button class="seg-item" data-view="v-超期服役与临期未检预警清单" onclick="switchView('v-超期服役与临期未检预警清单')">超期预警清单</button>
+  </div>
+
+  <!-- ================= 视图1：录入数据校验 · 设备台账录入 ================= -->
+  <section class="view active" id="v-录入数据校验-设备台账录入">
+    <div class="page-head">
+      <div>
+        <div class="page-title">录入数据校验 · 设备台账录入</div>
+        <div class="page-desc">按设备类型加载校验规则集（必填 / 数值范围 / 格式 / 逻辑互斥四类）｜PC端 + 移动端｜现场作业人员、设备管理专职人员</div>
+      </div>
+      <span class="tag tag-red"><i class="fa-solid fa-shield-halved"></i>两级强校验 + 服务端二次校验</span>
+    </div>
+    <div class="alert-strip cyan"><i class="fa-solid fa-shield-halved"></i><div>失焦单字段 + 提交整表两级强校验；<b>服务端二次校验防绕过</b>——阻断级规则在提交接口直接拒绝，系统层面无绕过路径；例外放行入口单列，不与正常提交混同。</div></div>
+
+    <div class="grid g-pc-phone">
+      <!-- PC 端 -->
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-file-pen"></i>台账录入（PC 端）· 演示：出口压力 &lt; 进口压力触发阻断</div>
+          <button class="btn btn-glass btn-sm" onclick="resetDemo()"><i class="fa-solid fa-arrows-rotate"></i>重置演示</button>
+        </div>
+        <div class="form-label" style="margin-bottom:8px;">设备类型（选择后即加载对应校验规则集并渲染表单）</div>
+        <div class="dtype-chips">
+          <button class="dtype-chip active" data-type="调压器" onclick="renderType('调压器')"><i class="fa-solid fa-gauge-high"></i>调压器</button>
+          <button class="dtype-chip" data-type="调压柜箱" onclick="renderType('调压柜箱')"><i class="fa-solid fa-box"></i>调压柜箱</button>
+          <button class="dtype-chip" data-type="阀门" onclick="renderType('阀门')"><i class="fa-solid fa-gear"></i>阀门</button>
+          <button class="dtype-chip" data-type="阀门井" onclick="renderType('阀门井')"><i class="fa-solid fa-cube"></i>阀门井</button>
+          <button class="dtype-chip" data-type="测试桩" onclick="renderType('测试桩')"><i class="fa-solid fa-flag"></i>测试桩</button>
+          <button class="dtype-chip" data-type="井盖" onclick="renderType('井盖')"><i class="fa-solid fa-circle-dot"></i>井盖</button>
+          <button class="dtype-chip" data-type="燃气立管" onclick="renderType('燃气立管')"><i class="fa-solid fa-ruler-vertical"></i>燃气立管</button>
+          <button class="dtype-chip" data-type="管桥" onclick="renderType('管桥')"><i class="fa-solid fa-bridge"></i>管桥</button>
+          <button class="dtype-chip" data-type="防护围栏" onclick="renderType('防护围栏')"><i class="fa-solid fa-shield-halved"></i>防护围栏</button>
+        </div>
+
+        <div class="table-scroll" style="margin-bottom:14px;">
+          <table class="glass-table">
+            <thead><tr><th>字段</th><th>规则类型</th><th>规则表达式</th><th>阻断级别</th><th>实时校验</th></tr></thead>
+            <tbody id="rule-tbody"></tbody>
+          </table>
+        </div>
+
+        <div class="form-grid" id="form-grid"></div>
+
+        <div class="alert-strip red" id="v1-strip" style="display:none;margin-top:14px;"></div>
+
+        <div class="flex-between mt-14" style="border-top:1px solid var(--c-line);padding-top:14px;flex-wrap:wrap;">
+          <div class="tiny">提示级规则问题可确认提交；阻断级必须修正，或走例外放行审批（运行站负责人审批）</div>
+          <div class="flex wrap">
+            <button class="btn btn-primary" id="btn-submit" disabled onclick="submitForm()"><i class="fa-solid fa-floppy-disk"></i>提交入库</button>
+            <button class="btn btn-glass" style="color:#C67200;border-color:rgba(255,149,0,.4);" onclick="openExc()"><i class="fa-solid fa-passport"></i>例外放行申请（单列入口）</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 移动端 -->
+      <div class="phone-frame">
+        <div class="phone-screen">
+          <div class="phone-notch"></div>
+          <div class="phone-statusbar"><span>09:41</span><span>5G · 87%</span></div>
+          <div class="phone-body">
+            <div class="flex-between" style="margin-bottom:10px;">
+              <div style="font-weight:700;font-size:14px;">台账录入</div>
+              <span class="tag tag-cyan">移动端 · 调压器</span>
+            </div>
+            <div class="tiny" style="margin-bottom:8px;">设备类型：调压器（规则集已加载，4 字段本地预校验）</div>
+            <div class="form-cell">
+              <label class="form-label">进口压力（MPa）<span class="req">*</span></label>
+              <input class="form-input" id="ph-pin" value="0.20" onblur="phCheck()">
+              <div class="field-hint">数值范围 0.005 – 4.00 MPa</div>
+            </div>
+            <div class="form-cell" style="margin-top:10px;">
+              <label class="form-label">出口压力（MPa）<span class="req">*</span></label>
+              <input class="form-input err" id="ph-pout" value="0.12" onblur="phCheck()">
+              <div class="field-hint err" id="ph-hint">逻辑互斥：出口压力不得低于进口压力（当前 0.12 &lt; 0.20）</div>
+            </div>
+            <div class="alert-strip red" id="ph-strip" style="margin-top:12px;">
+              <i class="fa-solid fa-circle-exclamation"></i>
+              <div>阻断级校验未通过：出口压力 0.12 MPa &lt; 进口压力 0.20 MPa｜判定依据：出口压力 ≥ 进口压力。提交已禁用。</div>
+            </div>
+            <button class="btn btn-primary" id="ph-btn" disabled style="width:100%;justify-content:center;margin-top:12px;" onclick="showToast('移动端整表校验通过：已写入台账并同步生命周期档案')"><i class="fa-solid fa-floppy-disk"></i>提交入库</button>
+            <button class="btn btn-glass btn-sm" style="width:100%;justify-content:center;margin-top:8px;" onclick="phFix()"><i class="fa-solid fa-wrench"></i>演示：一键修正出口压力</button>
+            <div class="divider"></div>
+            <div class="tiny">例外放行入口单列（与正常提交不混同）：</div>
+            <button class="btn btn-glass btn-sm" style="width:100%;justify-content:center;margin-top:6px;color:#C67200;" onclick="openExc()"><i class="fa-solid fa-passport"></i>例外放行申请（八项留痕）</button>
+          </div>
+          <div class="phone-tabbar">
+            <div class="phone-tab active"><i class="fa-solid fa-file-pen"></i><span>台账</span></div>
+            <div class="phone-tab" onclick="showToast('演示：切换到影像稽核拍摄')"><i class="fa-solid fa-camera"></i><span>稽核</span></div>
+            <div class="phone-tab" onclick="showToast('演示：切换到我的工单')"><i class="fa-solid fa-user"></i><span>我的</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 弹窗：例外放行八项留痕 -->
+    <div class="modal-mask" id="modal-exception" onclick="if(event.target===this)closeModal('modal-exception')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-passport"></i>例外放行申请 · 八项留痕</div>
+          <button class="modal-close" onclick="closeModal('modal-exception')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert-strip orange"><i class="fa-solid fa-triangle-exclamation"></i><div>例外放行经<b>运行站负责人审批</b>后放行入库、全程留痕；驳回则退回修正。例外是规则演进的输入，而非长期绕过口。</div></div>
+          <div class="form-row">
+            <div class="form-cell"><label class="form-label">① 例外流水号</label><input class="form-input" value="EX-20261028-013" readonly></div>
+            <div class="form-cell"><label class="form-label">② 申请人 / 工号</label><input class="form-input" value="王*强 / 10247" readonly></div>
+          </div>
+          <div class="form-row" style="margin-top:12px;">
+            <div class="form-cell"><label class="form-label">③ 命中规则</label><input class="form-input" id="exc-rule" readonly></div>
+            <div class="form-cell"><label class="form-label">④ 录入原值</label><input class="form-input" id="exc-value" readonly></div>
+          </div>
+          <div class="form-cell" style="margin-top:12px;">
+            <label class="form-label">⑤ 申请理由 <span class="req">*</span></label>
+            <textarea class="form-textarea" rows="2">现场出口压力表读数 0.12 MPa，进口压力表近期更换量程偏大已报计量异常，检定申请流转中，附读数照片佐证。</textarea>
+          </div>
+          <div class="form-cell" style="margin-top:12px;">
+            <label class="form-label">⑥ 佐证材料</label>
+            <div class="flex wrap">
+              <button class="btn btn-glass btn-sm" onclick="showToast('佐证材料已上传：压力表读数照片 ×2、计量异常工单截图 ×1')"><i class="fa-solid fa-cloud-arrow-up"></i>上传材料</button>
+              <span class="tag tag-gray">压力表读数照片.jpg</span>
+              <span class="tag tag-gray">计量异常工单.png</span>
+            </div>
+          </div>
+          <div class="form-row" style="margin-top:12px;">
+            <div class="form-cell"><label class="form-label">⑦ 审批人（运行站负责人）</label><input class="form-input" value="李*明 / 10031" readonly></div>
+            <div class="form-cell"><label class="form-label">⑧ 审批时间</label><input class="form-input" value="2026-10-28 10:05"></div>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost" onclick="closeModal('modal-exception');showToast('已驳回：退回录入人修正后重新提交');"><i class="fa-solid fa-rotate-left"></i>驳回退回修正</button>
+          <button class="btn btn-primary" onclick="closeModal('modal-exception');showToast('例外放行申请已提交运行站负责人审批，结果写入留痕台账');"><i class="fa-solid fa-paper-plane"></i>提交例外审批</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 视图2：录入数据校验 · 规则配置与例外统计 ================= -->
+  <section class="view" id="v-录入数据校验-规则配置与例外统计">
+    <div class="page-head">
+      <div>
+        <div class="page-title">录入数据校验 · 规则配置与例外统计</div>
+        <div class="page-desc">按设备类型维护校验规则集（字段 / 规则类型 / 规则表达式 / 阻断级别 / 启用状态）｜PC后台 · 设备管理专职人员</div>
+      </div>
+      <span class="tag tag-cyan"><i class="fa-solid fa-list-check"></i>规则版本管理 · 可回溯任一时点校验口径</span>
+    </div>
+
+    <div class="grid g-4">
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-list-check"></i>校验规则总数</div>
+        <div class="stat-value">86</div>
+        <div class="stat-sub">覆盖 9 类设备 · 4 个在用版本</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-ban"></i>阻断级规则</div>
+        <div class="stat-value red">54</div>
+        <div class="stat-sub">提交接口直接拒绝 · 不可绕过</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-passport"></i>本月例外放行</div>
+        <div class="stat-value orange">21</div>
+        <div class="stat-sub">占提交量 2.81%（截至 28 日）</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-code-branch"></i>当前规则版本</div>
+        <div class="stat-value blue">V3.2</div>
+        <div class="stat-sub">2026-09-01 生效 · 变更人 王*敏</div>
+      </div>
+    </div>
+
+    <div class="filter-bar">
+      <div class="filter-item">
+        <div class="filter-label">设备类型</div>
+        <select class="filter-select" id="rf-type" onchange="filterRules()">
+          <option>全部</option><option>调压器</option><option>调压柜箱</option><option>阀门</option><option>阀门井</option><option>测试桩</option><option>井盖</option><option>燃气立管</option><option>管桥</option><option>防护围栏</option>
+        </select>
+      </div>
+      <div class="filter-item">
+        <div class="filter-label">规则类型</div>
+        <select class="filter-select" id="rf-cat" onchange="filterRules()">
+          <option>全部</option><option>必填</option><option>数值范围</option><option>格式</option><option>逻辑互斥</option>
+        </select>
+      </div>
+      <button class="btn btn-glass btn-sm" onclick="showToast('新增设备类型：已复制「调压器」规则集为模版，调整取值后即可上线（免改代码、不停机发布）')"><i class="fa-solid fa-plus"></i>复制规则集新增设备类型</button>
+    </div>
+
+    <div class="glass-card">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-table-list"></i>规则集清单（点击启用状态可切换）</div>
+        <span class="tag tag-gray">共 11 条演示规则</span>
+      </div>
+      <div class="table-scroll">
+        <table class="glass-table">
+          <thead><tr><th>设备类型</th><th>字段</th><th>规则类型</th><th>规则表达式</th><th>阻断级别</th><th>启用状态</th><th>当前版本</th></tr></thead>
+          <tbody id="rule-tbody2">
+            <tr data-type="调压器" data-cat="逻辑互斥"><td>调压器</td><td>出口压力</td><td><span class="tag tag-cyan">逻辑互斥</span></td><td class="mono">≥ 进口压力</td><td><span class="tag tag-red">阻断</span></td><td><span class="tag tag-green" style="cursor:pointer" onclick="toggleRule(this)">启用</span></td><td class="mono">V3.2</td></tr>
+            <tr data-type="调压器" data-cat="数值范围"><td>调压器</td><td>进口压力</td><td><span class="tag tag-cyan">数值范围</span></td><td class="mono">0.005 – 4.00 MPa</td><td><span class="tag tag-red">阻断</span></td><td><span class="tag tag-green" style="cursor:pointer" onclick="toggleRule(this)">启用</span></td><td class="mono">V3.2</td></tr>
+            <tr data-type="调压器" data-cat="逻辑互斥"><td>调压器</td><td>检定日期</td><td><span class="tag tag-cyan">逻辑互斥</span></td><td class="mono">不早于投运日期</td><td><span class="tag tag-red">阻断</span></td><td><span class="tag tag-green" style="cursor:pointer" onclick="toggleRule(this)">启用</span></td><td class="mono">V3.2</td></tr>
+            <tr data-type="调压柜箱" data-cat="格式"><td>调压柜箱</td><td>设备编号</td><td><span class="tag tag-cyan">格式</span></td><td class="mono">GX-YYYY-NNNN</td><td><span class="tag tag-red">阻断</span></td><td><span class="tag tag-green" style="cursor:pointer" onclick="toggleRule(this)">启用</span></td><td class="mono">V3.1</td></tr>
+            <tr data-type="阀门" data-cat="数值范围"><td>阀门</td><td>公称压力</td><td><span class="tag tag-cyan">数值范围</span></td><td class="mono">0.6 – 4.0 MPa</td><td><span class="tag tag-orange">提示</span></td><td><span class="tag tag-green" style="cursor:pointer" onclick="toggleRule(this)">启用</span></td><td class="mono">V3.0</td></tr>
+            <tr data-type="阀门井" data-cat="数值范围"><td>阀门井</td><td>井深</td><td><span class="tag tag-cyan">数值范围</span></td><td class="mono">0.8 – 3.5 m</td><td><span class="tag tag-orange">提示</span></td><td><span class="tag tag-green" style="cursor:pointer" onclick="toggleRule(this)">启用</span></td><td class="mono">V3.0</td></tr>
+            <tr data-type="测试桩" data-cat="数值范围"><td>测试桩</td><td>埋深</td><td><span class="tag tag-cyan">数值范围</span></td><td class="mono">0.5 – 1.5 m</td><td><span class="tag tag-orange">提示</span></td><td><span class="tag tag-green" style="cursor:pointer" onclick="toggleRule(this)">启用</span></td><td class="mono">V3.1</td></tr>
+            <tr data-type="井盖" data-cat="数值范围"><td>井盖</td><td>直径</td><td><span class="tag tag-cyan">数值范围</span></td><td class="mono">500 – 800 mm</td><td><span class="tag tag-orange">提示</span></td><td><span class="tag tag-green" style="cursor:pointer" onclick="toggleRule(this)">启用</span></td><td class="mono">V2.9</td></tr>
+            <tr data-type="燃气立管" data-cat="数值范围"><td>燃气立管</td><td>管径</td><td><span class="tag tag-cyan">数值范围</span></td><td class="mono">DN15 – DN100</td><td><span class="tag tag-orange">提示</span></td><td><span class="tag tag-green" style="cursor:pointer" onclick="toggleRule(this)">启用</span></td><td class="mono">V2.9</td></tr>
+            <tr data-type="管桥" data-cat="数值范围"><td>管桥</td><td>护栏高度</td><td><span class="tag tag-cyan">数值范围</span></td><td class="mono">1.1 – 2.0 m</td><td><span class="tag tag-red">阻断</span></td><td><span class="tag tag-green" style="cursor:pointer" onclick="toggleRule(this)">启用</span></td><td class="mono">V3.2</td></tr>
+            <tr data-type="防护围栏" data-cat="必填"><td>防护围栏</td><td>完整性状况</td><td><span class="tag tag-cyan">必填</span></td><td class="mono">完好 / 破损</td><td><span class="tag tag-red">阻断</span></td><td><span class="tag tag-green" style="cursor:pointer" onclick="toggleRule(this)">启用</span></td><td class="mono">V3.0</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="grid g-2 mt-14">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-chart-simple"></i>例外放行月度统计（近三个月）</div>
+          <span class="tag tag-orange">占提交量比例持续监控</span>
+        </div>
+        <table class="glass-table">
+          <thead><tr><th>月份</th><th>提交量</th><th>例外放行次数</th><th>占比</th><th>分布</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">2026-08</td><td class="mono">1,860</td><td class="mono">26</td><td class="mono">1.40%</td><td><div class="meter" style="width:120px"><div class="meter-fill green" style="width:28%"></div></div></td></tr>
+            <tr><td class="mono">2026-09</td><td class="mono">1,902</td><td class="mono">34</td><td class="mono">1.79%</td><td><div class="meter" style="width:120px"><div class="meter-fill" style="width:36%"></div></div></td></tr>
+            <tr><td class="mono">2026-10</td><td class="mono">748</td><td class="mono">21</td><td class="mono">2.81%</td><td><div class="meter" style="width:120px"><div class="meter-fill orange" style="width:56%"></div></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-code-branch"></i>规则版本留痕</div>
+        </div>
+        <table class="glass-table">
+          <thead><tr><th>版本</th><th>生效时间</th><th>变更人</th><th>变更说明</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">V3.2</td><td class="mono">2026-09-01</td><td>王*敏</td><td>管桥护栏高度下限 1.0 → 1.1 m</td></tr>
+            <tr><td class="mono">V3.1</td><td class="mono">2026-06-12</td><td>陈*华</td><td>调压柜箱编号格式规则启用</td></tr>
+            <tr><td class="mono">V3.0</td><td class="mono">2026-03-05</td><td>王*敏</td><td>阀门井井深由阻断级调整为提示级</td></tr>
+            <tr><td class="mono">V2.9</td><td class="mono">2025-11-20</td><td>李*明</td><td>井盖/燃气立管数值范围上线</td></tr>
+          </tbody>
+        </table>
+        <div class="divider"></div>
+        <ul class="icon-list">
+          <li><i class="fa-solid fa-clone"></i><div>新增设备类型：复制既有规则集为模版，调整取值即可上线（<b>免改代码、不停机发布</b>）</div></li>
+          <li><i class="fa-solid fa-clock-rotate-left"></i><div>规则变更按版本管理，可回溯<b>任一时点</b>校验口径（变更人 / 生效时间留痕）</div></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="alert-strip orange mt-14" style="flex-wrap:wrap;">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      <div><b>同一规则例外放行偏高提示修订取值</b>：「测试桩 · 埋深」近三月例外放行 18 次、占比 4.6%（≥ 提示阈值 3%）——建议修订规则取值，例外成为规则演进的输入，而非长期绕过口。</div>
+      <button class="btn btn-accent btn-sm" onclick="openModal('modal-rule-edit')"><i class="fa-solid fa-pen-ruler"></i>查看修订建议</button>
+    </div>
+
+    <!-- 弹窗：规则修订建议 -->
+    <div class="modal-mask" id="modal-rule-edit" onclick="if(event.target===this)closeModal('modal-rule-edit')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-pen-ruler"></i>规则修订建议 · 测试桩 · 埋深</div>
+          <button class="modal-close" onclick="closeModal('modal-rule-edit')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <dl class="kv">
+            <dt>当前规则</dt><dd>数值范围 0.5 – 1.5 m（版本 V3.1）</dd>
+            <dt>例外频次</dt><dd>近三月 18 次 · 占该字段提交 4.6%（阈值 ≥3% 触发提示）</dd>
+            <dt>样本分布</dt><dd class="mono">P5 = 0.42 m ｜ P95 = 1.58 m</dd>
+          </dl>
+          <div class="meter mt-14"><div class="meter-fill orange" style="width:62%"></div></div>
+          <div class="tiny mt-8">近三月例外样本埋深分布（0.30 – 1.70 m，区间外样本占 4.6%）</div>
+          <div class="form-cell" style="margin-top:14px;">
+            <label class="form-label">建议修订取值 <span class="req">*</span></label>
+            <input class="form-input" value="0.4 – 1.6 m">
+          </div>
+          <div class="form-cell" style="margin-top:12px;">
+            <label class="form-label">修订原因</label>
+            <textarea class="form-textarea" rows="2">依据近三月例外样本 P5–P95 分布修订取值区间；发布后继续监控例外频次，连续两月低于 1% 视为收敛。</textarea>
+          </div>
+          <div class="form-row" style="margin-top:12px;">
+            <div class="form-cell"><label class="form-label">变更人</label><input class="form-input" value="王*敏（设备管理专职）" readonly></div>
+            <div class="form-cell"><label class="form-label">生效方式</label>
+              <select class="form-select"><option>灰度发布 · 次日生效</option><option>立即生效</option><option>指定日期生效</option></select>
+            </div>
+          </div>
+          <ul class="icon-list mt-14">
+            <li><i class="fa-solid fa-code-branch"></i><div>变更生成新版本 V3.3，历史版本可一键回滚，回溯任一时点校验口径</div></li>
+          </ul>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost" onclick="closeModal('modal-rule-edit')"><i class="fa-solid fa-xmark"></i>取消</button>
+          <button class="btn btn-primary" onclick="closeModal('modal-rule-edit');showToast('规则集 V3.3 已发布（灰度·免改代码不停机），历史版本可回溯任一时点口径');"><i class="fa-solid fa-paper-plane"></i>发布新版本 V3.3</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 视图3：影像防伪 · 三道闸稽核 ================= -->
+  <section class="view" id="v-影像防伪-三道闸稽核-">
+    <div class="page-head">
+      <div>
+        <div class="page-title">影像防伪 · 三道闸稽核</div>
+        <div class="page-desc">质量闸 → 时空闸（SM2 水印验签 + 三方交叉核对）→ 去重闸（64 位感知哈希）｜PC端 + 外勤APP｜现场作业人员、管理人员</div>
+      </div>
+      <span class="tag tag-red"><i class="fa-solid fa-fingerprint"></i>验签失败判篡改 · 直接拒收</span>
+    </div>
+
+    <div class="steps" style="margin-bottom:14px;">
+      <div class="step done"><span class="dot"><i class="fa-solid fa-check"></i></span>质量闸 · 通过</div>
+      <div class="step done"><span class="dot"><i class="fa-solid fa-check"></i></span>时空闸 · 通过</div>
+      <div class="step active"><span class="dot"><i class="fa-solid fa-clone"></i></span>去重闸 · 比对中（≤120ms）</div>
+    </div>
+
+    <div class="alert-strip cyan"><i class="fa-solid fa-server"></i><div>识别与判定<b>全部在服务端完成、不用端侧模型</b>；与管道保护稽核共用服务实例，记录写入同一稽核台账、按业务类型区分。</div></div>
+
+    <div class="grid g-4">
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-image"></i>当日稽核影像</div>
+        <div class="stat-value">1,284</div>
+        <div class="stat-sub">关键设备稽核 1,061 · 管道保护 223</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-filter"></i>三道闸拦截</div>
+        <div class="stat-value red">63</div>
+        <div class="stat-sub">拦截率 4.9% · 均已推送重拍引导</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-user"></i>转人工复核</div>
+        <div class="stat-value orange">9</div>
+        <div class="stat-sub">水印 / EXIF 不一致（防时钟异常误伤）</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-bolt"></i>平均时延</div>
+        <div class="stat-value green">118<span style="font-size:14px"> ms</span></div>
+        <div class="stat-sub">去重闸单张比对 ≤120ms 达标</div>
+      </div>
+    </div>
+
+    <div class="grid g-pc-phone mt-14">
+      <!-- PC 端 -->
+      <div>
+        <div class="grid g-3">
+          <div class="glass-card">
+            <div class="card-head">
+              <div class="card-title"><span class="gate-no">1</span>质量闸</div>
+              <span class="tag tag-green">通过率 96.1%</span>
+            </div>
+            <ul class="icon-list">
+              <li><i class="fa-solid fa-camera"></i><div>清晰度：拉普拉斯方差阈值<b>日间 ≥80 / 夜间 ≥45</b>（双参数）</div></li>
+              <li><i class="fa-solid fa-sun"></i><div>亮度分布与有效像素占比 <b>≥85%</b>（日间 / 夜间双参数）</div></li>
+              <li><i class="fa-solid fa-ban"></i><div>拦截四类无效影像：模糊 / 翻拍 / 过曝欠曝 / 图项不符</div></li>
+              <li><i class="fa-solid fa-arrows-rotate"></i><div>拦截按原因分类<b>推送重拍引导</b>——现场一次重拍即可通过</div></li>
+            </ul>
+          </div>
+          <div class="glass-card">
+            <div class="card-head">
+              <div class="card-title"><span class="gate-no">2</span>时空闸</div>
+              <span class="tag tag-green">验签通过</span>
+            </div>
+            <ul class="icon-list">
+              <li><i class="fa-solid fa-stamp"></i><div>拍摄瞬间叠加不可篡改水印（<b>国密 SM2 签名</b>，后期修改即验签失败）</div></li>
+              <li><i class="fa-solid fa-object-group"></i><div>水印 / EXIF / 工单计划<b>三方交叉核对</b></div></li>
+              <li><i class="fa-solid fa-location-dot"></i><div>坐标容差：井盖·阀门井等点状 <b>50 米</b>；管桥·立管等线性 <b>100 米</b></div></li>
+              <li><i class="fa-solid fa-triangle-exclamation"></i><div>验签失败判篡改<b>直接拒收</b>；水印与 EXIF 不一致转人工复核</div></li>
+            </ul>
+            <button class="btn btn-danger btn-sm mt-8" onclick="openModal('modal-verify-fail')"><i class="fa-solid fa-fingerprint"></i>演示：验签失败（篡改）</button>
+          </div>
+          <div class="glass-card">
+            <div class="card-head">
+              <div class="card-title"><span class="gate-no">3</span>去重闸</div>
+              <span class="tag tag-blue">比对中</span>
+            </div>
+            <ul class="icon-list">
+              <li><i class="fa-solid fa-clone"></i><div><b>64 位感知哈希（pHash）</b>比对历史图库</div></li>
+              <li><i class="fa-solid fa-database"></i><div>比对范围：同设备 <b>36 个月</b>内影像 · 单张 <b>≤120ms</b></div></li>
+              <li><i class="fa-solid fa-ruler"></i><div>汉明距离 <b>≤8</b> 判定重复 → 拒绝入库并推送管理人员确认</div></li>
+              <li><i class="fa-solid fa-file-invoice"></i><div>命中示例：FM-2018-0632 检修照复用，距离 3（原图 IMG-20230811-0917）</div></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="grid g-2 mt-14">
+          <div class="glass-card">
+            <div class="card-head">
+              <div class="card-title"><i class="fa-solid fa-stamp"></i>水印内容示意（拍摄瞬间叠加 · SM2 签名）</div>
+            </div>
+            <div class="photo-mock" style="min-height:270px;">
+              <i class="fa-solid fa-crosshairs" style="position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);color:rgba(22,50,60,.35);font-size:22px;"></i>
+              <div class="dt-box" style="left:10%;top:16%;width:34%;height:34%;"><span class="dt-tag">FM-2018-0632</span></div>
+              <div class="wm-strip">
+                <div>拍摄时间 2026-10-28 09:41:36</div>
+                <div>经纬度 120.16922, 30.27415</div>
+                <div>拍摄人 王*强（10247）</div>
+                <div>设备编号 FM-2018-0632 ｜ 工单号 WJ-2026-1012-0087</div>
+                <div class="wm-sign">SM2 签名 9F3A…7C2E（签名随拍摄生成，后期修改即验签失败）</div>
+              </div>
+            </div>
+          </div>
+          <div class="glass-card">
+            <div class="card-head">
+              <div class="card-title"><i class="fa-solid fa-chart-simple"></i>当日拦截分类（图像质量 5 项）</div>
+            </div>
+            <table class="glass-table">
+              <thead><tr><th>拦截原因</th><th>次数</th><th>占比</th><th>处置</th></tr></thead>
+              <tbody>
+                <tr><td>模糊</td><td class="mono">31</td><td class="mono">49.2%</td><td><span class="tag tag-orange">推送重拍引导</span></td></tr>
+                <tr><td>翻拍</td><td class="mono">14</td><td class="mono">22.2%</td><td><span class="tag tag-red">拒收留痕</span></td></tr>
+                <tr><td>图项不符</td><td class="mono">9</td><td class="mono">14.3%</td><td><span class="tag tag-red">中止并核对工单</span></td></tr>
+                <tr><td>时间校验</td><td class="mono">5</td><td class="mono">7.9%</td><td><span class="tag tag-blue">转人工复核</span></td></tr>
+                <tr><td>位置校验</td><td class="mono">4</td><td class="mono">6.4%</td><td><span class="tag tag-blue">转人工复核</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 外勤APP -->
+      <div class="phone-frame">
+        <div class="phone-screen">
+          <div class="phone-notch"></div>
+          <div class="phone-statusbar"><span>09:41</span><span>5G · 87%</span></div>
+          <div class="phone-body">
+            <div class="flex-between" style="margin-bottom:10px;">
+              <div style="font-weight:700;font-size:14px;">影像稽核 · 现场拍摄</div>
+              <span class="tag tag-cyan">外勤APP</span>
+            </div>
+            <div class="photo-mock" style="min-height:190px;">
+              <i class="fa-solid fa-crosshairs" style="position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);color:rgba(22,50,60,.4);font-size:26px;"></i>
+              <div class="dt-box" style="left:14%;top:18%;width:44%;height:40%;"><span class="dt-tag">对准设备主体</span></div>
+              <div class="tiny" style="position:absolute;right:10px;top:10px;z-index:4;">工单 WJ-2026-1012-0087<br>设备 FM-2018-0632</div>
+            </div>
+            <div class="glass-card soft mt-8" style="padding:10px 12px;">
+              <div class="tiny" style="font-weight:600;margin-bottom:4px;"><i class="fa-solid fa-stamp"></i> 水印预览（拍摄后自动叠加）</div>
+              <div class="mono" style="font-size:10px;color:var(--c-text-2);line-height:1.7;">时间 09:41:36 ｜ 坐标 120.16922,30.27415<br>拍摄人 王*强 ｜ 设备 FM-2018-0632<br>工单 WJ-2026-1012-0087 ｜ SM2 签名</div>
+            </div>
+            <div class="steps mt-8" style="flex-direction:column;gap:6px;">
+              <div class="step done"><span class="dot"><i class="fa-solid fa-check"></i></span>质量闸 · 通过</div>
+              <div class="step done"><span class="dot"><i class="fa-solid fa-check"></i></span>时空闸 · 验签通过</div>
+              <div class="step active"><span class="dot"><i class="fa-solid fa-clone"></i></span>去重闸 · 哈希比对中</div>
+            </div>
+            <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:10px;" onclick="showToast('水印叠加完成：拍摄时间/经纬度/拍摄人/设备编号/工单号（SM2 签名，后期修改即验签失败）')"><i class="fa-solid fa-camera"></i>拍摄并叠加 SM2 水印</button>
+            <button class="btn btn-glass" style="width:100%;justify-content:center;margin-top:8px;" onclick="showToast('上传稽核：质量闸 → 时空闸 → 去重闸 全部通过，已写入稽核台账（平均时延 118ms）')"><i class="fa-solid fa-cloud-arrow-up"></i>上传稽核</button>
+          </div>
+          <div class="phone-tabbar">
+            <div class="phone-tab" onclick="showToast('演示：切换到工单列表')"><i class="fa-solid fa-file-invoice"></i><span>工单</span></div>
+            <div class="phone-tab active"><i class="fa-solid fa-camera"></i><span>稽核</span></div>
+            <div class="phone-tab" onclick="showToast('演示：切换到我的')"><i class="fa-solid fa-user"></i><span>我的</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 弹窗：验签失败判篡改 -->
+    <div class="modal-mask" id="modal-verify-fail" onclick="if(event.target===this)closeModal('modal-verify-fail')">
+      <div class="glass-modal blocking">
+        <div class="blocking-strip"><i class="fa-solid fa-shield-halved"></i>验签失败 · 判定篡改 · 直接拒收</div>
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-fingerprint"></i>时空闸 · SM2 水印验签失败</div>
+          <button class="modal-close" onclick="closeModal('modal-verify-fail')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <dl class="kv">
+            <dt>影像编号</dt><dd class="mono">IMG-20261028-04412</dd>
+            <dt>设备编号</dt><dd class="mono">FM-2018-0632</dd>
+            <dt>工单号</dt><dd class="mono">WJ-2026-1012-0087</dd>
+            <dt>拍摄人</dt><dd>王*强（10247）</dd>
+          </dl>
+          <div class="divider"></div>
+          <ul class="icon-list">
+            <li><i class="fa-solid fa-key"></i><div>水印 SM2 签名重算结果与原签名<b>不匹配</b>（期望 <span class="mono">9F3A…7C2E</span> / 实际 <span class="mono">4B77…19AD</span>）</div></li>
+            <li><i class="fa-solid fa-clock"></i><div>水印内拍摄时间与 EXIF 时间差 <span class="mono">00:37:12</span> → 存在后期修改痕迹</div></li>
+            <li><i class="fa-solid fa-triangle-exclamation"></i><div>判定依据：水印在拍摄瞬间由国密 SM2 签名生成，<b>后期修改即验签失败 → 判篡改直接拒收并标记</b>，不可人工放行</div></li>
+            <li><i class="fa-solid fa-user"></i><div>仅「水印与 EXIF 不一致」类转人工复核（防时钟异常误伤）——本例属签名篡改，<b>无复核通道</b></div></li>
+          </ul>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-glass" onclick="closeModal('modal-verify-fail');showToast('验签失败依据已导出至稽核台账留痕');"><i class="fa-solid fa-file-arrow-down"></i>导出验签依据</button>
+          <button class="btn btn-danger" onclick="closeModal('modal-verify-fail');showToast('已拒收并标记篡改：按原因分类推送重拍引导（现场一次重拍即可通过）');"><i class="fa-solid fa-ban"></i>确认拒收 · 推送重拍引导</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 视图4：设备主体与缺陷识别 ================= -->
+  <section class="view" id="v-设备主体与缺陷识别">
+    <div class="page-head">
+      <div>
+        <div class="page-title">设备主体与缺陷识别</div>
+        <div class="page-desc">9 类设备主体检测（置信度 ≥0.75）→ 图文不符拦截 → 三类缺陷识别与分级 → 预警工单督办｜PC端 + 外勤APP｜系统自动、运行站管理人员</div>
+      </div>
+      <span class="tag tag-accent"><i class="fa-solid fa-brain"></i>识别准确率考核 ≥90%</span>
+    </div>
+
+    <div class="glass-card">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-magnifying-glass"></i>调研口径 · 识别范围与算力</div>
+        <span class="tag tag-cyan">服务端识别 · 不用端侧模型</span>
+      </div>
+      <ul class="icon-list">
+        <li><i class="fa-solid fa-object-group"></i><div><b>目标识别 4 类</b>：阀门（井）、井盖周边环境、测试桩（需与标志桩区分）、调压器（含调压柜/调压箱）；桥管架空管是否纳入待定（可复用上海项目经验，对应防爬刺隐患）</div></li>
+        <li><i class="fa-solid fa-triangle-exclamation"></i><div><b>隐患识别 5 类</b>：周边环境塌陷占压、井盖缺失掩埋、井盖塌陷、周边路面开裂、井盖上方占压；锈蚀识别建议聚焦严重程度重的阀门（阀体/阀杆/补偿器）</div></li>
+        <li><i class="fa-solid fa-image"></i><div><b>图像质量 5 项</b>：图项不符、模糊、翻拍、时间校验、位置校验</div></li>
+        <li><i class="fa-solid fa-microchip"></i><div><b>算力与样本</b>：识别与判定全部在服务端完成、不用端侧模型；样本由客户提供、项目组标注；算力使用城投算力中心；燃气专业图像识别需专项训练，通用大模型不适用</div></li>
+      </ul>
+    </div>
+
+    <div class="steps mt-14" style="margin-bottom:14px;">
+      <div class="step done"><span class="dot"><i class="fa-solid fa-check"></i></span>主体检测</div>
+      <div class="step active"><span class="dot"><i class="fa-solid fa-object-group"></i></span>缺陷检测</div>
+      <div class="step"><span class="dot">3</span>三因素分级</div>
+      <div class="step"><span class="dot">4</span>预警工单督办</div>
+    </div>
+
+    <div class="grid g-main-side">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-object-group"></i>9 类设备主体检测标注示意（置信度 ≥0.75 判定有效）</div>
+          <span class="tag tag-blue">同一场景多目标</span>
+        </div>
+        <div class="photo-mock" style="min-height:280px;">
+          <i class="fa-solid fa-crosshairs" style="position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);color:rgba(22,50,60,.3);font-size:22px;"></i>
+          <div class="dt-box" style="left:8%;top:14%;width:32%;height:36%;"><span class="dt-tag">调压器 0.94</span></div>
+          <div class="dt-box" style="left:5%;top:64%;width:46%;height:26%;"><span class="dt-tag">防护围栏 0.88</span></div>
+          <div class="dt-box" style="left:62%;top:16%;width:17%;height:42%;"><span class="dt-tag">测试桩 0.81</span></div>
+          <div class="dt-box warn" style="left:56%;top:68%;width:30%;height:24%;"><span class="dt-tag">井盖·沉降 0.77</span></div>
+        </div>
+        <div class="mini-grid">
+          <div class="mini-card"><i class="fa-solid fa-gauge-high"></i>调压器<span class="mono">0.94</span></div>
+          <div class="mini-card"><i class="fa-solid fa-box"></i>调压柜箱<span class="mono">0.91</span></div>
+          <div class="mini-card"><i class="fa-solid fa-gear"></i>阀门<span class="mono">0.89</span></div>
+          <div class="mini-card"><i class="fa-solid fa-cube"></i>阀门井<span class="mono">0.87</span></div>
+          <div class="mini-card"><i class="fa-solid fa-flag"></i>测试桩<span class="mono">0.81</span></div>
+          <div class="mini-card"><i class="fa-solid fa-circle-dot"></i>井盖<span class="mono">0.77</span></div>
+          <div class="mini-card"><i class="fa-solid fa-ruler-vertical"></i>燃气立管<span class="mono">0.83</span></div>
+          <div class="mini-card"><i class="fa-solid fa-bridge"></i>管桥<span class="mono">0.86</span></div>
+          <div class="mini-card"><i class="fa-solid fa-shield-halved"></i>防护围栏<span class="mono">0.88</span></div>
+        </div>
+      </div>
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-arrows-split-up-and-left"></i>置信度分流判定</div>
+        </div>
+        <ul class="icon-list">
+          <li><i class="fa-solid fa-circle-check"></i><div><b>≥ 0.75 高置信</b> → 自动判定入库</div></li>
+          <li><i class="fa-solid fa-brain"></i><div><b>0.60 – 0.75 中置信</b> → 多模态大模型二次研判（理由随结论留痕）</div></li>
+          <li><i class="fa-solid fa-user"></i><div><b>&lt; 0.60 低置信</b> → 转人工复核</div></li>
+        </ul>
+        <div class="divider"></div>
+        <div class="alert-strip cyan" style="margin-bottom:0;"><i class="fa-solid fa-shield-halved"></i><div><b>主体检测先于缺陷检测</b>——防止对错误对象做缺陷判定污染档案</div></div>
+      </div>
+    </div>
+
+    <div class="alert-strip red mt-14"><i class="fa-solid fa-ban"></i><div><b>图文不符拦截</b>：识别类别与工单设备类型不符即中止检测，并给出两条处置指引——防止对错误对象做缺陷判定污染档案。</div></div>
+
+    <div class="grid g-2">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-camera"></i>处置指引 ① 拍摄对象有误</div>
+        </div>
+        <ul class="icon-list">
+          <li><i class="fa-solid fa-location-dot"></i><div>按工单定位前往<b>目标设备</b>现场（点位导航 + 坐标容差校验）</div></li>
+          <li><i class="fa-solid fa-arrows-rotate"></i><div><b>重新拍摄上传</b>——现场一次重拍即可通过，无需回站补拍</div></li>
+        </ul>
+      </div>
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-file-pen"></i>处置指引 ② 工单登记有误</div>
+        </div>
+        <ul class="icon-list">
+          <li><i class="fa-solid fa-pen-ruler"></i><div><b>先修正工单设备类型</b>（变更留痕），再上传影像重新稽核</div></li>
+          <li><i class="fa-solid fa-list-check"></i><div>修正后的工单进入下一批次自动检测队列，无需人工调度</div></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="grid g-3 mt-14">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-circle-dot"></i>缺陷识别 · 井盖沉降破损</div>
+          <span class="tag tag-orange">量化判定</span>
+        </div>
+        <div class="photo-mock" style="min-height:130px;">
+          <div class="dt-box warn" style="left:22%;top:22%;width:52%;height:52%;"><span class="dt-tag">沉降 24mm · 孔洞 2</span></div>
+        </div>
+        <ul class="icon-list mt-8">
+          <li><i class="fa-solid fa-ruler-vertical"></i><div>沉降高差：<b>15–30mm 提示级</b> · <b>≥30mm 报警级</b></div></li>
+          <li><i class="fa-solid fa-circle-exclamation"></i><div>破损孔洞数：<b>≥1 即判定破损</b>，孔洞 ≥3 升一级</div></li>
+        </ul>
+      </div>
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-mountain-sun"></i>缺陷识别 · 周边塌陷</div>
+          <span class="tag tag-orange">量化判定</span>
+        </div>
+        <div class="photo-mock" style="min-height:130px;">
+          <div class="dt-box warn" style="left:12%;top:30%;width:70%;height:46%;"><span class="dt-tag">塌陷占比 23%</span></div>
+        </div>
+        <ul class="icon-list mt-8">
+          <li><i class="fa-solid fa-percent"></i><div>塌陷区域占比 <b>≥20% 阈值</b> 判定塌陷隐患</div></li>
+          <li><i class="fa-solid fa-magnifying-glass"></i><div>难例区分：<b>塌陷 vs 修补痕迹 vs 正常接缝</b>（专项训练样本回流）</div></li>
+        </ul>
+      </div>
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-droplet"></i>缺陷识别 · 设备锈蚀</div>
+          <span class="tag tag-orange">三档分级</span>
+        </div>
+        <div class="photo-mock" style="min-height:130px;">
+          <div class="dt-box warn" style="left:28%;top:18%;width:44%;height:58%;"><span class="dt-tag">锈蚀面积比 12%（中）</span></div>
+        </div>
+        <ul class="icon-list mt-8">
+          <li><i class="fa-solid fa-sliders"></i><div>锈蚀面积比三档：<b>轻 &lt;5% ｜ 中 5%–15% ｜ 重 &gt;15%</b></div></li>
+          <li><i class="fa-solid fa-gear"></i><div>聚焦严重程度重的<b>阀门（阀体/阀杆/补偿器）</b></div></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="glass-card mt-14">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-table-list"></i>缺陷级别与整改时限（三因素：类别 + 所处位置 + 量化程度）</div>
+        <span class="tag tag-red">检出即按责任矩阵推送督办</span>
+      </div>
+      <div class="table-scroll">
+        <table class="glass-table">
+          <thead><tr><th>缺陷级别</th><th>判定依据示例（类别 + 所处位置 + 量化程度）</th><th>整改时限</th><th>推送路径</th></tr></thead>
+          <tbody>
+            <tr><td><span class="tag tag-red">一级</span></td><td>主干道井盖破损孔洞 ≥3；重要阀门重度锈蚀（&gt;15%）</td><td class="mono">24 小时</td><td>运行站 → 设备主管 → 分公司</td></tr>
+            <tr><td><span class="tag tag-orange">二级</span></td><td>沉降高差 ≥30mm；塌陷占比 ≥20%；中度锈蚀（5%–15%）</td><td class="mono">7 日</td><td>运行站 → 设备主管</td></tr>
+            <tr><td><span class="tag tag-yellow">三级</span></td><td>轻度锈蚀（&lt;5%）；沉降高差 15–30mm</td><td class="mono">30 日</td><td>运行站督办</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="alert-strip cyan mt-14"><i class="fa-solid fa-arrows-rotate"></i><div>整改影像与原判定<b>同模型同标准复核</b>、通过自动销号；误检漏检样本<b>回流再训练、灰度发布</b>，持续对齐 ≥90% 准确率考核。</div></div>
+  </section>
+
+  <!-- ================= 视图5：设备生命周期档案 ================= -->
+  <section class="view" id="v-设备生命周期档案">
+    <div class="page-head">
+      <div>
+        <div class="page-title">设备生命周期档案</div>
+        <div class="page-desc">投运 → 历次维保 → 历次检定 → 中修 → 检定到期 → 设计报废｜PC端 · 设备管理专职人员</div>
+      </div>
+      <span class="tag tag-orange"><i class="fa-solid fa-bell"></i>当前档案：临期未检预警中</span>
+    </div>
+
+    <div class="filter-bar">
+      <div class="filter-item">
+        <div class="filter-label">设备档案</div>
+        <select class="filter-select" onchange="switchDevice(this.value)">
+          <option>TYQ-2019-0876 调压器 · 文一路118号</option>
+          <option>FM-2018-0632 阀门 · 教工路52号</option>
+          <option>CS-2020-0241 测试桩 · 学院路14号</option>
+        </select>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="showToast('已加载设备档案：时间轴 + 四组字段联动刷新')"><i class="fa-solid fa-magnifying-glass"></i>查询档案</button>
+      <div class="tiny" style="align-self:center;">时间节点来自台账录入与工单回填双来源，经录入强校验保证有效</div>
+    </div>
+
+    <div class="glass-card">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-timeline"></i>生命周期时间轴（当前触发预警的节点橙色标注）</div>
+        <span class="tag tag-cyan">档案更新自动关闭对应预警 · 无需人工销号</span>
+      </div>
+      <div class="timeline">
+        <div class="tl-item done">
+          <div class="tl-dot"><i class="fa-solid fa-check"></i></div>
+          <div class="tl-date">2019-03-18</div>
+          <div class="tl-title">投运</div>
+          <div class="tl-desc">调压器安装投运（来源：台账录入，经录入强校验）</div>
+        </div>
+        <div class="tl-item done">
+          <div class="tl-dot"><i class="fa-solid fa-check"></i></div>
+          <div class="tl-date">2021-05-12 · 2023-04-08 · 2025-04-15</div>
+          <div class="tl-title">历次维保 ×3</div>
+          <div class="tl-desc">例行维保（来源：维保工单回填，关联影像可回看）</div>
+        </div>
+        <div class="tl-item done">
+          <div class="tl-dot"><i class="fa-solid fa-check"></i></div>
+          <div class="tl-date">2020-03-20 · 2022-03-18 · 2024-03-20</div>
+          <div class="tl-title">历次检定 ×3</div>
+          <div class="tl-desc">周期检定合格（来源：检定工单回填）</div>
+        </div>
+        <div class="tl-item done">
+          <div class="tl-dot"><i class="fa-solid fa-wrench"></i></div>
+          <div class="tl-date">2023-11-06</div>
+          <div class="tl-title">中修</div>
+          <div class="tl-desc">更换阀口组件（来源：检修工单回填）</div>
+        </div>
+        <div class="tl-item warn">
+          <div class="tl-dot"><i class="fa-solid fa-bell"></i></div>
+          <div class="tl-date">2027-03-20</div>
+          <div class="tl-title">检定到期 <span class="tag tag-orange">当前预警节点 · 临期未检</span></div>
+          <div class="tl-desc">提前 180 天启动预警（涉及备件采购与停气作业）｜预警已推送，节点回填后自动关闭</div>
+          <button class="btn btn-accent btn-sm mt-8" onclick="openModal('modal-node-detail')"><i class="fa-solid fa-eye"></i>查看节点明细</button>
+        </div>
+        <div class="tl-item future">
+          <div class="tl-dot"><i class="fa-solid fa-flag"></i></div>
+          <div class="tl-date">2029-03</div>
+          <div class="tl-title">设计报废</div>
+          <div class="tl-desc">设计使用年限 10 年届满，届时转入临近报废预警</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid g-2 mt-14">
+      <div class="glass-card">
+        <div class="card-head"><div class="card-title"><i class="fa-solid fa-circle-info"></i>基础属性</div></div>
+        <dl class="kv">
+          <dt>设备编号</dt><dd class="mono">TYQ-2019-0876</dd>
+          <dt>设备类型</dt><dd>调压器</dd>
+          <dt>规格型号</dt><dd>RTJ-210/0.8</dd>
+          <dt>厂家</dt><dd>杭*燃气设备制造</dd>
+          <dt>安装位置</dt><dd>文一路118号东侧</dd>
+          <dt>GIS 坐标</dt><dd class="mono">120.16922, 30.27415</dd>
+        </dl>
+      </div>
+      <div class="glass-card">
+        <div class="card-head"><div class="card-title"><i class="fa-solid fa-calendar-days"></i>时间节点</div></div>
+        <dl class="kv">
+          <dt>投运日期</dt><dd class="mono">2019-03-18</dd>
+          <dt>上次维保</dt><dd class="mono">2025-04-15</dd>
+          <dt>上次检定</dt><dd class="mono">2024-03-20</dd>
+          <dt>检定到期</dt><dd class="mono" style="color:#C67200;">2027-03-20（预警中）</dd>
+          <dt>上次中修</dt><dd class="mono">2023-11-06</dd>
+          <dt>设计报废</dt><dd class="mono">2029-03</dd>
+        </dl>
+      </div>
+      <div class="glass-card">
+        <div class="card-head"><div class="card-title"><i class="fa-solid fa-heart-pulse"></i>状态数据</div></div>
+        <dl class="kv">
+          <dt>当前状态</dt><dd><span class="tag tag-orange">在役 · 临期预警</span></dd>
+          <dt>历次缺陷检出</dt><dd>2 次（轻度锈蚀 2024 / 井盖周边轻微开裂 2025）</dd>
+          <dt>整改与销号</dt><dd>2 / 2 已销号（影像复核通过自动销号）</dd>
+          <dt>关联影像</dt><dd class="mono">47 张（含整改复核 5 张）</dd>
+        </dl>
+      </div>
+      <div class="glass-card">
+        <div class="card-head"><div class="card-title"><i class="fa-solid fa-sliders"></i>基准参数</div></div>
+        <dl class="kv">
+          <dt>设计使用年限</dt><dd>10 年</dd>
+          <dt>检定周期</dt><dd class="mono">24 个月</dd>
+          <dt>维保周期</dt><dd class="mono">12 个月</dd>
+          <dt>提前预警量</dt><dd>检定 180 天（涉及备件采购与停气）</dd>
+        </dl>
+      </div>
+    </div>
+
+    <!-- 弹窗：节点明细 -->
+    <div class="modal-mask" id="modal-node-detail" onclick="if(event.target===this)closeModal('modal-node-detail')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-eye"></i>节点明细 · 检定到期（2027-03-20）</div>
+          <button class="modal-close" onclick="closeModal('modal-node-detail')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <dl class="kv">
+            <dt>节点类型</dt><dd>历次检定 → 检定到期</dd>
+            <dt>触发预警</dt><dd><span class="tag tag-orange">临期未检（三级）</span></dd>
+            <dt>提前量</dt><dd>180 天（涉及备件采购与停气作业）</dd>
+            <dt>关联预警</dt><dd class="mono">WY-2026-1208</dd>
+          </dl>
+          <div class="divider"></div>
+          <div class="form-label">关联单据</div>
+          <ul class="icon-list">
+            <li><i class="fa-solid fa-file-invoice"></i><div>检定计划单 <span class="mono">JD-2027-0112</span>（检定到期前 90 天生成）</div></li>
+            <li><i class="fa-solid fa-box"></i><div>备件采购申请 <span class="mono">BJ-2026-0930</span>（阀口组件 ×2）</div></li>
+            <li><i class="fa-solid fa-ban"></i><div>停气作业方案 <span class="mono">TG-2027-008</span>（中压 B 级）</div></li>
+          </ul>
+          <div class="form-label mt-14">关联影像（节点明细可回看）</div>
+          <div class="photo-mock mt-8" style="min-height:150px;">
+            <div class="dt-box" style="left:18%;top:20%;width:52%;height:54%;"><span class="dt-tag">上次检定留档 IMG-20240320-0881</span></div>
+          </div>
+          <div class="alert-strip cyan mt-14" style="margin-bottom:0;"><i class="fa-solid fa-arrows-rotate"></i><div>检定执行回填后，档案更新<b>自动关闭对应预警</b>（无需人工销号）。</div></div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost" onclick="closeModal('modal-node-detail')"><i class="fa-solid fa-xmark"></i>关闭</button>
+          <button class="btn btn-primary" onclick="showToast('已调取节点关联影像原片（含 SM2 水印验签信息）')"><i class="fa-solid fa-image"></i>回看关联影像</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 视图6：超期服役与临期未检预警清单 ================= -->
+  <section class="view" id="v-超期服役与临期未检预警清单">
+    <div class="page-head">
+      <div>
+        <div class="page-title">超期服役与临期未检预警清单</div>
+        <div class="page-desc">每日批量计算四类预警（超期服役 / 超期未检 / 临期未检 / 临近报废）并分级推送｜PC端 · 运行站管理人员、设备主管</div>
+      </div>
+      <span class="tag tag-red"><i class="fa-solid fa-hourglass-half"></i>逾期 15 日未处置自动升级</span>
+    </div>
+
+    <div class="grid g-4">
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-circle-exclamation"></i>超期服役</div>
+        <div class="stat-value red">9</div>
+        <div class="stat-sub">含已延期设备 3（仍计入统计分母）</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-triangle-exclamation"></i>超期未检</div>
+        <div class="stat-value orange">6</div>
+        <div class="stat-sub">临期到期未执行自动转入并升级</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-bell"></i>临期未检</div>
+        <div class="stat-value accent">18</div>
+        <div class="stat-sub">提前 30 / 180 天启动</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-flag"></i>临近报废</div>
+        <div class="stat-value blue">4</div>
+        <div class="stat-sub">单独标识 · 延期不改变可见性</div>
+      </div>
+    </div>
+
+    <div class="alert-strip orange mt-14"><i class="fa-solid fa-arrow-up-right-dots"></i><div><b>每日批量计算、不依赖人工排查</b>；逾期 15 日未处置自动逐级升级：运行站 → 设备主管 → 分公司（三级推送，升级留痕）。</div></div>
+
+    <div class="grid g-2 mt-14">
+      <div class="glass-card">
+        <div class="card-head"><div class="card-title"><i class="fa-solid fa-sliders"></i>提前量配置</div></div>
+        <ul class="icon-list">
+          <li><i class="fa-solid fa-calendar-days"></i><div>检定周期短（测试桩等）：<b>提前 30 天</b>进入临期预警</div></li>
+          <li><i class="fa-solid fa-box"></i><div>涉及备件采购与停气作业（调压器/调压柜箱）：<b>提前 180 天</b></div></li>
+          <li><i class="fa-solid fa-arrows-rotate"></i><div>节点回填（检定/维保执行后）<b>自动关闭预警</b>；临期到期仍未执行自动转超期并升级</div></li>
+        </ul>
+      </div>
+      <div class="glass-card">
+        <div class="card-head"><div class="card-title"><i class="fa-solid fa-tower-broadcast"></i>预警推送路径（三级）</div></div>
+        <div class="steps">
+          <div class="step active"><span class="dot">1</span>运行站</div>
+          <div class="step"><span class="dot">2</span>设备主管</div>
+          <div class="step"><span class="dot">3</span>分公司</div>
+        </div>
+        <ul class="icon-list mt-8">
+          <li><i class="fa-solid fa-shield-halved"></i><div>预警无法被无痕忽略：延期理由与风险控制措施<b>随档案留痕</b></div></li>
+          <li><i class="fa-solid fa-eye"></i><div>延期设备<b>单独标识、仍然可见</b>，不因延期从统计中消失</div></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="glass-card mt-14">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-table-list"></i>预警清单（显示前 8 条 / 共 37 条）</div>
+        <div class="flex">
+          <select class="filter-select" style="min-width:110px;" onchange="showToast('演示：已按类别筛选预警清单')">
+            <option>全部类别</option><option>超期服役</option><option>超期未检</option><option>临期未检</option><option>临近报废</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table class="glass-table">
+          <thead><tr><th>设备编号</th><th>类别</th><th>关键日期</th><th>超期/临期天数</th><th>级别</th><th>推送状态</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">TYQ-2011-0312</td><td><span class="tag tag-red">超期服役</span></td><td class="mono">设计报废 2026-09-18</td><td class="mono" style="color:#D93025;">超 40 天</td><td><span class="tag tag-orange">二级</span></td><td><span class="tag tag-gray">已推送·未读</span></td><td><button class="btn btn-glass btn-xs" onclick="openDefer('TYQ-2011-0312')"><i class="fa-solid fa-hourglass-half"></i>延期审批</button></td></tr>
+            <tr><td class="mono">FM-2009-0088</td><td><span class="tag tag-red">超期服役</span> <span class="tag tag-accent">已延期(1/2)</span></td><td class="mono">设计报废 2024-06-30</td><td class="mono" style="color:#D93025;">超 820 天</td><td><span class="tag tag-red">一级</span></td><td><span class="tag tag-red">已升级·分公司</span></td><td><button class="btn btn-glass btn-xs" onclick="openDefer('FM-2009-0088')"><i class="fa-solid fa-hourglass-half"></i>延期审批</button></td></tr>
+            <tr><td class="mono">TYQ-2016-0455</td><td><span class="tag tag-orange">超期未检</span></td><td class="mono">检定到期 2026-04-20</td><td class="mono" style="color:#D93025;">超 191 天</td><td><span class="tag tag-red">一级</span></td><td><span class="tag tag-orange">已升级·设备主管</span></td><td><button class="btn btn-glass btn-xs" onclick="openDefer('TYQ-2016-0455')"><i class="fa-solid fa-hourglass-half"></i>延期审批</button></td></tr>
+            <tr><td class="mono">J-2013-0219</td><td><span class="tag tag-orange">超期未检</span></td><td class="mono">检定到期 2026-09-10</td><td class="mono" style="color:#C67200;">超 48 天</td><td><span class="tag tag-orange">二级</span></td><td><span class="tag tag-gray">已推送·未读</span></td><td><button class="btn btn-glass btn-xs" onclick="openDefer('J-2013-0219')"><i class="fa-solid fa-hourglass-half"></i>延期审批</button></td></tr>
+            <tr><td class="mono">CS-2020-0241</td><td><span class="tag tag-yellow">临期未检</span></td><td class="mono">检定到期 2027-01-15</td><td class="mono" style="color:#9A7A00;">临 79 天</td><td><span class="tag tag-yellow">三级</span></td><td><span class="tag tag-green">已推送·已读</span></td><td><button class="btn btn-glass btn-xs" onclick="openDefer('CS-2020-0241')"><i class="fa-solid fa-hourglass-half"></i>延期审批</button></td></tr>
+            <tr><td class="mono">GX-2018-0102</td><td><span class="tag tag-yellow">临期未检</span></td><td class="mono">检定到期 2027-03-20</td><td class="mono" style="color:#9A7A00;">临 143 天</td><td><span class="tag tag-yellow">三级</span></td><td><span class="tag tag-green">已推送·已读</span></td><td><button class="btn btn-glass btn-xs" onclick="openDefer('GX-2018-0102')"><i class="fa-solid fa-hourglass-half"></i>延期审批</button></td></tr>
+            <tr><td class="mono">GQ-2012-0007</td><td><span class="tag tag-blue">临近报废</span></td><td class="mono">设计报废 2027-06-30</td><td class="mono" style="color:#0B7FD4;">临 245 天</td><td><span class="tag tag-orange">二级</span></td><td><span class="tag tag-gray">已推送·未读</span></td><td><button class="btn btn-glass btn-xs" onclick="openDefer('GQ-2012-0007')"><i class="fa-solid fa-hourglass-half"></i>延期审批</button></td></tr>
+            <tr><td class="mono">FM-2015-0461</td><td><span class="tag tag-blue">临近报废</span></td><td class="mono">设计报废 2027-02-11</td><td class="mono" style="color:#0B7FD4;">临 106 天</td><td><span class="tag tag-yellow">三级</span></td><td><span class="tag tag-green">已推送·已读</span></td><td><button class="btn btn-glass btn-xs" onclick="openDefer('FM-2015-0461')"><i class="fa-solid fa-hourglass-half"></i>延期审批</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 弹窗：延期审批 -->
+    <div class="modal-mask" id="modal-defer" onclick="if(event.target===this)closeModal('modal-defer')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-hourglass-half"></i>延期审批 · <span class="mono" id="defer-code">FM-2009-0088</span></div>
+          <button class="modal-close" onclick="closeModal('modal-defer')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <dl class="kv">
+            <dt>预警类别</dt><dd><span class="tag tag-red">超期服役</span></dd>
+            <dt>关键日期</dt><dd class="mono">设计报废 2024-06-30</dd>
+            <dt>当前超期</dt><dd class="mono">820 天（一级 · 已升级分公司）</dd>
+            <dt>累计延期</dt><dd class="mono">1 / 2 次</dd>
+          </dl>
+          <div class="alert-strip red mt-14"><i class="fa-solid fa-list-check"></i><div><b>延期三条硬约束</b>（系统强制校验，不满足直接驳回申请）</div></div>
+          <ul class="icon-list">
+            <li><i class="fa-solid fa-hourglass"></i><div>① 单次延期时长 <b>≤ 6 个月</b>（时长下拉最大 6 个月）</div></li>
+            <li><i class="fa-solid fa-hourglass"></i><div>② 同一设备累计延期 <b>≤ 2 次</b>（当前 1/2，第 3 次申请自动拦截）</div></li>
+            <li><i class="fa-solid fa-chart-pie"></i><div>③ 延期<b>仍计入超期统计分母</b>——设备单独标识、仍然可见，不因延期从统计中消失</div></li>
+          </ul>
+          <div class="form-row mt-14">
+            <div class="form-cell">
+              <label class="form-label">延期时长 <span class="req">*</span></label>
+              <select class="form-select" id="defer-months"><option>1 个月</option><option>2 个月</option><option>3 个月</option><option>4 个月</option><option>5 个月</option><option>6 个月</option></select>
+            </div>
+            <div class="form-cell">
+              <label class="form-label">审批人 <span class="req">*</span></label>
+              <input class="form-input" value="李*明（运行站负责人）">
+            </div>
+          </div>
+          <div class="form-cell" style="margin-top:12px;">
+            <label class="form-label">申请理由 <span class="req">*</span></label>
+            <textarea class="form-textarea" rows="2">备件采购周期长（进口阀口组件到货 2027-01），拟延期至停气作业窗口一并整改。</textarea>
+          </div>
+          <div class="form-cell" style="margin-top:12px;">
+            <label class="form-label">风险控制措施 <span class="req">*</span></label>
+            <textarea class="form-textarea" rows="2">加密巡检至每周 1 次；锈蚀复查影像同步稽核；中修方案已评审。</textarea>
+          </div>
+          <div class="tiny mt-8">延期理由与风险控制措施随档案留痕——预警无法被无痕忽略。</div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost" onclick="closeModal('modal-defer');showToast('已驳回延期申请：设备仍按原预警级别督办');"><i class="fa-solid fa-ban"></i>驳回</button>
+          <button class="btn btn-primary" onclick="submitDefer()"><i class="fa-solid fa-paper-plane"></i>提交延期审批</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+function switchView(vid){
+  document.querySelectorAll('.view').forEach(function(v){v.classList.remove('active');});
+  var el=document.getElementById(vid); if(el){el.classList.add('active');}
+  document.querySelectorAll('.seg-item[data-view]').forEach(function(b){
+    b.classList.toggle('active', b.getAttribute('data-view')===vid);
+  });
+  try{history.replaceState(null,'','#'+encodeURIComponent(vid));}catch(e){}
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function openModal(id){var m=document.getElementById(id); if(m){m.classList.add('open');}}
+function closeModal(id){var m=document.getElementById(id); if(m){m.classList.remove('open');}}
+function showToast(msg){
+  var t=document.getElementById('app-toast');
+  if(!t){t=document.createElement('div');t.id='app-toast';t.className='toast';document.body.appendChild(t);}
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._tm);t._tm=setTimeout(function(){t.classList.remove('show');},2200);
+}
+window.addEventListener('hashchange',function(){
+  var h=decodeURIComponent(location.hash.replace('#',''));
+  if(h&&document.getElementById(h)){switchView(h);}
+});
+(function(){
+  var h=decodeURIComponent(location.hash.replace('#',''));
+  if(h&&document.getElementById(h)){switchView(h);}
+})();
+</script>
+
+<script>
+/* ================= M09 模块脚本 ================= */
+var CUR='调压器';
+var F={
+'调压器':[
+ {k:'code',label:'设备编号',t:'fmt',expr:'TYQ-YYYY-NNNN',pref:'TYQ-',val:'TYQ-2019-0876',block:1},
+ {k:'pipe',label:'所属管段',t:'req',expr:'必填，格式 GD-XXXX',val:'GD-2019-118',block:1},
+ {k:'pin',label:'进口压力（MPa）',t:'num',expr:'数值范围 0.005 - 4.00 MPa',min:0.005,max:4.0,val:'0.20',block:1},
+ {k:'pout',label:'出口压力（MPa）',t:'mutex',expr:'逻辑互斥：≥ 进口压力',dep:'pin',val:'0.12',block:1},
+ {k:'d0',label:'投运日期',t:'req',expr:'必填 YYYY-MM-DD',val:'2019-03-18',block:1},
+ {k:'dc',label:'检定日期',t:'after',expr:'逻辑互斥：不早于投运日期',dep:'d0',val:'2024-03-20',block:1},
+ {k:'spec',label:'规格型号',t:'req',expr:'必填',val:'RTJ-210/0.8',block:0},
+ {k:'loc',label:'安装位置',t:'req',expr:'必填',val:'文一路118号东侧',block:0}
+],
+'调压柜箱':[
+ {k:'code',label:'设备编号',t:'fmt',expr:'GX-YYYY-NNNN',pref:'GX-',val:'GX-2018-0102',block:1},
+ {k:'pipe',label:'所属管段',t:'req',expr:'必填，格式 GD-XXXX',val:'GD-2018-063',block:1},
+ {k:'pin',label:'进口压力（MPa）',t:'num',expr:'数值范围 0.005 - 4.00 MPa',min:0.005,max:4.0,val:'0.30',block:1},
+ {k:'pout',label:'出口压力（MPa）',t:'mutex',expr:'逻辑互斥：≥ 进口压力',dep:'pin',val:'0.32',block:1},
+ {k:'d0',label:'投运日期',t:'req',expr:'必填 YYYY-MM-DD',val:'2018-06-12',block:1},
+ {k:'dc',label:'检定日期',t:'after',expr:'逻辑互斥：不早于投运日期',dep:'d0',val:'2024-06-15',block:1},
+ {k:'loc',label:'安装位置',t:'req',expr:'必填',val:'教工路52号南侧箱体',block:0}
+],
+'阀门':[
+ {k:'code',label:'设备编号',t:'fmt',expr:'FM-YYYY-NNNN',pref:'FM-',val:'FM-2018-0632',block:1},
+ {k:'pipe',label:'所属管段',t:'req',expr:'必填，格式 GD-XXXX',val:'GD-2018-063',block:1},
+ {k:'press',label:'公称压力（MPa）',t:'num',expr:'数值范围 0.6 - 4.0 MPa',min:0.6,max:4.0,val:'1.6',block:1},
+ {k:'state',label:'启闭状态',t:'req',expr:'必填（全开/全关）',val:'全开',block:1},
+ {k:'d0',label:'投运日期',t:'req',expr:'必填 YYYY-MM-DD',val:'2018-09-05',block:1},
+ {k:'dc',label:'检定日期',t:'after',expr:'逻辑互斥：不早于投运日期',dep:'d0',val:'2024-09-10',block:1}
+],
+'阀门井':[
+ {k:'code',label:'井编号',t:'fmt',expr:'J-YYYY-NNNN',pref:'J-',val:'J-2013-0219',block:1},
+ {k:'pipe',label:'所属管段',t:'req',expr:'必填，格式 GD-XXXX',val:'GD-2013-207',block:1},
+ {k:'depth',label:'井深（m）',t:'num',expr:'数值范围 0.8 - 3.5 m',min:0.8,max:3.5,val:'2.1',block:0},
+ {k:'cover',label:'井盖规格',t:'req',expr:'必填（含承载等级）',val:'D700 重型',block:1},
+ {k:'d0',label:'投运日期',t:'req',expr:'必填 YYYY-MM-DD',val:'2013-11-20',block:1},
+ {k:'lm',label:'上次维保日期',t:'req',expr:'必填 YYYY-MM-DD',val:'2025-11-08',block:0}
+],
+'测试桩':[
+ {k:'code',label:'桩编号',t:'fmt',expr:'CS-YYYY-NNNN',pref:'CS-',val:'CS-2020-0241',block:1},
+ {k:'pipe',label:'所属管段',t:'req',expr:'必填，格式 GD-XXXX',val:'GD-2020-311',block:1},
+ {k:'depth',label:'埋深（m）',t:'num',expr:'数值范围 0.5 - 1.5 m',min:0.5,max:1.5,val:'1.2',block:0},
+ {k:'ptype',label:'桩体类型',t:'req',expr:'必填：测试桩（须与标志桩区分登记）',val:'测试桩',block:1},
+ {k:'d0',label:'投运日期',t:'req',expr:'必填 YYYY-MM-DD',val:'2020-05-16',block:1}
+],
+'井盖':[
+ {k:'code',label:'编号',t:'fmt',expr:'JG-YYYY-NNNN',pref:'JG-',val:'JG-2016-1088',block:1},
+ {k:'pipe',label:'所属管段',t:'req',expr:'必填，格式 GD-XXXX',val:'GD-2016-415',block:1},
+ {k:'mat',label:'材质',t:'req',expr:'必填（球墨铸铁/复合）',val:'球墨铸铁',block:0},
+ {k:'dia',label:'直径（mm）',t:'num',expr:'数值范围 500 - 800 mm',min:500,max:800,val:'700',block:0},
+ {k:'d0',label:'投运日期',t:'req',expr:'必填 YYYY-MM-DD',val:'2016-08-22',block:1},
+ {k:'lp',label:'上次巡检日期',t:'req',expr:'必填 YYYY-MM-DD',val:'2026-10-09',block:0}
+],
+'燃气立管':[
+ {k:'code',label:'立管编号',t:'fmt',expr:'LG-YYYY-NNNN',pref:'LG-',val:'LG-2017-0663',block:1},
+ {k:'bld',label:'楼栋号',t:'req',expr:'必填',val:'文三路90号3幢',block:1},
+ {k:'dia',label:'管径（DN）',t:'num',expr:'数值范围 15 - 100',min:15,max:100,val:'40',block:0},
+ {k:'anti',label:'防腐层状况',t:'req',expr:'必填（完好/破损）',val:'完好',block:1},
+ {k:'d0',label:'投运日期',t:'req',expr:'必填 YYYY-MM-DD',val:'2017-04-11',block:1}
+],
+'管桥':[
+ {k:'code',label:'编号',t:'fmt',expr:'GQ-YYYY-NNNN',pref:'GQ-',val:'GQ-2012-0007',block:1},
+ {k:'span',label:'跨越长度（m）',t:'num',expr:'数值范围 5 - 120 m',min:5,max:120,val:'36',block:1},
+ {k:'rail',label:'护栏高度（m）',t:'num',expr:'数值范围 1.1 - 2.0 m',min:1.1,max:2.0,val:'1.2',block:1},
+ {k:'d0',label:'投运日期',t:'req',expr:'必填 YYYY-MM-DD',val:'2012-10-30',block:1},
+ {k:'ld',label:'上次结构检测日期',t:'req',expr:'必填 YYYY-MM-DD',val:'2024-10-18',block:0}
+],
+'防护围栏':[
+ {k:'code',label:'编号',t:'fmt',expr:'WL-YYYY-NNNN',pref:'WL-',val:'WL-2019-0133',block:1},
+ {k:'ref',label:'所属设备',t:'req',expr:'必填（设备编号）',val:'GQ-2012-0007',block:1},
+ {k:'len',label:'围栏长度（m）',t:'num',expr:'数值范围 1 - 50 m',min:1,max:50,val:'24',block:0},
+ {k:'cond',label:'完整性状况',t:'req',expr:'必填（完好/破损）',val:'完好',block:1},
+ {k:'d0',label:'投运日期',t:'req',expr:'必填 YYYY-MM-DD',val:'2019-07-25',block:1}
+]
+};
+
+function rtype(t){return t==='req'?'必填':(t==='num'?'数值范围':(t==='fmt'?'格式':'逻辑互斥'));}
+function getDef(t,k){var arr=F[t]||[];for(var i=0;i<arr.length;i++){if(arr[i].k===k){return arr[i];}}return null;}
+function getVal(k){var el=document.getElementById('fi-'+k);return el?(el.value||'').trim():'';}
+
+function checkDef(d){
+  var v=getVal(d.k);
+  if(d.t==='req'){if(!v){return '必填项不能为空';}return '';}
+  if(d.t==='fmt'){if(!v){return '必填项不能为空';}if(v.indexOf(d.pref)!==0){return '格式不匹配：'+d.expr;}return '';}
+  if(d.t==='num'){
+    var n=parseFloat(v);
+    if(v===''||isNaN(n)){return '须为数值';}
+    if(n<d.min||n>d.max){return '超出允许区间 ['+d.min+' - '+d.max+']';}
+    return '';
+  }
+  if(d.t==='mutex'){
+    var n=parseFloat(v);
+    if(isNaN(n)){return '须为数值';}
+    var dep=getDef(CUR,d.dep);var dn=parseFloat(getVal(d.dep));
+    if(isNaN(dn)){return '依赖字段「'+(dep?dep.label:d.dep)+'」未填写';}
+    if(n<dn){return '逻辑互斥：'+d.label+'不得低于'+(dep?dep.label:d.dep)+'（当前 '+n+' < '+dn+'）';}
+    return '';
+  }
+  if(d.t==='after'){
+    if(!v){return '必填项不能为空';}
+    var dep=getDef(CUR,d.dep);var dv=getVal(d.dep);
+    if(dv&&v<dv){return '逻辑互斥：'+d.label+'不得早于'+(dep?dep.label:d.dep);}
+    return '';
+  }
+  return '';
+}
+
+function renderType(t){
+  CUR=t;
+  document.querySelectorAll('.dtype-chip').forEach(function(c){c.classList.toggle('active',c.getAttribute('data-type')===t);});
+  var defs=F[t]||[];
+  var rt='';
+  defs.forEach(function(d){
+    rt+='<tr><td>'+d.label+'</td><td><span class="tag tag-cyan">'+rtype(d.t)+'</span></td><td class="mono">'+d.expr+'</td><td>'+(d.block?'<span class="tag tag-red">阻断</span>':'<span class="tag tag-orange">提示</span>')+'</td><td id="rc-'+d.k+'"><span class="tag tag-gray">待校验</span></td></tr>';
+  });
+  document.getElementById('rule-tbody').innerHTML=rt;
+  var fm='';
+  defs.forEach(function(d){
+    var it=/日期/.test(d.label)?'date':'text';
+    fm+='<div class="form-cell"><label class="form-label">'+d.label+(d.block?' <span class="req">*</span>':'')+'</label><input class="form-input" id="fi-'+d.k+'" type="'+it+'" value="'+(d.val||'')+'" onblur="vField(\''+d.k+'\')"><div class="field-hint" id="fh-'+d.k+'">'+d.expr+'</div></div>';
+  });
+  document.getElementById('form-grid').innerHTML=fm;
+  refreshBlock();
+}
+
+function refreshBlock(){
+  var errs=[];
+  F[CUR].forEach(function(d){
+    var m=checkDef(d);
+    var el=document.getElementById('fi-'+d.k);var h=document.getElementById('fh-'+d.k);var rc=document.getElementById('rc-'+d.k);
+    if(el){el.classList.toggle('err',!!m);}
+    if(h){h.textContent=m?m:d.expr;h.classList.toggle('err',!!m);}
+    if(rc){rc.innerHTML=m?'<span class="tag tag-red">未通过</span>':'<span class="tag tag-green">通过</span>';}
+    if(m){errs.push({d:d,msg:m});}
+  });
+  var blocks=errs.filter(function(e){return e.d.block;});
+  var btn=document.getElementById('btn-submit');
+  var strip=document.getElementById('v1-strip');
+  if(blocks.length){
+    btn.disabled=true;
+    var html='<i class="fa-solid fa-circle-exclamation"></i><div><b>整表校验未通过（阻断级 '+blocks.length+' 项）——提交按钮已禁用，提交接口直接拒绝，系统层面无绕过路径</b>';
+    blocks.forEach(function(e){html+='<div class="judg">· '+e.d.label+'：'+e.msg+' ｜ 判定依据：'+e.d.expr+'</div>';});
+    html+='</div>';
+    strip.innerHTML=html;
+    strip.className='alert-strip red';
+    strip.style.display='flex';
+  }else if(errs.length){
+    btn.disabled=false;
+    var h2='<i class="fa-solid fa-triangle-exclamation"></i><div><b>存在提示级问题 '+errs.length+' 项（可确认提交）</b>';
+    errs.forEach(function(e){h2+='<div class="judg">· '+e.d.label+'：'+e.msg+' ｜ 判定依据：'+e.d.expr+'</div>';});
+    h2+='</div>';
+    strip.innerHTML=h2;
+    strip.className='alert-strip orange';
+    strip.style.display='flex';
+  }else{
+    btn.disabled=false;
+    strip.innerHTML='<i class="fa-solid fa-circle-check"></i><div><b>整表校验通过</b>——写入台账并同步更新生命周期档案时间节点</div>';
+    strip.className='alert-strip cyan';
+    strip.style.display='flex';
+  }
+}
+
+function vField(){refreshBlock();}
+
+function submitForm(){
+  var errs=[];
+  F[CUR].forEach(function(d){var m=checkDef(d);if(m){errs.push({d:d,msg:m});}});
+  var blocks=errs.filter(function(e){return e.d.block;});
+  if(blocks.length){showToast('阻断级错误未修正：提交接口已直接拒绝（服务端二次校验防绕过）');return;}
+  if(errs.length){showToast('提示级问题已确认提交：台账写入成功，同步更新生命周期档案');return;}
+  showToast('整表校验通过：台账写入成功，同步更新生命周期档案时间节点');
+}
+
+function openExc(){
+  var errs=[];
+  F[CUR].forEach(function(d){var m=checkDef(d);if(m&&d.block){errs.push({d:d,msg:m});}});
+  var e=errs[0];
+  var ruleEl=document.getElementById('exc-rule');
+  var valEl=document.getElementById('exc-value');
+  if(e){
+    ruleEl.value=CUR+' · '+e.d.label+'（'+rtype(e.d.t)+'：'+e.d.expr+'）';
+    valEl.value=getVal(e.d.k);
+  }else{
+    ruleEl.value=CUR+' · 出口压力（逻辑互斥：≥ 进口压力）';
+    valEl.value='0.12';
+  }
+  openModal('modal-exception');
+}
+
+function resetDemo(){renderType('调压器');showToast('已重置演示：出口压力 0.12 < 进口压力 0.20，阻断生效');}
+
+/* 移动端演示 */
+function phCheck(){
+  var pin=parseFloat(document.getElementById('ph-pin').value);
+  var pout=parseFloat(document.getElementById('ph-pout').value);
+  var bad=isNaN(pin)||isNaN(pout)||pout<pin;
+  document.getElementById('ph-pout').classList.toggle('err',bad);
+  document.getElementById('ph-hint').classList.toggle('err',bad);
+  document.getElementById('ph-hint').textContent=bad?('逻辑互斥：出口压力不得低于进口压力（当前 '+pout+' < '+pin+'）'):'逻辑互斥：出口压力 ≥ 进口压力';
+  document.getElementById('ph-strip').style.display=bad?'flex':'none';
+  document.getElementById('ph-btn').disabled=bad;
+}
+function phFix(){
+  document.getElementById('ph-pout').value='0.24';
+  phCheck();
+}
+
+/* 视图2：规则筛选与启停 */
+function filterRules(){
+  var t=document.getElementById('rf-type').value;
+  var c=document.getElementById('rf-cat').value;
+  document.querySelectorAll('#rule-tbody2 tr').forEach(function(r){
+    var ok1=(t==='全部'||r.getAttribute('data-type')===t);
+    var ok2=(c==='全部'||r.getAttribute('data-cat')===c);
+    r.style.display=(ok1&&ok2)?'':'none';
+  });
+}
+function toggleRule(el){
+  var on=(el.textContent==='启用');
+  el.textContent=on?'停用':'启用';
+  el.className='tag '+(on?'tag-gray':'tag-green');
+  showToast(on?'规则已停用：下一次提交校验即生效（版本留痕 V3.2）':'规则已启用：下一次提交校验即生效（版本留痕 V3.2）');
+}
+
+/* 视图5：档案切换 */
+function switchDevice(v){
+  showToast('演示：已切换至 '+v.split(' ')[0]+' 档案（时间轴与四组字段联动）');
+}
+
+/* 视图6：延期审批 */
+function openDefer(code){
+  document.getElementById('defer-code').textContent=code;
+  openModal('modal-defer');
+}
+function submitDefer(){
+  var m=document.getElementById('defer-months').value;
+  closeModal('modal-defer');
+  showToast('延期申请已提交（单次 '+m+'，≤6 个月）：审批后生效，设备仍计入超期统计分母');
+}
+
+/* 初始化 */
+renderType('调压器');
+</script>
+</body>
+</html>

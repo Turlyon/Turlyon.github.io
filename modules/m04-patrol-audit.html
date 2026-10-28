@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M04 · 管道保护AI图像稽核助手</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="../styles/liquid-glass.css">
+<style>
+/* ===== M04 模块自定义 ===== */
+.doc-row{display:flex;gap:16px;align-items:center;padding:12px 14px;border:1px solid var(--glass-border);border-radius:var(--radius-md);background:rgba(255,255,255,.55);margin-bottom:10px;flex-wrap:wrap;}
+.doc-row.blocked{border-color:rgba(255,59,48,.35);background:var(--c-danger-soft);}
+.doc-thumb{width:84px;height:108px;border-radius:8px;background:linear-gradient(180deg,#FFFFFF,#EFF6F9);border:1px solid rgba(22,50,60,.14);position:relative;flex-shrink:0;box-shadow:0 3px 10px rgba(14,50,60,.10);}
+.doc-thumb::before{content:'';position:absolute;left:10px;right:10px;top:28px;height:56px;background:repeating-linear-gradient(180deg,rgba(22,50,60,.13) 0 2px,transparent 2px 10px);}
+.doc-thumb::after{content:'';position:absolute;left:10px;top:12px;width:50px;height:6px;border-radius:3px;background:rgba(14,116,144,.45);}
+.anno{position:absolute;border:1.5px dashed var(--c-ok);border-radius:4px;z-index:2;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#1E9E44;}
+.anno.miss{border-color:var(--c-danger);background:rgba(255,59,48,.14);color:#D93025;}
+.anno.suspect{border-color:var(--c-warn);background:var(--c-warn-soft);color:#C67200;}
+.doc-info{flex:1;min-width:230px;}
+.doc-name{font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.doc-meta{font-size:11.5px;color:var(--c-text-2);margin-top:3px;}
+.doc-detail{font-size:12px;margin-top:6px;line-height:1.6;}
+.doc-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.rule-head{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:14px;font-weight:700;}
+.rule-icon{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+.ph-card{background:rgba(255,255,255,.82);border:1px solid var(--glass-border);border-radius:14px;padding:12px 14px;margin-bottom:10px;box-shadow:var(--glass-inner);}
+.ph-card.danger{background:var(--c-danger-soft);border-color:rgba(255,59,48,.3);}
+.ph-title{font-size:13px;font-weight:700;display:flex;align-items:center;gap:7px;}
+.ph-sub{font-size:11px;color:var(--c-text-2);margin-top:3px;line-height:1.5;}
+.ph-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px dashed var(--c-line);font-size:12px;}
+.ph-row:last-child{border-bottom:none;}
+.tl{position:relative;padding-left:24px;}
+.tl::before{content:'';position:absolute;left:7px;top:8px;bottom:8px;width:2px;background:rgba(22,50,60,.12);border-radius:2px;}
+.tl-item{position:relative;padding-bottom:16px;}
+.tl-item:last-child{padding-bottom:0;}
+.tl-item::before{content:'';position:absolute;left:-22px;top:3px;width:11px;height:11px;border-radius:50%;background:#fff;border:3px solid var(--c-text-3);box-sizing:border-box;}
+.tl-item.done::before{border-color:var(--c-ok);background:var(--c-ok);}
+.tl-item.active::before{border-color:var(--c-warn);box-shadow:0 0 0 4px var(--c-warn-soft);}
+.tl-time{font-family:'DM Mono',monospace;font-size:10.5px;color:var(--c-text-3);}
+.measure-card{border-left:4px solid var(--c-text-3);}
+.measure-card.miss{border-left-color:var(--c-danger);}
+.measure-card.offset{border-left-color:var(--c-warn);}
+.measure-card.moved{border-left-color:var(--c-danger);}
+.quote-box{background:var(--c-primary-soft);border-left:3px solid var(--c-primary);border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:12px 14px;font-size:12.5px;line-height:1.7;color:var(--c-text);}
+.kv-list{font-size:12.5px;}
+.kv-list .k{display:flex;gap:10px;padding:5px 0;}
+.kv-list .k b{color:var(--c-text-2);font-weight:500;min-width:92px;flex-shrink:0;}
+.tier-row{margin-top:12px;}
+.tier-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12.5px;font-weight:600;}
+</style>
+</head>
+<body>
+<div class="ambient-blob"></div>
+<div class="module-wrap">
+
+  <div class="module-top">
+    <div class="module-title">管道保护AI图像稽核助手</div>
+    <span class="badge badge-high"><i class="fa-solid fa-fire"></i>优先级 高（核心）</span>
+    <div class="module-sub" style="flex-basis:100%;">条款 5.4.4 ｜ 单据签章稽核 · 影像三道闸纠错 · 场景与保护措施风险研判 · 不合格记录整改闭环 ｜ 考核指标：管道保护场景识别准确率 ≥ 90% ｜ 规则与样本到位即可启动训练</div>
+  </div>
+
+  <div class="seg mb-14">
+    <button class="seg-item active" data-view="v-单据稽核-签章检测-" onclick="switchView('v-单据稽核-签章检测-')"><i class="fa-solid fa-file-signature"></i> 单据稽核（签章检测）</button>
+    <button class="seg-item" data-view="v-影像纠错-质量闸-时空闸-去重闸-" onclick="switchView('v-影像纠错-质量闸-时空闸-去重闸-')"><i class="fa-solid fa-filter-circle-xmark"></i> 影像纠错（三道闸）</button>
+    <button class="seg-item" data-view="v-风险研判-场景识别与保护措施稽核-" onclick="switchView('v-风险研判-场景识别与保护措施稽核-')"><i class="fa-solid fa-magnifying-glass-chart"></i> 风险研判（场景与保护措施）</button>
+    <button class="seg-item" data-view="v-闭环管理-不合格记录与整改销号-" onclick="switchView('v-闭环管理-不合格记录与整改销号-')"><i class="fa-solid fa-clipboard-check"></i> 闭环管理（整改销号）</button>
+  </div>
+
+  <!-- ============ 页面1：单据稽核（签章检测） ============ -->
+  <section class="view active" id="v-单据稽核-签章检测-">
+    <div class="page-head">
+      <div>
+        <div class="page-title">单据稽核（签章检测）</div>
+        <div class="page-desc">终端：PC端 + 外勤APP ｜ 角色：现场人员、管道保护专职人员 ｜ 拍摄 / 选择单据影像提交即创建稽核任务，版式匹配 + 标题OCR 双通道防错传</div>
+      </div>
+      <div class="flex" style="gap:8px;flex-wrap:wrap;">
+        <span class="tag tag-green">已签署 · 通过</span>
+        <span class="tag tag-red">未签署 · 阻断</span>
+        <span class="tag tag-orange">疑似 · 待人工</span>
+      </div>
+    </div>
+
+    <div class="alert-strip cyan"><i class="fa-solid fa-circle-info"></i><span><b>稽核边界：</b>只核验照片规范性与完整性、不判断少拍漏拍；单据只核验标题与签字盖章、不判断填写正确。</span></div>
+
+    <div class="grid g-4">
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-file-signature"></i>今日稽核单据</div>
+        <div class="stat-value">128</div>
+        <div class="stat-sub">五类单据 · APP + PC 提交</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-circle-check"></i>已签署通过</div>
+        <div class="stat-value green">109</div>
+        <div class="stat-sub">自动归档 · 写入闭环台账</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-ban"></i>未签署阻断</div>
+        <div class="stat-value red">11</div>
+        <div class="stat-sub">归档拒绝 · 返回缺签位置</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-user-check"></i>疑似待人工</div>
+        <div class="stat-value orange">8</div>
+        <div class="stat-sub">印章模糊 / 双通道不一致</div>
+      </div>
+    </div>
+
+    <div class="grid g-pc-phone mt-14">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-file-signature"></i>五类单据稽核（工地 GD-2107 · 莫干山路燃气改造工程）</div>
+          <span class="tag tag-gray">模板：类型 / 标题关键词 / 检测区域 后台可配置</span>
+        </div>
+
+        <div class="doc-row">
+          <div class="doc-thumb">
+            <div class="anno" style="left:10px;top:76px;width:30px;height:24px;">签</div>
+            <div class="anno" style="left:44px;top:76px;width:30px;height:24px;">章</div>
+          </div>
+          <div class="doc-info">
+            <div class="doc-name">安全告知单 <span class="tag tag-cyan">类型置信 98.4%</span> <span class="tag tag-green"><i class="fa-solid fa-circle-check"></i>已签署</span></div>
+            <div class="doc-meta">拍摄：王*强 ｜ 2026-10-28 09:41 ｜ 双通道一致（版式匹配 + 标题OCR）</div>
+            <div class="doc-detail">签章检出：施工方签字栏手写签名 1 处、单位红色印章 1 枚，位置框已标注。</div>
+          </div>
+          <div class="doc-actions">
+            <button class="btn btn-glass btn-sm" onclick="showToast('已打开单据影像与签章标注框（演示）')"><i class="fa-solid fa-eye"></i>查看</button>
+            <button class="btn btn-primary btn-sm" onclick="showToast('安全告知单已归档，并写入闭环台账')"><i class="fa-solid fa-box-archive"></i>归档</button>
+          </div>
+        </div>
+
+        <div class="doc-row blocked">
+          <div class="doc-thumb">
+            <div class="anno miss" style="left:10px;top:76px;width:30px;height:24px;">缺签</div>
+            <div class="anno miss" style="left:44px;top:76px;width:30px;height:24px;">缺章</div>
+          </div>
+          <div class="doc-info">
+            <div class="doc-name">监护协议书 <span class="tag tag-cyan">类型置信 97.1%</span> <span class="tag tag-red"><i class="fa-solid fa-circle-xmark"></i>未签署</span></div>
+            <div class="doc-meta">拍摄：王*强 ｜ 2026-10-28 09:47 ｜ 类型识别正确 · 签章未检出</div>
+            <div class="doc-detail"><span style="color:#D93025;font-weight:600;">缺签位置：乙方签字栏（第2栏）、监护单位盖章区</span> —— 未签署为阻断级，归档将被拒绝。</div>
+          </div>
+          <div class="doc-actions">
+            <button class="btn btn-glass btn-sm" onclick="showToast('已打开单据影像与缺签红框标注（演示）')"><i class="fa-solid fa-eye"></i>查看</button>
+            <button class="btn btn-danger btn-sm" onclick="openModal('modal-block-archive')"><i class="fa-solid fa-ban"></i>归档（演示阻断）</button>
+          </div>
+        </div>
+
+        <div class="doc-row">
+          <div class="doc-thumb">
+            <div class="anno" style="left:10px;top:76px;width:30px;height:24px;">签</div>
+            <div class="anno" style="left:44px;top:76px;width:30px;height:24px;">章</div>
+          </div>
+          <div class="doc-info">
+            <div class="doc-name">简易监护协议 <span class="tag tag-cyan">类型置信 96.8%</span> <span class="tag tag-green"><i class="fa-solid fa-circle-check"></i>已签署</span></div>
+            <div class="doc-meta">工地 GD-0342 · 沈半路短平快工程 ｜ 拍摄：李*敏 ｜ 2026-10-28 10:12 ｜ 简易监护 · 现场签字即可启动</div>
+            <div class="doc-detail">签章检出：甲方签字 + 施工方签字 + 按手印，共 3 处。</div>
+          </div>
+          <div class="doc-actions">
+            <button class="btn btn-glass btn-sm" onclick="showToast('已打开单据影像与签章标注框（演示）')"><i class="fa-solid fa-eye"></i>查看</button>
+            <button class="btn btn-primary btn-sm" onclick="showToast('简易监护协议已归档，现场监护即时启动')"><i class="fa-solid fa-box-archive"></i>归档</button>
+          </div>
+        </div>
+
+        <div class="doc-row">
+          <div class="doc-thumb">
+            <div class="anno suspect" style="left:10px;top:76px;width:30px;height:24px;">签</div>
+            <div class="anno suspect" style="left:44px;top:76px;width:30px;height:24px;">章?</div>
+          </div>
+          <div class="doc-info">
+            <div class="doc-name">安全交底 <span class="tag tag-cyan">类型置信 95.7%</span> <span class="tag tag-orange"><i class="fa-solid fa-circle-exclamation"></i>疑似</span></div>
+            <div class="doc-meta">拍摄：王*强 ｜ 2026-10-28 09:53 ｜ 双通道结论不一致 · 以标题OCR为准</div>
+            <div class="doc-detail">印章边界反光模糊（检出置信 0.61），标记待人工确认；版式通道曾误判为「安全告知单」，已按标题纠正，类型错传为提示级允许纠正重传。</div>
+          </div>
+          <div class="doc-actions">
+            <button class="btn btn-glass btn-sm" onclick="showToast('已打开单据影像与存疑标注框（演示）')"><i class="fa-solid fa-eye"></i>查看</button>
+            <button class="btn btn-accent btn-sm" onclick="showToast('已推送管道保护专职人员进行人工确认（演示）')"><i class="fa-solid fa-user-check"></i>人工确认</button>
+          </div>
+        </div>
+
+        <div class="doc-row">
+          <div class="doc-thumb">
+            <div class="anno" style="left:10px;top:76px;width:30px;height:24px;">签</div>
+            <div class="anno" style="left:44px;top:76px;width:30px;height:24px;">章</div>
+          </div>
+          <div class="doc-info">
+            <div class="doc-name">监护工作记录 <span class="tag tag-cyan">类型置信 99.0%</span> <span class="tag tag-green"><i class="fa-solid fa-circle-check"></i>已签署</span></div>
+            <div class="doc-meta">工地 GD-2305 · 运河路道路整治工程 ｜ 拍摄：赵*磊 ｜ 2026-10-27 16:20 ｜ 双通道一致</div>
+            <div class="doc-detail">签章检出：记录人签字 + 监护人签字 + 项目部印章，共 3 处。</div>
+          </div>
+          <div class="doc-actions">
+            <button class="btn btn-glass btn-sm" onclick="showToast('已打开单据影像与签章标注框（演示）')"><i class="fa-solid fa-eye"></i>查看</button>
+            <button class="btn btn-primary btn-sm" onclick="showToast('监护工作记录已归档，并写入闭环台账')"><i class="fa-solid fa-box-archive"></i>归档</button>
+          </div>
+        </div>
+
+        <div class="tiny">签章检出结论三档：已签署（自动归档）/ 未签署（阻断级，归档接口直接拒绝并返回缺签位置）/ 疑似（待人工确认）。</div>
+      </div>
+
+      <div>
+        <div class="phone-frame">
+          <div class="phone-screen">
+            <div class="phone-notch"></div>
+            <div class="phone-statusbar"><span>10:28</span><span><i class="fa-solid fa-signal"></i> <i class="fa-solid fa-wifi"></i> <i class="fa-solid fa-battery-three-quarters"></i></span></div>
+            <div class="phone-body">
+              <div class="ph-card">
+                <div class="ph-title"><i class="fa-solid fa-clipboard-list" style="color:var(--c-primary);"></i>今日任务 · 工地 GD-2107</div>
+                <div class="ph-sub">莫干山路燃气改造工程 ｜ 大型监护 ｜ 责任人：王*强</div>
+                <div class="flex mt-8" style="gap:6px;flex-wrap:wrap;">
+                  <span class="tag tag-green">时空核验通过</span>
+                  <span class="tag tag-red">单据缺签 1 项</span>
+                </div>
+              </div>
+              <div class="ph-card">
+                <div class="ph-title"><i class="fa-solid fa-list-check" style="color:var(--c-primary);"></i>五类单据稽核状态</div>
+                <div class="mt-8">
+                  <div class="ph-row"><span>安全告知单</span><span class="tag tag-green">已签署</span></div>
+                  <div class="ph-row"><span>监护协议书</span><span class="tag tag-red">未签署</span></div>
+                  <div class="ph-row"><span>简易监护协议</span><span class="tag tag-gray">非必备</span></div>
+                  <div class="ph-row"><span>安全交底</span><span class="tag tag-orange">疑似</span></div>
+                  <div class="ph-row"><span>监护工作记录</span><span class="tag tag-green">已签署</span></div>
+                </div>
+              </div>
+              <div class="ph-card danger">
+                <div class="ph-title" style="color:#D93025;"><i class="fa-solid fa-ban"></i>监护协议书 · 归档被阻断</div>
+                <div class="ph-sub">缺签位置：乙方签字栏（第2栏）、盖章区。补签后重传即可通过。</div>
+                <button class="btn btn-primary btn-sm mt-8" onclick="showToast('已定位缺签位置：乙方签字栏（红框标注）')"><i class="fa-solid fa-crosshairs"></i>返回缺签位置</button>
+              </div>
+              <div class="ph-card">
+                <div class="ph-title"><i class="fa-solid fa-camera" style="color:var(--c-ok);"></i>拍摄上传</div>
+                <div class="ph-sub">拍摄 / 选择单据照片提交，即创建稽核任务；时间与坐标水印自动附加。</div>
+              </div>
+            </div>
+            <div class="phone-tabbar">
+              <div class="phone-tab active"><i class="fa-solid fa-clipboard-list"></i>任务</div>
+              <div class="phone-tab"><i class="fa-solid fa-camera"></i>拍摄</div>
+              <div class="phone-tab"><i class="fa-solid fa-book"></i>台账</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid g-2 mt-14">
+      <div class="glass-card">
+        <div class="rule-head"><span class="rule-icon" style="background:var(--c-ok-soft);color:var(--c-ok);"><i class="fa-solid fa-bolt"></i></span>简易监护 · 短平快工程</div>
+        <ul class="icon-list">
+          <li><i class="fa-solid fa-check"></i><span>现场（甲方 + 施工方）签字即可启动监护，无需回站办理</span></li>
+          <li><i class="fa-solid fa-file-lines"></i><span>必备单据：安全告知单 + 简易监护协议</span></li>
+          <li><i class="fa-solid fa-camera"></i><span>当场签署、当场拍照回传，AI 即时稽核签章</span></li>
+          <li><i class="fa-solid fa-box-archive"></i><span>稽核通过直接归档并写入闭环台账</span></li>
+        </ul>
+      </div>
+      <div class="glass-card">
+        <div class="rule-head"><span class="rule-icon" style="background:var(--c-primary-soft);color:var(--c-primary);"><i class="fa-solid fa-shield-halved"></i></span>大型监护 · 完整单据链</div>
+        <ul class="icon-list">
+          <li><i class="fa-solid fa-file-signature"></i><span>开工前完成五类单据签署与归档：安全告知单 / 监护协议书 / 简易监护协议（如适用）/ 安全交底 / 监护工作记录</span></li>
+          <li><i class="fa-solid fa-ban"></i><span>未签署为阻断级：归档接口直接拒绝并返回缺签位置</span></li>
+          <li><i class="fa-solid fa-rotate"></i><span>补签重传通过归档，闭环台账全程留痕</span></li>
+          <li><i class="fa-solid fa-user-shield"></i><span>例外放行：运行站负责人系统内审批，审批记录随单留痕</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="modal-mask" id="modal-block-archive" onclick="if(event.target===this)closeModal('modal-block-archive')">
+      <div class="glass-modal blocking">
+        <div class="blocking-strip"><i class="fa-solid fa-ban"></i>归档阻断 · 未检出签字盖章</div>
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-file-signature" style="color:var(--c-danger);"></i>监护协议书 · 归档被拒绝</div>
+          <button class="modal-close" onclick="closeModal('modal-block-archive')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="kv-list">
+            <div class="k"><b>单据类型</b><span>监护协议书（类型置信 97.1%，双通道一致）</span></div>
+            <div class="k"><b>所属工地</b><span>GD-2107 · 莫干山路燃气改造工程</span></div>
+            <div class="k"><b>缺签位置①</b><span style="color:#D93025;font-weight:600;">乙方签字栏（第 2 栏）— 图上红框已定位</span></div>
+            <div class="k"><b>缺签位置②</b><span style="color:#D93025;font-weight:600;">监护单位盖章区 — 图上红框已定位</span></div>
+            <div class="k"><b>阻断规则</b><span>未签署为阻断级，归档接口直接拒绝；补签重传通过后归档并写入闭环台账</span></div>
+            <div class="k"><b>例外放行</b><span>须运行站负责人系统内审批，审批记录随单留痕</span></div>
+          </div>
+          <div class="alert-strip red mt-14" style="margin-bottom:0;"><i class="fa-solid fa-triangle-exclamation"></i>图上红框已定位缺签位置，请补签后重传；本阻断不可现场绕过。</div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-glass" onclick="closeModal('modal-block-archive');showToast('例外审批已提交：运行站负责人 李*敏（演示）')"><i class="fa-solid fa-user-shield"></i>申请例外审批</button>
+          <button class="btn btn-primary" onclick="closeModal('modal-block-archive');showToast('已返回缺签位置：乙方签字栏（图上红框标注）')"><i class="fa-solid fa-crosshairs"></i>返回缺签位置</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 页面2：影像纠错（质量闸/时空闸/去重闸） ============ -->
+  <section class="view" id="v-影像纠错-质量闸-时空闸-去重闸-">
+    <div class="page-head">
+      <div>
+        <div class="page-title">影像纠错（质量闸 / 时空闸 / 去重闸）</div>
+        <div class="page-desc">终端：PC端 + 外勤APP ｜ 角色：现场人员、管理人员 ｜ 三道闸串联执行，任一拦截即中止后续并返回拦截原因与分类重拍引导</div>
+      </div>
+      <div class="flex" style="gap:8px;flex-wrap:wrap;">
+        <span class="tag tag-blue">质量闸</span>
+        <span class="tag tag-cyan">时空闸</span>
+        <span class="tag tag-accent">去重闸</span>
+      </div>
+    </div>
+
+    <div class="alert-strip cyan"><i class="fa-solid fa-circle-info"></i><span><b>稽核边界：</b>只核验照片规范性与完整性、不判断少拍漏拍；单据只核验标题与签字盖章、不判断填写正确。</span></div>
+
+    <div class="grid g-4">
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-images"></i>今日过闸照片</div>
+        <div class="stat-value">1,246</div>
+        <div class="stat-sub">串联执行 · 全程留痕</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-circle-xmark"></i>质量闸拦截</div>
+        <div class="stat-value red">87</div>
+        <div class="stat-sub">模糊 / 黑屏 / 过曝 / 过暗 / 无关图</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-location-dot"></i>时空闸拦截</div>
+        <div class="stat-value orange">23</div>
+        <div class="stat-sub">坐标偏离 / 时间窗外 / 水印异常</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-clone"></i>去重闸命中</div>
+        <div class="stat-value accent">9</div>
+        <div class="stat-sub">推送管理人员确认 · 不直接拒收</div>
+      </div>
+    </div>
+
+    <div class="glass-card mb-14 mt-14">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-route"></i>三道闸串联流程 · 样本 GC-261028-0892</div>
+        <span class="tag tag-red"><i class="fa-solid fa-ban"></i>质量闸拦截 · 后续闸门中止</span>
+      </div>
+      <div class="steps">
+        <div class="step active"><span class="dot">1</span>质量闸 · 清晰度 / 曝光 / 无关图</div>
+        <div class="step"><span class="dot">2</span>时空闸 · 坐标 / 时间窗 / 水印</div>
+        <div class="step"><span class="dot">3</span>去重闸 · 感知哈希比对</div>
+      </div>
+    </div>
+
+    <div class="grid g-pc-phone">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-table-list"></i>三道闸判定数值表（稽核留痕）</div>
+          <span class="tag tag-gray">日间 / 夜间双参数</span>
+        </div>
+        <div class="table-scroll">
+          <table class="glass-table">
+            <thead>
+              <tr><th>闸门</th><th>判定指标</th><th>阈值</th><th>样本值</th><th>结论</th><th>操作</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="tag tag-blue">质量闸</span></td>
+                <td>清晰度 · 拉普拉斯方差</td>
+                <td class="mono">日间 ≥100 ｜ 夜间 ≥60</td>
+                <td class="mono" style="color:#D93025;font-weight:700;">42.7</td>
+                <td><span class="tag tag-red">拦截 · 模糊</span></td>
+                <td><button class="btn btn-glass btn-xs" onclick="openModal('modal-retake')">重拍引导</button></td>
+              </tr>
+              <tr>
+                <td><span class="tag tag-blue">质量闸</span></td>
+                <td>有效像素占比</td>
+                <td class="mono">≥85%</td>
+                <td class="mono">93.6%</td>
+                <td><span class="tag tag-green">通过</span></td>
+                <td><span class="tiny">—</span></td>
+              </tr>
+              <tr>
+                <td><span class="tag tag-blue">质量闸</span></td>
+                <td>高亮像素占比（过曝）</td>
+                <td class="mono">≤20%</td>
+                <td class="mono">3.4%</td>
+                <td><span class="tag tag-green">通过</span></td>
+                <td><span class="tiny">—</span></td>
+              </tr>
+              <tr>
+                <td><span class="tag tag-blue">质量闸</span></td>
+                <td>亮度均值（过暗 / 黑屏）</td>
+                <td class="mono">日间 60–200 ｜ 夜间 40–160</td>
+                <td class="mono">142</td>
+                <td><span class="tag tag-green">通过</span></td>
+                <td><span class="tiny">—</span></td>
+              </tr>
+              <tr>
+                <td><span class="tag tag-cyan">时空闸</span></td>
+                <td>坐标偏离量</td>
+                <td class="mono">≤50 米（按工地类型配置容差）</td>
+                <td class="mono" style="color:#D93025;font-weight:700;">128 米</td>
+                <td><span class="tag tag-red">拦截 · 偏离工地</span></td>
+                <td><button class="btn btn-glass btn-xs" onclick="openModal('modal-retake')">重拍引导</button></td>
+              </tr>
+              <tr>
+                <td><span class="tag tag-cyan">时空闸</span></td>
+                <td>时间窗口偏差</td>
+                <td class="mono">作业计划窗口 ±30 分钟</td>
+                <td class="mono">+6 分钟</td>
+                <td><span class="tag tag-green">通过</span></td>
+                <td><span class="tiny">—</span></td>
+              </tr>
+              <tr>
+                <td><span class="tag tag-cyan">时空闸</span></td>
+                <td>水印 × EXIF 交叉核对</td>
+                <td class="mono">时间 / 坐标一致</td>
+                <td class="mono">一致</td>
+                <td><span class="tag tag-green">通过</span></td>
+                <td><span class="tiny">—</span></td>
+              </tr>
+              <tr>
+                <td><span class="tag tag-accent">去重闸</span></td>
+                <td>感知哈希相似度</td>
+                <td class="mono">&lt;0.92</td>
+                <td class="mono" style="color:#C67200;font-weight:700;">0.95</td>
+                <td><span class="tag tag-orange">命中历史工单</span></td>
+                <td><button class="btn btn-glass btn-xs" onclick="openModal('modal-retake')">处置确认</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="tiny mt-8">注：样本值取自不同照片的稽核留痕，用于展示各闸判定口径；三道闸串联执行，任一拦截即中止后续闸门。</div>
+        <hr class="divider">
+        <ul class="icon-list">
+          <li><i class="fa-solid fa-circle-info"></i><span>EXIF 缺失或有篡改嫌疑：标记「可疑」转人工复核，不直接销毁（防设备时钟异常误伤）</span></li>
+          <li><i class="fa-solid fa-clone"></i><span>命中重复照片不直接拒收：标记后推送管理人员确认（防同工地连续作业合理相似被误判）；本例命中工单 GD-2305-261009-014</span></li>
+          <li><i class="fa-solid fa-fingerprint"></i><span>拦截结论与判定数值全程留痕，支持复核与申诉</span></li>
+        </ul>
+      </div>
+
+      <div>
+        <div class="phone-frame">
+          <div class="phone-screen">
+            <div class="phone-notch"></div>
+            <div class="phone-statusbar"><span>10:28</span><span><i class="fa-solid fa-signal"></i> <i class="fa-solid fa-wifi"></i> <i class="fa-solid fa-battery-three-quarters"></i></span></div>
+            <div class="phone-body">
+              <div class="ph-card">
+                <div class="ph-title"><i class="fa-solid fa-camera" style="color:var(--c-primary);"></i>照片上传 · 工地 GD-2107</div>
+                <div class="ph-sub">拍摄：王*强 ｜ 2026-10-28 09:42 ｜ 自动附加时间 / 坐标水印</div>
+              </div>
+              <div class="ph-card">
+                <div class="ph-title"><i class="fa-solid fa-filter-circle-xmark" style="color:var(--c-primary);"></i>过闸进度</div>
+                <div class="mt-8">
+                  <div class="ph-row"><span><i class="fa-solid fa-circle-xmark" style="color:#D93025;"></i> 质量闸</span><span class="tag tag-red">拦截 · 模糊</span></div>
+                  <div class="ph-row"><span><i class="fa-solid fa-circle" style="color:var(--c-text-3);"></i> 时空闸</span><span class="tag tag-gray">已中止</span></div>
+                  <div class="ph-row"><span><i class="fa-solid fa-circle" style="color:var(--c-text-3);"></i> 去重闸</span><span class="tag tag-gray">已中止</span></div>
+                </div>
+              </div>
+              <div class="ph-card danger">
+                <div class="ph-title" style="color:#D93025;"><i class="fa-solid fa-ban"></i>拦截原因：照片模糊</div>
+                <div class="ph-sub">拉普拉斯方差 42.7，低于日间阈值 100。请按引导重拍后重新上传。</div>
+                <button class="btn btn-primary btn-sm mt-8" onclick="openModal('modal-retake')"><i class="fa-solid fa-circle-question"></i>查看重拍引导</button>
+              </div>
+              <div class="ph-card">
+                <div class="ph-title"><i class="fa-solid fa-shield-halved" style="color:var(--c-ok);"></i>留痕与申诉</div>
+                <div class="ph-sub">拦截结论与判定数值全程留痕，可复核申诉；EXIF 异常转人工复核。</div>
+              </div>
+            </div>
+            <div class="phone-tabbar">
+              <div class="phone-tab"><i class="fa-solid fa-clipboard-list"></i>任务</div>
+              <div class="phone-tab active"><i class="fa-solid fa-camera"></i>拍摄</div>
+              <div class="phone-tab"><i class="fa-solid fa-book"></i>台账</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-mask" id="modal-retake" onclick="if(event.target===this)closeModal('modal-retake')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-camera-rotate" style="color:var(--c-warn);"></i>拦截原因分类重拍引导</div>
+          <button class="modal-close" onclick="closeModal('modal-retake')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="kv-list">
+            <div class="k"><b>样本编号</b><span class="mono">GC-261028-0892</span></div>
+            <div class="k"><b>所属工地</b><span>GD-2107 · 莫干山路燃气改造工程</span></div>
+            <div class="k"><b>拍摄信息</b><span>王*强 ｜ 2026-10-28 09:42 ｜ 定位：工地围挡外 128 米</span></div>
+            <div class="k"><b>拦截闸门</b><span>质量闸（串联中止：时空闸 / 去重闸未执行）</span></div>
+            <div class="k"><b>拦截原因</b><span style="color:#D93025;font-weight:600;">照片模糊 · 拉普拉斯方差 42.7（日间阈值 ≥100）</span></div>
+          </div>
+          <hr class="divider">
+          <div class="form-label" style="margin-bottom:4px;">分类重拍引导</div>
+          <ul class="icon-list">
+            <li><i class="fa-solid fa-camera"></i><span><b>模糊：</b>擦拭镜头、双手持机，点击屏幕对焦后再拍摄</span></li>
+            <li><i class="fa-solid fa-moon"></i><span><b>黑屏 / 过暗：</b>夜间开启补光，避免手指遮挡镜头</span></li>
+            <li><i class="fa-solid fa-sun"></i><span><b>过曝：</b>调整角度避开逆光与强反射面</span></li>
+            <li><i class="fa-solid fa-image"></i><span><b>无关图片：</b>仅拍摄工地现场与指定单据 / 点位</span></li>
+            <li><i class="fa-solid fa-location-dot"></i><span><b>坐标偏离：</b>进入工地围挡内拍摄，确认定位图标为实心</span></li>
+            <li><i class="fa-solid fa-clone"></i><span><b>重复照片：</b>拍摄当前施工进展，勿从相册选取历史照片</span></li>
+          </ul>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-glass" onclick="closeModal('modal-retake')">关闭</button>
+          <button class="btn btn-primary" onclick="closeModal('modal-retake');showToast('重拍引导已推送至外勤APP：王*强（演示）')"><i class="fa-solid fa-paper-plane"></i>通知现场重拍</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 页面3：风险研判（场景识别与保护措施稽核） ============ -->
+  <section class="view" id="v-风险研判-场景识别与保护措施稽核-">
+    <div class="page-head">
+      <div>
+        <div class="page-title">风险研判（场景识别与保护措施稽核）</div>
+        <div class="page-desc">终端：PC端 ｜ 角色：运行站管理人员、系统自动 ｜ 施工场景前置判定 → 三类保护措施目标检测（GIS 管线坐标为几何参考）→ 置信度分档 → 分级预警</div>
+      </div>
+      <div class="flex" style="gap:8px;flex-wrap:wrap;">
+        <span class="tag tag-red">缺失</span>
+        <span class="tag tag-orange">错位</span>
+        <span class="tag tag-red">被移动</span>
+      </div>
+    </div>
+
+    <div class="alert-strip cyan"><i class="fa-solid fa-circle-info"></i><span><b>稽核边界：</b>只核验照片规范性与完整性、不判断少拍漏拍；单据只核验标题与签字盖章、不判断填写正确。</span></div>
+
+    <div class="grid g-4">
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-helmet-safety"></i>今日研判工地</div>
+        <div class="stat-value">46</div>
+        <div class="stat-sub">场景前置判定 · 非施工图拦截</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-bolt"></i>高置信直出</div>
+        <div class="stat-value green">31</div>
+        <div class="stat-sub">置信 ≥0.90 直接出结论</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-brain"></i>大模型二次研判</div>
+        <div class="stat-value blue">9</div>
+        <div class="stat-sub">置信 0.70–0.90 · 理由留痕</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-user"></i>转人工复核</div>
+        <div class="stat-value orange">6</div>
+        <div class="stat-sub">置信 &lt;0.70 人工兜底</div>
+      </div>
+    </div>
+
+    <div class="grid g-main-side mt-14">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-map-location-dot"></i>工地 GIS 示意 · GD-2107 莫干山路燃气改造工程</div>
+          <span class="tag tag-red"><i class="fa-solid fa-triangle-exclamation"></i>硬隔离被移动 · 高级别</span>
+        </div>
+        <div class="map-canvas" style="min-height:400px;">
+          <svg style="position:absolute;inset:0;width:100%;height:100%;" viewBox="0 0 800 420" preserveAspectRatio="none">
+            <path class="pipe" d="M40,320 C180,300 240,220 380,200 S620,180 760,120" stroke="#0E7490" stroke-width="6"></path>
+            <path class="pipe" d="M40,360 C200,350 420,300 760,260" stroke="#34A8FF" stroke-width="4" opacity=".5"></path>
+            <rect x="300" y="110" width="260" height="160" rx="14" fill="rgba(255,149,0,.10)" stroke="#FF9500" stroke-width="2" stroke-dasharray="8 6"></rect>
+            <text x="326" y="136" font-size="13" fill="#C67200" font-weight="700">施工工地区域</text>
+            <path d="M330,230 L540,205" stroke="#C67200" stroke-width="12" opacity=".3" stroke-linecap="round"></path>
+            <text x="360" y="252" font-size="11" fill="#C67200">沟槽开挖</text>
+          </svg>
+          <div class="map-pin" style="left:39%;top:46%;background:var(--c-danger);" onclick="showToast('标志桩（应设处）：未检出目标 —— 缺失')"><i class="fa-solid fa-map-pin"></i></div>
+          <div class="map-pin" style="left:57%;top:62%;background:var(--c-warn);" onclick="showToast('警示带：与管位偏差 0.83 米 —— 错位')"><i class="fa-solid fa-tape"></i></div>
+          <div class="map-pin" style="left:48%;top:32%;background:var(--c-danger);" onclick="showToast('硬隔离：位移 0.6 米且无变更记录 —— 被移动')"><i class="fa-solid fa-ban"></i></div>
+          <div class="map-pin" style="left:76%;top:22%;background:var(--c-ok);" onclick="showToast('全景拍摄点：坐标 / 时间核验通过')"><i class="fa-solid fa-camera"></i></div>
+          <div class="map-legend">
+            <span><span class="sw" style="background:#0E7490;"></span>燃气管线</span>
+            <span><span class="sw" style="background:rgba(255,149,0,.6);"></span>工地区域</span>
+            <span><span class="sw" style="background:#FF3B30;"></span>措施异常</span>
+            <span><span class="sw" style="background:#34C759;"></span>正常</span>
+          </div>
+        </div>
+        <div class="tiny mt-8">点击点位查看判定结论；保护措施以 GIS 管线坐标为几何参考，不做小目标物识别（工地场景开放，防漏报误报）。</div>
+      </div>
+
+      <div style="display:grid;gap:14px;align-content:start;">
+        <div class="glass-card">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-magnifying-glass-chart"></i>施工场景前置判定</div>
+            <span class="tag tag-green"><i class="fa-solid fa-check"></i>施工现场 · 置信 0.97</span>
+          </div>
+          <div class="flex" style="gap:8px;flex-wrap:wrap;">
+            <span class="tag tag-gray">围挡</span>
+            <span class="tag tag-gray">挖掘机械</span>
+            <span class="tag tag-gray">沟槽</span>
+            <span class="tag tag-cyan">特征命中 3 项</span>
+          </div>
+          <div class="tiny mt-8">命中施工特征，进入保护措施稽核；非施工现场照片直接拦截，不进入隐患识别（兼防无关图片充数）。</div>
+        </div>
+        <div class="glass-card">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-gauge-high"></i>置信度分档处理</div>
+            <span class="tag tag-gray">今日 46 例</span>
+          </div>
+          <div class="tier-row">
+            <div class="tier-head"><span><span class="tag tag-green">高置信 ≥0.90</span> 直接出结论</span><span class="mono">31 例 · 67.4%</span></div>
+            <div class="meter mt-8"><div class="meter-fill green" style="width:67.4%;"></div></div>
+          </div>
+          <div class="tier-row">
+            <div class="tier-head"><span><span class="tag tag-blue">中置信 0.70–0.90</span> 大模型二次研判</span><span class="mono">9 例 · 19.6%</span></div>
+            <div class="meter mt-8"><div class="meter-fill" style="width:19.6%;"></div></div>
+          </div>
+          <div class="tier-row">
+            <div class="tier-head"><span><span class="tag tag-orange">低置信 &lt;0.70</span> 转人工复核</span><span class="mono">6 例 · 13.0%</span></div>
+            <div class="meter mt-8"><div class="meter-fill orange" style="width:13%;"></div></div>
+          </div>
+          <div class="tiny mt-8">中置信结论经多模态大模型二次研判，判定理由随结论留痕。</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid g-3 mt-14">
+      <div class="glass-card measure-card miss">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-map-pin" style="color:var(--c-danger);"></i>标志桩</div>
+          <span class="tag tag-red"><i class="fa-solid fa-circle-xmark"></i>缺失</span>
+        </div>
+        <div class="doc-detail">判定依据：<b>应设未检出</b> —— GIS 管位坐标处未检测到标志桩目标。</div>
+        <div class="flex mt-8" style="gap:6px;flex-wrap:wrap;">
+          <span class="tag tag-yellow">一般级预警</span>
+          <span class="tag tag-gray">纳入日常整改</span>
+        </div>
+      </div>
+      <div class="glass-card measure-card offset">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-tape" style="color:var(--c-warn);"></i>警示带</div>
+          <span class="tag tag-orange"><i class="fa-solid fa-arrows-left-right"></i>错位</span>
+        </div>
+        <div class="doc-detail">判定依据：与管线相对位置超规范偏差 <b>0.5 米</b>（实测 <b>0.83 米</b>，以 GIS 管线坐标为几何参考）。</div>
+        <div class="flex mt-8" style="gap:6px;flex-wrap:wrap;">
+          <span class="tag tag-blue">置信 0.88 · 大模型二次研判</span>
+          <span class="tag tag-gray">理由见下</span>
+        </div>
+      </div>
+      <div class="glass-card measure-card moved">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-ban" style="color:var(--c-danger);"></i>硬隔离</div>
+          <span class="tag tag-red"><i class="fa-solid fa-triangle-exclamation"></i>被移动</span>
+        </div>
+        <div class="doc-detail">判定依据：与历史影像比对位移超 <b>0.3 米</b>（实测 <b>0.6 米</b>），且无变更记录。</div>
+        <div class="flex mt-8" style="gap:6px;flex-wrap:wrap;">
+          <span class="tag tag-red">高级别 · 即时推送</span>
+          <span class="tag tag-cyan">置信 0.93 直出</span>
+        </div>
+        <button class="btn btn-primary btn-sm mt-8" onclick="openModal('modal-alarm-high')"><i class="fa-solid fa-bell"></i>查看预警推送</button>
+      </div>
+    </div>
+
+    <div class="grid g-2 mt-14">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-brain"></i>大模型二次研判 · 判定理由示例</div>
+          <span class="tag tag-blue">警示带 · 错位 · 置信 0.88</span>
+        </div>
+        <div class="quote-box">「影像可见警示带沿沟槽右侧铺设，与 GIS 管位走向存在约 0.83 米横向偏移，超出 0.5 米规范偏差；结合沟槽开挖边界与警示带走向，判定为「设置错位」，建议现场复核并调整铺设位置。」</div>
+        <div class="tiny mt-8">中置信结论经多模态大模型二次研判，判定理由随结论留痕、可追溯。</div>
+      </div>
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-arrows-rotate"></i>预警分级与样本回流</div>
+        </div>
+        <ul class="icon-list">
+          <li><i class="fa-solid fa-bell" style="color:var(--c-danger);"></i><span>硬隔离失效：高级别预警即时推送运行站与指挥中心</span></li>
+          <li><i class="fa-solid fa-flag" style="color:var(--c-warn);"></i><span>标志桩缺失：一般级，纳入日常整改流程</span></li>
+          <li><i class="fa-solid fa-database"></i><span>误检 / 漏检经人工确认后回流数据集管理平台</span></li>
+          <li><i class="fa-solid fa-arrows-rotate"></i><span>回流样本触发再训练，灰度发布后生效</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="modal-mask" id="modal-alarm-high" onclick="if(event.target===this)closeModal('modal-alarm-high')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-bell" style="color:var(--c-danger);"></i>高级别预警 · 硬隔离被移动</div>
+          <button class="modal-close" onclick="closeModal('modal-alarm-high')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="kv-list">
+            <div class="k"><b>所属工地</b><span>GD-2107 · 莫干山路燃气改造工程</span></div>
+            <div class="k"><b>隐患判定</b><span>硬隔离被移动：与历史影像比对位移 0.6 米 &gt; 0.3 米阈值，且无变更记录</span></div>
+            <div class="k"><b>判定方式</b><span>高置信 0.93 · 直接出结论</span></div>
+            <div class="k"><b>推送对象</b><span>运行站负责人 李*敏（APP + 短信）｜ 指挥中心值班席（大屏 + 工单）</span></div>
+            <div class="k"><b>推送时间</b><span class="mono">2026-10-28 10:05（即时推送）</span></div>
+            <div class="k"><b>处置建议</b><span>通知工地责任人立即恢复硬隔离，整改照片回传复核通过后自动销号</span></div>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-glass" onclick="closeModal('modal-alarm-high')">关闭</button>
+          <button class="btn btn-primary" onclick="closeModal('modal-alarm-high');showToast('已生成处置工单并派发至工地责任人 王*强（演示）')"><i class="fa-solid fa-paper-plane"></i>立即派单</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 页面4：闭环管理（不合格记录与整改销号） ============ -->
+  <section class="view" id="v-闭环管理-不合格记录与整改销号-">
+    <div class="page-head">
+      <div>
+        <div class="page-title">闭环管理（不合格记录与整改销号）</div>
+        <div class="page-desc">终端：PC端 ｜ 角色：运行站管理人员、管道保护专职 ｜ 稽核不通过自动生成记录 · 网格责任矩阵推送 · 超时逐级升级 · 同尺度复核后自动销号</div>
+      </div>
+      <div class="flex" style="gap:8px;flex-wrap:wrap;">
+        <span class="tag tag-orange">待整改</span>
+        <span class="tag tag-green">已销号</span>
+        <span class="tag tag-gray">人工销号</span>
+      </div>
+    </div>
+
+    <div class="alert-strip cyan"><i class="fa-solid fa-circle-info"></i><span><b>稽核边界：</b>只核验照片规范性与完整性、不判断少拍漏拍；单据只核验标题与签字盖章、不判断填写正确。</span></div>
+
+    <div class="grid g-4">
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-clipboard-list"></i>不合格记录</div>
+        <div class="stat-value">132</div>
+        <div class="stat-sub">管道保护 96 · 关键设备 21 · 单据 15</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-hourglass-half"></i>待整改</div>
+        <div class="stat-value orange">27</div>
+        <div class="stat-sub">含超期升级中 4</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-circle-check"></i>已销号</div>
+        <div class="stat-value green">98</div>
+        <div class="stat-sub">AI 复核自动销号 91 · 人工销号 7</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-chart-pie"></i>闭环率</div>
+        <div class="stat-value accent">87.9%</div>
+        <div class="stat-sub">跨期未销号计入发现当期分母</div>
+      </div>
+    </div>
+
+    <div class="grid g-main-side mt-14">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-book"></i>闭环台账 · 不合格记录</div>
+          <div class="seg">
+            <button class="seg-item active" onclick="showToast('已切换台账分类：全部（演示）')">全部 132</button>
+            <button class="seg-item" onclick="showToast('已切换台账分类：管道保护（演示）')">管道保护 96</button>
+            <button class="seg-item" onclick="showToast('已切换台账分类：关键设备（演示）')">关键设备 21</button>
+            <button class="seg-item" onclick="showToast('已切换台账分类：单据（演示）')">单据 15</button>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table class="glass-table">
+            <thead>
+              <tr><th>记录编号（工地-日期-序号）</th><th>隐患类别</th><th>位置 · 管段</th><th>级别</th><th>状态</th><th>整改期限</th><th>操作</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="mono">GD-2107-261026-003</td>
+                <td>管道保护 · 硬隔离被移动</td>
+                <td>莫干山路 · GD-2107</td>
+                <td><span class="tag tag-red">高</span></td>
+                <td><span class="tag tag-orange">整改中</span></td>
+                <td class="mono">10-29</td>
+                <td><button class="btn btn-glass btn-xs" onclick="openModal('modal-detail')">明细</button></td>
+              </tr>
+              <tr>
+                <td class="mono">GD-2305-261024-001</td>
+                <td>管道保护 · 警示带错位</td>
+                <td>运河路 · GD-2305</td>
+                <td><span class="tag tag-orange">一般</span></td>
+                <td><span class="tag tag-red">已升级</span></td>
+                <td class="mono">10-26</td>
+                <td><button class="btn btn-glass btn-xs" onclick="openModal('modal-detail')">明细</button></td>
+              </tr>
+              <tr>
+                <td class="mono">GD-0871-261021-005</td>
+                <td>管道保护 · 标志桩缺失</td>
+                <td>石桥路 · GD-0871</td>
+                <td><span class="tag tag-orange">一般</span></td>
+                <td><span class="tag tag-green">已销号</span></td>
+                <td class="mono">10-27</td>
+                <td><button class="btn btn-glass btn-xs" onclick="openModal('modal-detail')">明细</button></td>
+              </tr>
+              <tr>
+                <td class="mono">GD-1523-261018-012</td>
+                <td>单据 · 监护协议未签署</td>
+                <td>沈半路 · GD-1523</td>
+                <td><span class="tag tag-yellow">提示</span></td>
+                <td><span class="tag tag-green">已销号</span></td>
+                <td class="mono">10-25</td>
+                <td><button class="btn btn-glass btn-xs" onclick="openModal('modal-detail')">明细</button></td>
+              </tr>
+              <tr>
+                <td class="mono">GD-0342-261019-007</td>
+                <td>关键设备 · 阀井盖破损</td>
+                <td>康桥路 · GD-0342</td>
+                <td><span class="tag tag-orange">一般</span></td>
+                <td><span class="tag tag-gray">人工销号</span></td>
+                <td class="mono">10-24</td>
+                <td><button class="btn btn-glass btn-xs" onclick="openModal('modal-detail')">明细</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="tiny mt-8">记录编号三段式：工地编号-日期-序号；台账按管道保护 / 关键设备 / 单据三类分页，徽标标识结论；人工销号记录单独标识并附理由。</div>
+      </div>
+
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-arrow-up-right-dots"></i>逐级升级时间线</div>
+          <span class="tag tag-red">示例 GD-2305-261024-001</span>
+        </div>
+        <div class="tl mt-8">
+          <div class="tl-item done">
+            <div class="tl-time">10-24 14:20</div>
+            <div style="font-size:12.5px;">生成不合格记录，按网格责任矩阵推送<b>工地责任人 王*强</b>（APP + 短信）</div>
+          </div>
+          <div class="tl-item done">
+            <div class="tl-time">10-26 24:00</div>
+            <div style="font-size:12.5px;">整改期限届满，未回传整改照片</div>
+          </div>
+          <div class="tl-item done">
+            <div class="tl-time">10-27 09:00</div>
+            <div style="font-size:12.5px;">超时 24 小时：升级至<b>运行站负责人 李*敏</b>（站内督办）</div>
+          </div>
+          <div class="tl-item active">
+            <div class="tl-time">10-28 09:00 · 当前</div>
+            <div style="font-size:12.5px;">仍超时：升级至<b>分公司管道保护专职 陈*华</b>，纳入周考核</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-time">待执行</div>
+            <div style="font-size:12.5px;color:var(--c-text-2);">分公司督办，直至整改销号；升级记录全程留痕</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="glass-card mt-14">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-clipboard-check"></i>整改复核销号流程 · GD-2107-261026-003</div>
+        <span class="tag tag-orange">整改中 · 期限 10-29</span>
+      </div>
+      <div class="steps">
+        <div class="step done"><span class="dot"><i class="fa-solid fa-check"></i></span>生成不合格记录</div>
+        <div class="step done"><span class="dot"><i class="fa-solid fa-check"></i></span>推送责任人整改</div>
+        <div class="step active"><span class="dot">3</span>整改照片回传 · 过同样四道闸</div>
+        <div class="step"><span class="dot">4</span>同一识别模型复核</div>
+        <div class="step"><span class="dot">5</span>自动销号 / 退回注明原因</div>
+      </div>
+      <hr class="divider">
+      <ul class="icon-list">
+        <li><i class="fa-solid fa-link"></i><span>整改照片与原记录强关联，经同样四道闸 + 同一识别模型复核，防「发现从严、复核从宽」尺度漂移与旧照完成整改</span></li>
+        <li><i class="fa-solid fa-circle-check"></i><span>AI 复核通过自动销号；不通过退回并注明原因</span></li>
+        <li><i class="fa-solid fa-user-pen"></i><span>特殊情形人工销号：负责人确认 + 填写理由 + 台账中单独标识</span></li>
+        <li><i class="fa-solid fa-chart-pie"></i><span>闭环率统计：跨期未销号计入发现当期分母</span></li>
+      </ul>
+    </div>
+
+    <div class="modal-mask" id="modal-detail" onclick="if(event.target===this)closeModal('modal-detail')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-file-circle-check" style="color:var(--c-primary);"></i>稽核明细回看 · GD-2107-261026-003</div>
+          <button class="modal-close" onclick="closeModal('modal-detail')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="kv-list">
+            <div class="k"><b>记录编号</b><span class="mono">GD-2107-261026-003（工地编号-日期-序号）</span></div>
+            <div class="k"><b>隐患类别</b><span>管道保护 · 硬隔离被移动</span></div>
+            <div class="k"><b>判定依据</b><span>与历史影像比对位移 0.6 米 &gt; 0.3 米阈值，且无变更记录（高置信 0.93 直出）</span></div>
+            <div class="k"><b>四道闸状态</b><span>质量闸 通过 ｜ 时空闸 通过 ｜ 去重闸 通过 ｜ 研判闸 高置信直出</span></div>
+            <div class="k"><b>影像回链</b><span>原片 / 判定框图 / 历史比对图，均可回看</span></div>
+            <div class="k"><b>整改状态</b><span>整改中 · 责任人 王*强 · 期限 2026-10-29</span></div>
+          </div>
+          <div class="alert-strip cyan mt-14" style="margin-bottom:0;"><i class="fa-solid fa-circle-info"></i>整改照片回传后须通过与原隐患完全相同的四道闸与识别模型，复核通过自动销号。</div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-glass" onclick="closeModal('modal-detail')">关闭</button>
+          <button class="btn btn-primary" onclick="showToast('稽核留痕已导出（PDF · 演示）')"><i class="fa-solid fa-file-export"></i>导出稽核留痕</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+function switchView(vid){
+  document.querySelectorAll('.view').forEach(function(v){v.classList.remove('active');});
+  var el=document.getElementById(vid); if(el){el.classList.add('active');}
+  document.querySelectorAll('.seg-item[data-view]').forEach(function(b){
+    b.classList.toggle('active', b.getAttribute('data-view')===vid);
+  });
+  try{history.replaceState(null,'','#'+encodeURIComponent(vid));}catch(e){}
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function openModal(id){var m=document.getElementById(id); if(m){m.classList.add('open');}}
+function closeModal(id){var m=document.getElementById(id); if(m){m.classList.remove('open');}}
+function showToast(msg){
+  var t=document.getElementById('app-toast');
+  if(!t){t=document.createElement('div');t.id='app-toast';t.className='toast';document.body.appendChild(t);}
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._tm);t._tm=setTimeout(function(){t.classList.remove('show');},2200);
+}
+window.addEventListener('hashchange',function(){
+  var h=decodeURIComponent(location.hash.replace('#',''));
+  if(h&&document.getElementById(h)){switchView(h);}
+});
+(function(){
+  var h=decodeURIComponent(location.hash.replace('#',''));
+  if(h&&document.getElementById(h)){switchView(h);}
+})();
+</script>
+</body>
+</html>

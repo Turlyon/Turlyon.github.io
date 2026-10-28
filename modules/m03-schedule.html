@@ -1,0 +1,1548 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M03 管道巡检智能排班助手 · 杭州燃气管网运营智能体平台</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="../styles/liquid-glass.css">
+<style>
+/* ===== M03 module specific ===== */
+tr.lock-row td { background: rgba(100,116,139,.10); }
+tr.lock-row:hover td { background: rgba(100,116,139,.15); }
+.chain-step { display:flex; align-items:center; gap:8px; padding:8px 10px; border:1px dashed rgba(22,50,60,.15); border-radius:10px; margin-bottom:6px; font-size:12px; flex-wrap:wrap; }
+.chain-final { padding:10px 12px; border-radius:10px; background:var(--c-primary-soft); color:var(--c-primary); font-weight:600; font-size:12.5px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.yb-track { position:relative; height:36px; border-radius:10px; background:rgba(22,50,60,.05); border:1px solid var(--c-line); overflow:hidden; }
+.yb-seg { position:absolute; top:0; bottom:0; }
+.yb-win { background:rgba(52,168,255,.30); }
+.yb-sum { background:rgba(255,149,0,.28); }
+.yb-flood { background:rgba(14,116,144,.26); }
+.yb-months { display:grid; grid-template-columns:repeat(12,1fr); margin-top:4px; border-top:1px dashed var(--c-line); }
+.yb-months span { font-size:10.5px; color:var(--c-text-3); text-align:center; padding-top:3px; }
+.cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:6px; }
+.cal-head { text-align:center; font-size:11px; font-weight:600; color:var(--c-text-2); padding:4px 0; }
+.cal-cell { min-height:66px; border-radius:10px; border:1px solid var(--c-line); background:rgba(255,255,255,.5); padding:6px 8px; font-size:10.5px; }
+.cal-cell.sat { background:rgba(255,204,0,.12); }
+.cal-cell.sun { background:rgba(100,116,139,.10); }
+.cal-cell.off { background:transparent; border:none; min-height:0; }
+.cal-num { font-weight:700; font-size:12px; }
+.cal-count { font-family:'DM Mono',monospace; color:var(--c-primary); }
+.cal-dots { display:flex; gap:3px; margin-top:5px; align-items:center; flex-wrap:wrap; }
+.dot4 { width:7px; height:7px; border-radius:50%; display:inline-block; }
+.bar-row { display:grid; grid-template-columns:64px 1fr 118px; align-items:center; gap:10px; padding:8px 0; border-bottom:1px dashed var(--c-line); font-size:12.5px; }
+.bar-row:last-child { border-bottom:none; }
+.kb-grid { display:grid; grid-template-columns:86px repeat(5,1fr); gap:8px; align-items:start; }
+.kb-head { font-size:11.5px; font-weight:600; color:var(--c-text-2); text-align:center; padding:6px 2px; background:rgba(255,255,255,.4); border:1px solid var(--c-line); border-radius:8px; }
+.kb-person { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; font-size:12px; font-weight:600; padding:8px 4px; background:rgba(255,255,255,.4); border:1px solid var(--c-line); border-radius:8px; min-height:70px; }
+.kb-person .tiny { font-weight:500; }
+.kb-cell { min-height:96px; border-radius:10px; background:rgba(255,255,255,.42); border:1px dashed rgba(22,50,60,.14); padding:6px; display:flex; flex-direction:column; gap:5px; }
+.kb-card { border:1px solid var(--glass-border); cursor:pointer; text-align:left; font-family:inherit; font-size:10.5px; font-weight:500; padding:5px 7px; border-radius:8px; background:rgba(255,255,255,.82); box-shadow:0 2px 6px rgba(14,50,60,.08); display:flex; flex-direction:column; gap:2px; transition:all .15s ease; }
+.kb-card:hover { transform:translateY(-1px); border-color:var(--c-primary); }
+.kb-card .segno { font-family:'DM Mono',monospace; color:var(--c-primary); font-weight:500; }
+.trend { display:flex; align-items:flex-end; gap:12px; height:130px; padding:0 4px; }
+.tcol { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; gap:6px; height:100%; }
+.tbar { width:100%; max-width:40px; border-radius:6px 6px 2px 2px; background:linear-gradient(180deg,var(--c-primary-hi),var(--c-primary)); }
+.cond-chip { display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border-radius:8px; background:rgba(255,255,255,.7); border:1px solid var(--glass-border); font-size:12px; font-weight:500; }
+</style>
+</head>
+<body>
+<div class="ambient-blob"></div>
+
+<div class="module-wrap">
+
+  <div class="module-top">
+    <div>
+      <div class="flex wrap">
+        <span class="module-title">管道巡检智能排班助手</span>
+        <span class="badge badge-mid">优先级 中</span>
+      </div>
+      <div class="module-sub">L0-L3 四级频次规则引擎 + 季节模版 · 一键周/月排班（七步可视 + 七项硬约束）· 新增通气管线与未完成任务强制纳入 · 合规三级校验红色阻断 · 隐患转化率回流优化 ｜ 巡检员 178 名 · 五站网格（北大桥 / 水湘 / 天目 / 三塘 / 转塘）· 做五休二 · 半月一次、两个月一轮全覆盖</div>
+    </div>
+  </div>
+
+  <div class="seg mb-14">
+    <button class="seg-item active" data-view="v-巡检策略配置中心-频次规则列表" onclick="switchView('v-巡检策略配置中心-频次规则列表')">频次规则列表</button>
+    <button class="seg-item" data-view="v-巡检策略配置中心-规则编辑与冲突消解" onclick="switchView('v-巡检策略配置中心-规则编辑与冲突消解')">规则编辑</button>
+    <button class="seg-item" data-view="v-巡检策略配置中心-季节模版管理" onclick="switchView('v-巡检策略配置中心-季节模版管理')">季节模版</button>
+    <button class="seg-item" data-view="v-智能排班引擎-一键排班生成" onclick="switchView('v-智能排班引擎-一键排班生成')">一键排班</button>
+    <button class="seg-item" data-view="v-智能排班引擎-周月任务清单" onclick="switchView('v-智能排班引擎-周月任务清单')">任务清单</button>
+    <button class="seg-item" data-view="v-智能排班引擎-工作量均衡分析" onclick="switchView('v-智能排班引擎-工作量均衡分析')">工作量均衡</button>
+    <button class="seg-item" data-view="v-排班交互工作台-地图路线与点位" onclick="switchView('v-排班交互工作台-地图路线与点位')">地图路线</button>
+    <button class="seg-item" data-view="v-排班交互工作台-看板拖拽调整" onclick="switchView('v-排班交互工作台-看板拖拽调整')">看板拖拽</button>
+    <button class="seg-item" data-view="v-排班交互工作台-合规性红色阻断弹窗" onclick="switchView('v-排班交互工作台-合规性红色阻断弹窗')">红色阻断</button>
+    <button class="seg-item" data-view="v-排班效能分析-隐患转化率分析" onclick="switchView('v-排班效能分析-隐患转化率分析')">隐患转化率</button>
+    <button class="seg-item" data-view="v-排班效能分析-频次优化建议与规则回流" onclick="switchView('v-排班效能分析-频次优化建议与规则回流')">优化建议回流</button>
+  </div>
+
+  <!-- ================= 页面1：频次规则列表 ================= -->
+  <section class="view active" id="v-巡检策略配置中心-频次规则列表">
+    <div class="page-head">
+      <div>
+        <div class="page-title">巡检策略配置中心 · 频次规则列表</div>
+        <div class="page-desc">L0制度下限 / L1专项 / L2基础 / L3季节模版 四级规则库 · L0层灰底锁定 · 多规则命中取最密者消解 · 运行部管理员 · PC端（运行部后台）</div>
+      </div>
+      <div class="flex wrap">
+        <button class="btn btn-glass btn-sm" onclick="showToast('规则冲突扫描完成：发现 1 处冗余（提示性质，不阻断排班）')"><i class="fa-solid fa-bolt"></i>规则冲突扫描</button>
+        <button class="btn btn-primary btn-sm" onclick="showToast('已提交影子试排（不落库），试排任务号 SP-20261028-06')"><i class="fa-solid fa-vial"></i>变更提交影子试排</button>
+      </div>
+    </div>
+
+    <div class="grid g-4 mb-14">
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-layer-group"></i>规则总数</div>
+        <div class="stat-value">47</div>
+        <div class="stat-sub">L0 锁定 4 · L1 专项 6 · L2 基础 29 · L3 季节 8</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-lock"></i>L0 制度下限</div>
+        <div class="stat-value orange">4 条</div>
+        <div class="stat-sub">灰底锁标 · 不可编辑 / 停用 / 被上层放宽</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-map-location-dot"></i>全网管段覆盖</div>
+        <div class="stat-value green">100%</div>
+        <div class="stat-sub">10815km · 管段漏配 0（覆盖率 100% 的前提）</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-heart-pulse"></i>规则库健康度</div>
+        <div class="stat-value">98.2%</div>
+        <div class="stat-sub">每日自检五项 · 1 项冗余提示待处理</div>
+      </div>
+    </div>
+
+    <div class="grid g-main-side">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-layer-group"></i>四级频次规则库</div>
+          <span class="tag tag-gray"><i class="fa-solid fa-lock"></i>L0 层不开放新建 · 不可放宽</span>
+        </div>
+        <div class="table-scroll">
+          <table class="glass-table">
+            <thead>
+              <tr>
+                <th>层级</th><th>规则编号</th><th>规则名称</th><th>适用条件</th><th>系数</th><th>频次结论</th><th>状态</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="lock-row">
+                <td><span class="tag tag-gray"><i class="fa-solid fa-lock"></i>L0 制度下限</span></td>
+                <td class="mono">RUL-L0-01</td>
+                <td>高压 / 次高压下限</td>
+                <td>压力级制 ∈ {高压, 次高压}</td>
+                <td><i class="fa-solid fa-lock"></i> 锁定</td>
+                <td class="mono">≥1次/日</td>
+                <td><span class="tag tag-gray">锁定</span></td>
+              </tr>
+              <tr class="lock-row">
+                <td><span class="tag tag-gray"><i class="fa-solid fa-lock"></i>L0 制度下限</span></td>
+                <td class="mono">RUL-L0-02</td>
+                <td>中压主干下限</td>
+                <td>压力级制 = 中压主干</td>
+                <td><i class="fa-solid fa-lock"></i> 锁定</td>
+                <td class="mono">≥1次/周</td>
+                <td><span class="tag tag-gray">锁定</span></td>
+              </tr>
+              <tr class="lock-row">
+                <td><span class="tag tag-gray"><i class="fa-solid fa-lock"></i>L0 制度下限</span></td>
+                <td class="mono">RUL-L0-03</td>
+                <td>中压支线下限</td>
+                <td>压力级制 = 中压支线</td>
+                <td><i class="fa-solid fa-lock"></i> 锁定</td>
+                <td class="mono">≥1次/2周</td>
+                <td><span class="tag tag-gray">锁定</span></td>
+              </tr>
+              <tr class="lock-row">
+                <td><span class="tag tag-gray"><i class="fa-solid fa-lock"></i>L0 制度下限</span></td>
+                <td class="mono">RUL-L0-04</td>
+                <td>低压下限</td>
+                <td>压力级制 = 低压</td>
+                <td><i class="fa-solid fa-lock"></i> 锁定</td>
+                <td class="mono">≥1次/月</td>
+                <td><span class="tag tag-gray">锁定</span></td>
+              </tr>
+              <tr>
+                <td><span class="tag tag-blue">L1 专项</span></td>
+                <td class="mono">RUL-L1-01</td>
+                <td>在监工地邻近加密</td>
+                <td>距在监工地 ≤ 500米</td>
+                <td class="mono">2.0</td>
+                <td>频次提升一档</td>
+                <td><span class="tag tag-green">启用</span></td>
+              </tr>
+              <tr>
+                <td><span class="tag tag-blue">L1 专项</span></td>
+                <td class="mono">RUL-L1-04</td>
+                <td>新增通气强制纳入</td>
+                <td>通气日期 ∈ 本周期（新增通气）</td>
+                <td class="mono">—</td>
+                <td>100% 强制插入</td>
+                <td><span class="tag tag-green">启用</span></td>
+              </tr>
+              <tr>
+                <td><span class="tag tag-cyan">L2 基础</span></td>
+                <td class="mono">RUL-L2-07</td>
+                <td>老旧钢管加密</td>
+                <td>管材 = 钢管 且 运行年限 ≥ 25年</td>
+                <td class="mono">1.6</td>
+                <td>频次 × 1.6</td>
+                <td><span class="tag tag-green">启用</span></td>
+              </tr>
+              <tr>
+                <td><span class="tag tag-cyan">L2 基础</span></td>
+                <td class="mono">RUL-L2-12</td>
+                <td>泄漏史加密</td>
+                <td>近36个月泄漏抢修次数 ≥ 3</td>
+                <td class="mono">1.8</td>
+                <td>频次 × 1.8</td>
+                <td><span class="tag tag-green">启用</span></td>
+              </tr>
+              <tr>
+                <td><span class="tag tag-cyan">L2 基础</span></td>
+                <td class="mono">RUL-L2-15</td>
+                <td>红色管段加密</td>
+                <td>健康等级 = 红色</td>
+                <td class="mono">2.0</td>
+                <td>频次 × 2.0</td>
+                <td><span class="tag tag-green">启用</span></td>
+              </tr>
+              <tr>
+                <td><span class="tag tag-orange">L3 季节</span></td>
+                <td class="mono">RUL-L3-01</td>
+                <td>冬保模版</td>
+                <td>日期 ∈ 12-01 ~ 02-28</td>
+                <td class="mono">1.4</td>
+                <td>频次 × 1.4</td>
+                <td><span class="tag tag-green">启用</span></td>
+              </tr>
+              <tr>
+                <td><span class="tag tag-orange">L3 季节</span></td>
+                <td class="mono">RUL-L3-03</td>
+                <td>汛期模版</td>
+                <td>日期 ∈ 06-15 ~ 09-30</td>
+                <td class="mono">1.5</td>
+                <td>频次 × 1.5</td>
+                <td><span class="tag tag-green">启用</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-diagram-project"></i>命中链预览（取最密）</div>
+        </div>
+        <div class="filter-bar" style="padding:10px 12px; margin-bottom:12px;">
+          <div class="filter-item">
+            <span class="filter-label">管段编号</span>
+            <input class="filter-input" style="min-width:120px;" value="GD-7821" id="hit-input">
+          </div>
+          <button class="btn btn-primary btn-sm" style="align-self:flex-end;" onclick="showToast('命中链已刷新：GD-7821 命中 4 条规则，取最密后最终频次 2次/周')"><i class="fa-solid fa-play"></i>试算命中链</button>
+        </div>
+        <div class="tiny mb-8">GD-7821 · 中压主干 · 钢管 · 运行年限 26 年 · 健康等级红色 · 当前处于冬保期（12-01~02-28）</div>
+        <div class="chain">
+          <div class="chain-step"><span class="tag tag-gray">L0</span><span class="mono">RUL-L0-02</span><span>中压主干制度下限</span><span class="tag tag-gray">候选 ≥1次/周</span></div>
+          <div class="chain-step"><span class="tag tag-cyan">L2</span><span class="mono">RUL-L2-07</span><span>运行年限≥25年 ×1.6</span><span class="tag tag-gray">候选 2次/周</span></div>
+          <div class="chain-step"><span class="tag tag-cyan">L2</span><span class="mono">RUL-L2-15</span><span>红色管段 ×2.0</span><span class="tag tag-gray">候选 2次/周</span></div>
+          <div class="chain-step"><span class="tag tag-orange">L3</span><span class="mono">RUL-L3-01</span><span>冬保模版 ×1.4</span><span class="tag tag-gray">候选 1.4次/周 → 取密 2次/周</span></div>
+          <div class="chain-final"><i class="fa-solid fa-circle-check"></i>多规则命中取最密者（非系数连乘）→ 最终频次 <span class="mono">2次/周</span></div>
+        </div>
+
+        <hr class="divider">
+        <div class="card-head" style="margin-bottom:8px;">
+          <div class="card-title"><i class="fa-solid fa-heart-pulse"></i>规则库健康度 · 每日自检五项</div>
+        </div>
+        <ul class="icon-list">
+          <li><i class="fa-solid fa-check" style="color:var(--c-ok);"></i><span>僵尸规则（90天未命中）：<b>0 条</b></span></li>
+          <li><i class="fa-solid fa-triangle-exclamation" style="color:var(--c-warn);"></i><span>冗余规则：<b>1 条</b>（RUL-L2-09 条件被 L2-07 包含，提示性质不阻断）</span></li>
+          <li><i class="fa-solid fa-check" style="color:var(--c-ok);"></i><span>非法条件：<b>0 条</b></span></li>
+          <li><i class="fa-solid fa-check" style="color:var(--c-ok);"></i><span>管段漏配：<b>0 条</b>（漏配为零是全网覆盖率 100% 的前提）</span></li>
+          <li><i class="fa-solid fa-check" style="color:var(--c-ok);"></i><span>命中链过深（&gt;5层）：<b>0 条</b></span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 页面2：规则编辑与冲突消解 ================= -->
+  <section class="view" id="v-巡检策略配置中心-规则编辑与冲突消解">
+    <div class="page-head">
+      <div>
+        <div class="page-title">巡检策略配置中心 · 规则编辑与冲突消解</div>
+        <div class="page-desc">因子-运算符-取值 三段式条件构造器 · 频次系数 1.0-4.0 · 保存前五项校验 · 版本管理与审批回滚 · 运行部管理员 / 运行部负责人 · PC端</div>
+      </div>
+      <div class="flex wrap">
+        <button class="btn btn-glass btn-sm" onclick="showToast('已保存草稿（影子试排超时不产出不完整结论，草稿保留待重试）')"><i class="fa-solid fa-floppy-disk"></i>存草稿</button>
+        <button class="btn btn-glass btn-sm" onclick="showToast('任一历史排班可用当时规则版本复现：已选择 RV-2026.06-02 复现窗口')"><i class="fa-solid fa-clock-rotate-left"></i>历史版本复现</button>
+      </div>
+    </div>
+
+    <div class="grid g-main-side">
+      <div>
+        <div class="glass-card mb-14">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-filter"></i>三段式条件构造器（因子 - 运算符 - 取值）</div>
+            <span class="tag tag-cyan">取值一律从数据字典选取 · 不接受自由文本</span>
+          </div>
+          <div class="flex wrap mb-14" style="gap:8px;">
+            <span class="cond-chip">管材 <b class="mono">=</b> 钢管 <i class="fa-solid fa-xmark" style="color:var(--c-text-3); cursor:pointer;" onclick="showToast('条件已移除（演示）')"></i></span>
+            <span class="cond-chip">运行年限 <b class="mono">≥</b> 25年 <i class="fa-solid fa-xmark" style="color:var(--c-text-3); cursor:pointer;" onclick="showToast('条件已移除（演示）')"></i></span>
+            <span class="cond-chip">近36个月泄漏抢修次数 <b class="mono">≥</b> 3次 <i class="fa-solid fa-xmark" style="color:var(--c-text-3); cursor:pointer;" onclick="showToast('条件已移除（演示）')"></i></span>
+          </div>
+          <div class="filter-bar">
+            <div class="filter-item">
+              <span class="filter-label">因子（14项可选）</span>
+              <select class="filter-select">
+                <option>管材</option><option>运行年限</option><option>管径</option><option>压力级制</option><option>道路等级</option><option>敷设环境</option><option>近36个月泄漏抢修次数</option><option>健康等级</option><option>风险排名</option><option>距在监工地距离</option><option>通气日期</option><option>上期任务状态</option><option>沿线重点用户密度</option><option>管段长度</option>
+              </select>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">运算符</span>
+              <select class="filter-select">
+                <option>=</option><option>≠</option><option>≥</option><option>&gt;</option><option>≤</option><option>&lt;</option><option>∈</option>
+              </select>
+            </div>
+            <div class="filter-item">
+              <span class="filter-label">取值（数据字典）</span>
+              <select class="filter-select">
+                <option>钢管</option><option>PE管</option><option>铸铁管</option>
+              </select>
+            </div>
+            <button class="btn btn-primary btn-sm" style="align-self:flex-end;" onclick="showToast('条件已添加（取值来自数据字典，通过语法与取值域校验）')"><i class="fa-solid fa-plus"></i>添加条件</button>
+          </div>
+        </div>
+
+        <div class="glass-card mb-14">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-sliders"></i>频次系数设置（允许区间 1.0 - 4.0）</div>
+          </div>
+          <div class="flex wrap" style="gap:10px;">
+            <div class="filter-item">
+              <span class="filter-label">系数（当前草稿：钢管 · 年限≥25年 · 泄漏≥3次）</span>
+              <input class="form-input" id="coef-input" style="width:140px;" type="number" step="0.1" value="0.8" oninput="checkCoef(this.value)">
+            </div>
+            <button class="btn btn-glass btn-sm" style="align-self:flex-end;" onclick="var i=document.getElementById('coef-input'); i.value='1.6'; checkCoef('1.6'); showToast('系数已调整为 1.6（钢管年限≥25年 档案参考值）')"><i class="fa-solid fa-wand-magic-sparkles"></i>填入参考值 1.6</button>
+            <button class="btn btn-glass btn-sm" style="align-self:flex-end;" onclick="var i=document.getElementById('coef-input'); i.value='0.8'; checkCoef('0.8')"><i class="fa-solid fa-rotate-left"></i>重置 0.8</button>
+          </div>
+          <div class="alert-strip red mt-14" id="coef-tip" style="display:flex; margin-bottom:0;">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <span class="tip-text">系数低于 1.0（制度下限不允许任何放宽，L0 层锁定），拒绝保存</span>
+          </div>
+          <div class="tiny mt-8">参考档案：钢管 · 年限≥25年 取 1.6 ｜ 泄漏≥3次 取 1.8 ｜ 红色管段取 2.0</div>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-list-check"></i>保存前五项校验</div>
+          </div>
+          <ul class="icon-list">
+            <li><i class="fa-solid fa-check" style="color:var(--c-ok);"></i><span>1. 语法校验：<b>通过</b>（三段式结构完整）</span></li>
+            <li><i class="fa-solid fa-check" style="color:var(--c-ok);"></i><span>2. 取值域校验：<b>通过</b>（全部来自数据字典）</span></li>
+            <li><i class="fa-solid fa-xmark" style="color:var(--c-danger);"></i><span>3. L0 下限校验：<b class="mono" style="color:var(--c-danger);">不通过</b>（系数 0.8 &lt; 1.0，阻断保存并已定位到系数输入位置）</span></li>
+            <li><i class="fa-solid fa-triangle-exclamation" style="color:var(--c-warn);"></i><span>4. 冲突扫描：<b>1 处重叠</b>（与 RUL-L2-07 条件部分包含，提示性质不阻断）</span></li>
+            <li><i class="fa-solid fa-hourglass-half" style="color:var(--c-info);"></i><span>5. 影响面试算：<b>待系数合法后生成</b>（见右侧影响面卡片，按系数 0.8 口径演示）</span></li>
+          </ul>
+          <div class="flex wrap mt-14">
+            <button class="btn btn-primary disabled" id="coef-save" disabled onclick="showToast('前四项校验通过，已进入影响面试算与影子试排流程')"><i class="fa-solid fa-paper-plane"></i>保存并提交影子试排</button>
+            <button class="btn btn-ghost" onclick="showToast('已放弃当前草稿（审批驳回的草稿会保留，可修改后重提）')">放弃</button>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="glass-card mb-14">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-chart-simple"></i>影响面试算（影子口径 · 系数 0.8 演示）</div>
+          </div>
+          <div class="grid g-2" style="gap:10px;">
+            <div class="stat-card soft" style="padding:12px 14px;">
+              <div class="stat-label">受影响管段数</div>
+              <div class="stat-value" style="font-size:22px;">214</div>
+            </div>
+            <div class="stat-card soft" style="padding:12px 14px;">
+              <div class="stat-label">月度任务量增减</div>
+              <div class="stat-value orange" style="font-size:22px;">-128</div>
+            </div>
+            <div class="stat-card soft" style="padding:12px 14px;">
+              <div class="stat-label">人均日工作量</div>
+              <div class="stat-value orange" style="font-size:22px;">-0.36h</div>
+            </div>
+            <div class="stat-card soft" style="padding:12px 14px; border:1px solid rgba(255,59,48,.35);">
+              <div class="stat-label"><i class="fa-solid fa-ban" style="color:var(--c-danger);"></i>下限违规数</div>
+              <div class="stat-value red" style="font-size:22px;">214</div>
+              <div class="stat-sub">低于 L0 下限，试算即拒绝</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-code-branch"></i>版本管理与审批回滚</div>
+          </div>
+          <dl class="kv">
+            <dt>当前版本</dt><dd class="mono">RV-2026.10-03</dd>
+            <dt>审批流</dt><dd>草稿 → 影子试排 → 复核 → 审批 → 发布</dd>
+            <dt>驳回处理</dt><dd>驳回附意见，草稿保留可修改重提</dd>
+            <dt>版本复现</dt><dd>任一历史排班可用当时规则版本复现</dd>
+            <dt>发布生效</dt><dd>审批通过进入新版本，下一周期自动采用</dd>
+          </dl>
+          <hr class="divider">
+          <div class="tiny"><i class="fa-solid fa-circle-info" style="color:var(--c-info);"></i> 影子试排超时保留草稿、不产出不完整结论；前三项校验不通过阻断保存并定位出错位置。</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 页面3：季节模版管理 ================= -->
+  <section class="view" id="v-巡检策略配置中心-季节模版管理">
+    <div class="page-head">
+      <div>
+        <div class="page-title">巡检策略配置中心 · 季节模版管理</div>
+        <div class="page-desc">冬 / 夏 / 汛期三套模版 + 重大活动保供模版 · 按日历自动切换 · 重叠时段取最密者 · 模版系数下限锁定 1.0 · 运行部管理员 · PC端</div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="showToast('模版变更已提交：切换前 7 日向运行部与站长推送提醒并附下期任务量预估')"><i class="fa-solid fa-bell"></i>推送切换提醒</button>
+    </div>
+
+    <div class="glass-card mb-14">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-calendar-days"></i>2026 年历条 · 模版适用时段（按日历自动切换）</div>
+        <div class="flex wrap" style="gap:10px;">
+          <span class="tag tag-blue"><span class="dot4" style="background:#34A8FF;"></span>冬季 12-01~02-28</span>
+          <span class="tag tag-orange"><span class="dot4" style="background:#FF9500;"></span>夏季 06-01~08-31</span>
+          <span class="tag tag-cyan"><span class="dot4" style="background:#0E7490;"></span>汛期 06-15~09-30</span>
+        </div>
+      </div>
+      <div class="yb-track">
+        <span class="yb-seg yb-win" style="left:0%; width:16.66%;"></span>
+        <span class="yb-seg yb-win" style="left:91.66%; width:8.34%;"></span>
+        <span class="yb-seg yb-sum" style="left:41.66%; width:25%;"></span>
+        <span class="yb-seg yb-flood" style="left:45.83%; width:29.17%;"></span>
+      </div>
+      <div class="yb-months">
+        <span>1月</span><span>2月</span><span>3月</span><span>4月</span><span>5月</span><span>6月</span><span>7月</span><span>8月</span><span>9月</span><span>10月</span><span>11月</span><span>12月</span>
+      </div>
+      <div class="tiny mt-8">当前（11月）无季节模版生效 · <b>12-01 起冬保模版自动生效</b>；夏季与汛期重叠时段 06-15~08-31 <b>取最密者（汛期 1.5）而非系数相乘（不采用 1.2×1.5=1.8）</b>。</div>
+    </div>
+
+    <div class="grid g-2 mb-14">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-snowflake"></i>冬保模版 <span class="mono tiny">RUL-L3-01</span></div>
+          <span class="tag tag-green">启用</span>
+        </div>
+        <dl class="kv">
+          <dt>适用时段</dt><dd class="mono">12-01 ~ 02-28</dd>
+          <dt>模版系数</dt><dd class="mono">1.4（下限锁定 1.0）</dd>
+          <dt>适用范围</dt><dd>压力级制多选：高压 / 次高压 / 中压主干 / 中压支线</dd>
+          <dt>叠加条款</dt><dd>调压站周边200米 ×2.0 · 距在监工地≤500米 ×2.0 · 低洼与河道穿越段 ×2.0</dd>
+        </dl>
+        <div class="tiny mt-8"><i class="fa-solid fa-clock-rotate-left"></i> 上年度执行回顾（2025-2026 冬保期）：任务量 +22.4%，自动回抬 0 段。</div>
+      </div>
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-sun"></i>夏季模版 <span class="mono tiny">RUL-L3-02</span></div>
+          <span class="tag tag-green">启用</span>
+        </div>
+        <dl class="kv">
+          <dt>适用时段</dt><dd class="mono">06-01 ~ 08-31</dd>
+          <dt>模版系数</dt><dd class="mono">1.2（下限锁定 1.0）</dd>
+          <dt>适用范围</dt><dd>压力级制多选：中压主干 / 中压支线 / 低压</dd>
+          <dt>叠加条款</dt><dd>距在监工地≤500米 ×2.0 · 沿线重点用户密集区 ×1.5</dd>
+        </dl>
+        <div class="tiny mt-8"><i class="fa-solid fa-clock-rotate-left"></i> 上年度执行回顾（2026 夏季）：任务量 +13.6%，自动回抬 0 段。</div>
+      </div>
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-cloud-showers-heavy"></i>汛期模版 <span class="mono tiny">RUL-L3-03</span></div>
+          <span class="tag tag-green">启用</span>
+        </div>
+        <dl class="kv">
+          <dt>适用时段</dt><dd class="mono">06-15 ~ 09-30</dd>
+          <dt>模版系数</dt><dd class="mono">1.5（下限锁定 1.0）</dd>
+          <dt>适用范围</dt><dd>压力级制多选：全部级制</dd>
+          <dt>叠加条款</dt><dd>低洼与河道穿越段 ×2.0 · 调压站周边200米 ×2.0</dd>
+        </dl>
+        <div class="tiny mt-8"><i class="fa-solid fa-clock-rotate-left"></i> 上年度执行回顾（2026 汛期）：任务量 +18.9%，自动回抬 0 段。</div>
+      </div>
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-flag"></i>重大活动保供模版 <span class="mono tiny">RUL-L3-04</span></div>
+          <span class="tag tag-gray">事件驱动 · 待启用</span>
+        </div>
+        <dl class="kv">
+          <dt>适用时段</dt><dd>按事件手动圈定（如重保 / 防台期）</dd>
+          <dt>模版系数</dt><dd class="mono">2.0（下限锁定 1.0）</dd>
+          <dt>适用范围</dt><dd>按活动半径圈选网格（划范围、范围内打点）</dd>
+          <dt>叠加条款</dt><dd>强制插入任务不受模版影响（始终保留）</dd>
+        </dl>
+        <div class="tiny mt-8"><i class="fa-solid fa-circle-info" style="color:var(--c-info);"></i> 汛期 / 冬保 / 重保 / 防台期间排班规则以专项模版为准。</div>
+      </div>
+    </div>
+
+    <div class="grid g-3">
+      <div class="glass-card">
+        <div class="card-head"><div class="card-title"><i class="fa-solid fa-code-compare"></i>重叠时段消解</div></div>
+        <ul class="icon-list">
+          <li><i class="fa-solid fa-check"></i><span>夏季 ∩ 汛期（06-15~08-31）：取最密 <b class="mono">1.5</b>，不相乘</span></li>
+          <li><i class="fa-solid fa-check"></i><span>冬保 ∩ 重保（事件期）：取最密 <b class="mono">2.0</b></span></li>
+          <li><i class="fa-solid fa-ban" style="color:var(--c-danger);"></i><span>系统不接受放宽型模版（系数 &lt; 1.0 直接拒绝）</span></li>
+        </ul>
+      </div>
+      <div class="glass-card">
+        <div class="card-head"><div class="card-title"><i class="fa-solid fa-arrow-right-arrow-left"></i>切换影响预估</div></div>
+        <dl class="kv">
+          <dt>冬保切换</dt><dd>任务量 <b class="mono">+21.8%</b> · 自动回抬 <b class="mono">0</b> 段</dd>
+          <dt>提醒推送</dt><dd>生效前 7 日推送运行部与站长</dd>
+          <dt>跨周期</dt><dd>已下发计划不回溯，新模版自下期生效</dd>
+        </dl>
+      </div>
+      <div class="glass-card">
+        <div class="card-head"><div class="card-title"><i class="fa-solid fa-shield-halved"></i>下限保护</div></div>
+        <div class="tiny">模版导致任何管段频次低于 L0 制度下限时，<b>自动回抬至下限并列出管段数</b>；强制插入任务（新增通气 / 顺延）不受模版切换影响，始终保留在任务池中。</div>
+        <button class="btn btn-glass btn-sm mt-14" onclick="showToast('已试算：若启用放宽型模版，将自动回抬 37 段（演示），系统已拒绝该模版')"><i class="fa-solid fa-vial"></i>试算回抬管段数</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 页面4：一键排班生成 ================= -->
+  <section class="view" id="v-智能排班引擎-一键排班生成">
+    <div class="page-head">
+      <div>
+        <div class="page-title">智能排班引擎 · 一键排班生成</div>
+        <div class="page-desc">周 / 月度巡检任务清单一键自动生成 · 七步过程可视 · 四项软约束权重 + 七项硬约束 · 运行站排班员 · PC端（运行站）</div>
+      </div>
+      <div class="flex wrap">
+        <button class="btn btn-glass btn-sm" onclick="showToast('仅试排不落库：试排完成，结果与上次完全一致（同一快照 + 同一规则，结果可复现）')"><i class="fa-solid fa-vial"></i>仅试排不落库</button>
+        <button class="btn btn-primary btn-sm" onclick="showToast('一键生成完成：硬约束复校验 7/7 通过，计划已落库待下发')"><i class="fa-solid fa-wand-magic-sparkles"></i>一键生成并落库</button>
+      </div>
+    </div>
+
+    <div class="filter-bar">
+      <div class="filter-item">
+        <span class="filter-label">排班周期</span>
+        <select class="filter-select">
+          <option>2026-12-01 ~ 12-31（月度）</option>
+          <option>2026-12-07 ~ 12-13（周度）</option>
+        </select>
+      </div>
+      <div class="filter-item">
+        <span class="filter-label">站点范围</span>
+        <select class="filter-select">
+          <option>北大桥站 · 全网格</option>
+          <option>水湘站 · 全网格</option>
+          <option>天目站 · 全网格</option>
+          <option>三塘站 · 全网格</option>
+          <option>转塘站 · 全网格</option>
+        </select>
+      </div>
+      <div class="filter-item">
+        <span class="filter-label">数据快照</span>
+        <select class="filter-select">
+          <option>SNAP-20261127-0900（完整）</option>
+          <option>SNAP-20261126-0900（上一份可用）</option>
+        </select>
+      </div>
+      <button class="btn btn-glass btn-sm" style="align-self:flex-end;" onclick="showToast('快照不完整时由排班员选择：用上一份可用快照，或中止作业（不产出半成品计划）')"><i class="fa-solid fa-circle-info"></i>快照说明</button>
+    </div>
+
+    <div class="glass-card mb-14">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-list-ol"></i>七步过程实时进度</div>
+        <span class="tag tag-cyan">同一快照 + 同一规则，两次生成结果完全一致</span>
+      </div>
+      <div class="steps">
+        <div class="step done"><span class="dot"><i class="fa-solid fa-check"></i></span>1. 快照冻结</div>
+        <div class="step done"><span class="dot"><i class="fa-solid fa-check"></i></span>2. 规则计算</div>
+        <div class="step done"><span class="dot"><i class="fa-solid fa-check"></i></span>3. 增量识别</div>
+        <div class="step done"><span class="dot"><i class="fa-solid fa-check"></i></span>4. 任务池生成</div>
+        <div class="step done"><span class="dot"><i class="fa-solid fa-check"></i></span>5. 地理聚类与日容量装箱</div>
+        <div class="step active"><span class="dot"><i class="fa-solid fa-gear fa-spin"></i></span>6. 路径排序</div>
+        <div class="step"><span class="dot">7</span>7. 硬约束复校验落库</div>
+      </div>
+    </div>
+
+    <div class="grid g-4 mb-14">
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-camera"></i>数据快照</div>
+        <div class="stat-value" style="font-size:20px;">SNAP-20261127-0900</div>
+        <div class="stat-sub">完整 · 冻结后不可变更</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-code-branch"></i>生效规则版本</div>
+        <div class="stat-value" style="font-size:20px;">RV-2026.10-03</div>
+        <div class="stat-sub">47 条规则 · L0 锁定</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-snowflake"></i>季节模版</div>
+        <div class="stat-value" style="font-size:20px;">冬保 ×1.4</div>
+        <div class="stat-sub">RUL-L3-01 · 12-01 自动生效</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-plug-circle-plus"></i>新增通气纳入率</div>
+        <div class="stat-value green">100%</div>
+        <div class="stat-sub">应纳入 42 · 已纳入 42（硬约束）</div>
+      </div>
+    </div>
+
+    <div class="grid g-main-side">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-scale-balanced"></i>四项软约束权重</div>
+          <span class="tag tag-gray">均衡是软目标 · 频次是硬约束</span>
+        </div>
+        <div class="bar-row"><span>工作量均衡</span><div class="meter"><div class="meter-fill" style="width:35%;"></div></div><span class="mono">0.35</span></div>
+        <div class="bar-row"><span>路径最短</span><div class="meter"><div class="meter-fill" style="width:30%;"></div></div><span class="mono">0.30</span></div>
+        <div class="bar-row"><span>地理聚集</span><div class="meter"><div class="meter-fill" style="width:20%;"></div></div><span class="mono">0.20</span></div>
+        <div class="bar-row"><span>人员熟悉度</span><div class="meter"><div class="meter-fill" style="width:15%;"></div></div><span class="mono">0.15</span></div>
+        <hr class="divider">
+        <div class="card-head" style="margin-bottom:8px;">
+          <div class="card-title"><i class="fa-solid fa-plug-circle-plus"></i>增量强制插入明细</div>
+        </div>
+        <ul class="icon-list">
+          <li><i class="fa-solid fa-circle-plus" style="color:var(--c-ok);"></i><span>新增通气：应纳入 <b class="mono">32</b> · 已纳入 <b class="mono">32</b></span></li>
+          <li><i class="fa-solid fa-rotate-right" style="color:var(--c-warn);"></i><span>上期未完成顺延：应纳入 <b class="mono">10</b> · 已纳入 <b class="mono">10</b></span></li>
+          <li><i class="fa-solid fa-check" style="color:var(--c-ok);"></i><span>纳入率 <b class="mono" style="color:var(--c-ok);">100%</b>（系统硬约束，不满足即中止作业并告警运行部）</span></li>
+        </ul>
+        <div class="tiny mt-8"><i class="fa-solid fa-circle-info" style="color:var(--c-info);"></i> 未收敛时输出当前最优可行解并标注「未达最优」；任一硬约束不满足即中止作业，不产出半成品计划。</div>
+      </div>
+
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-shield-halved"></i>七项硬约束</div>
+          <span class="tag tag-green">7/7 通过</span>
+        </div>
+        <ul class="icon-list">
+          <li><i class="fa-solid fa-check" style="color:var(--c-ok);"></i><span>频次达标（命中链取最密）</span></li>
+          <li><i class="fa-solid fa-check" style="color:var(--c-ok);"></i><span>制度下限（L0 四条全量校验）</span></li>
+          <li><i class="fa-solid fa-check" style="color:var(--c-ok);"></i><span>新增通气 100% 纳入（42/42）</span></li>
+          <li><i class="fa-solid fa-check" style="color:var(--c-ok);"></i><span>未完成任务顺延（10 条入池）</span></li>
+          <li><i class="fa-solid fa-check" style="color:var(--c-ok);"></i><span>高压任务资质匹配（持证 26 人）</span></li>
+          <li><i class="fa-solid fa-check" style="color:var(--c-ok);"></i><span>人均日工时 ≤ 8h（当前 7.6h）</span></li>
+          <li><i class="fa-solid fa-check" style="color:var(--c-ok);"></i><span>做五休二 · 法定节假日不排任务</span></li>
+        </ul>
+        <hr class="divider">
+        <div class="tiny"><i class="fa-solid fa-users"></i> 北大桥站在岗巡检员 36 名（全网 178 名 · 五站）；在岗状态按外勤 APP 签到判断（无请假与不在岗记录）。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 页面5：周月任务清单 ================= -->
+  <section class="view" id="v-智能排班引擎-周月任务清单">
+    <div class="page-head">
+      <div>
+        <div class="page-title">智能排班引擎 · 周月任务清单（2026-12 · 北大桥站）</div>
+        <div class="page-desc">月历视图 + 任务清单 · 任务频次命中链展开 · 计划一键下发外勤APP并记录回执 · 运行站排班员 · PC端</div>
+      </div>
+      <div class="flex wrap">
+        <button class="btn btn-glass btn-sm" onclick="showToast('月历已切换为周视图（演示）：12-07 ~ 12-13，周六仅排值班与顺延')"><i class="fa-solid fa-table-columns"></i>切周视图</button>
+        <button class="btn btn-primary btn-sm" onclick="showToast('计划已下发外勤APP：1286 条任务逐条下发，回执 1286/1286 已接收')"><i class="fa-solid fa-paper-plane"></i>确认并一键下发</button>
+      </div>
+    </div>
+
+    <div class="grid g-4 mb-14">
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-list-check"></i>任务总数</div>
+        <div class="stat-value">1,286</div>
+        <div class="stat-sub">常规 1,214 · 强制插入 72</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-plug-circle-plus"></i>强制插入任务数</div>
+        <div class="stat-value green">42</div>
+        <div class="stat-sub">新增通气 32 · 顺延 10</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-route"></i>覆盖管段数</div>
+        <div class="stat-value">1,184</div>
+        <div class="stat-sub">半月一次 · 两个月一轮全覆盖</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-shield-halved"></i>硬约束校验</div>
+        <div class="stat-value green">7/7</div>
+        <div class="stat-sub">全部通过 · 可下发</div>
+      </div>
+    </div>
+
+    <div class="glass-card mb-14">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-calendar-days"></i>月历视图 · 按日汇总任务量（颜色区分四类来源）</div>
+        <div class="flex wrap" style="gap:8px;">
+          <span class="tag tag-cyan"><span class="dot4" style="background:var(--c-primary);"></span>常规</span>
+          <span class="tag tag-green"><span class="dot4" style="background:var(--c-ok);"></span>新增通气</span>
+          <span class="tag tag-orange"><span class="dot4" style="background:var(--c-warn);"></span>顺延</span>
+          <span class="tag tag-yellow"><span class="dot4" style="background:var(--c-caution);"></span>工地邻近</span>
+        </div>
+      </div>
+      <div class="cal-grid">
+        <div class="cal-head">一</div><div class="cal-head">二</div><div class="cal-head">三</div><div class="cal-head">四</div><div class="cal-head">五</div><div class="cal-head">六</div><div class="cal-head">日</div>
+        <div class="cal-cell off"></div>
+        <div class="cal-cell"><div class="flex-between"><span class="cal-num">1</span><span class="cal-count">55</span></div><div class="cal-dots"><span class="dot4" style="background:var(--c-primary);"></span><span class="dot4" style="background:var(--c-ok);"></span><span class="dot4" style="background:var(--c-warn);"></span><span class="dot4" style="background:var(--c-caution);"></span></div></div>
+        <div class="cal-cell"><div class="flex-between"><span class="cal-num">2</span><span class="cal-count">58</span></div><div class="cal-dots"><span class="dot4" style="background:var(--c-primary);"></span><span class="dot4" style="background:var(--c-ok);"></span><span class="dot4" style="background:var(--c-caution);"></span></div></div>
+        <div class="cal-cell"><div class="flex-between"><span class="cal-num">3</span><span class="cal-count">57</span></div><div class="cal-dots"><span class="dot4" style="background:var(--c-primary);"></span><span class="dot4" style="background:var(--c-ok);"></span></div></div>
+        <div class="cal-cell"><div class="flex-between"><span class="cal-num">4</span><span class="cal-count">60</span></div><div class="cal-dots"><span class="dot4" style="background:var(--c-primary);"></span><span class="dot4" style="background:var(--c-ok);"></span><span class="dot4" style="background:var(--c-caution);"></span></div></div>
+        <div class="cal-cell sat"><div class="flex-between"><span class="cal-num">5</span><span class="cal-count">3</span></div><div class="cal-dots"><span class="dot4" style="background:var(--c-warn);"></span></div><div class="tiny">值班+顺延</div></div>
+        <div class="cal-cell sun"><div class="flex-between"><span class="cal-num">6</span><span class="tag tag-gray">休</span></div></div>
+        <div class="cal-cell"><div class="flex-between"><span class="cal-num">7</span><span class="cal-count">56</span></div><div class="cal-dots"><span class="dot4" style="background:var(--c-primary);"></span><span class="dot4" style="background:var(--c-ok);"></span><span class="dot4" style="background:var(--c-warn);"></span></div></div>
+        <div class="cal-cell"><div class="flex-between"><span class="cal-num">8</span><span class="cal-count">59</span></div><div class="cal-dots"><span class="dot4" style="background:var(--c-primary);"></span><span class="dot4" style="background:var(--c-ok);"></span><span class="dot4" style="background:var(--c-caution);"></span></div></div>
+        <div class="cal-cell"><div class="flex-between"><span class="cal-num">9</span><span class="cal-count">58</span></div><div class="cal-dots"><span class="dot4" style="background:var(--c-primary);"></span><span class="dot4" style="background:var(--c-warn);"></span></div></div>
+        <div class="cal-cell"><div class="flex-between"><span class="cal-num">10</span><span class="cal-count">61</span></div><div class="cal-dots"><span class="dot4" style="background:var(--c-primary);"></span><span class="dot4" style="background:var(--c-caution);"></span></div></div>
+        <div class="cal-cell"><div class="flex-between"><span class="cal-num">11</span><span class="cal-count">57</span></div><div class="cal-dots"><span class="dot4" style="background:var(--c-primary);"></span><span class="dot4" style="background:var(--c-ok);"></span></div></div>
+        <div class="cal-cell sat"><div class="flex-between"><span class="cal-num">12</span><span class="cal-count">2</span></div><div class="cal-dots"><span class="dot4" style="background:var(--c-warn);"></span></div><div class="tiny">值班+顺延</div></div>
+        <div class="cal-cell sun"><div class="flex-between"><span class="cal-num">13</span><span class="tag tag-gray">休</span></div></div>
+        <div class="cal-cell"><div class="flex-between"><span class="cal-num">14</span><span class="cal-count">60</span></div><div class="cal-dots"><span class="dot4" style="background:var(--c-primary);"></span><span class="dot4" style="background:var(--c-ok);"></span></div></div>
+        <div class="cal-cell"><div class="flex-between"><span class="cal-num">15</span><span class="cal-count">58</span></div><div class="cal-dots"><span class="dot4" style="background:var(--c-primary);"></span><span class="dot4" style="background:var(--c-ok);"></span><span class="dot4" style="background:var(--c-warn);"></span></div></div>
+        <div class="cal-cell"><div class="flex-between"><span class="cal-num">16</span><span class="cal-count">59</span></div><div class="cal-dots"><span class="dot4" style="background:var(--c-primary);"></span></div></div>
+        <div class="cal-cell"><div class="flex-between"><span class="cal-num">17</span><span class="cal-count">62</span></div><div class="cal-dots"><span class="dot4" style="background:var(--c-primary);"></span><span class="dot4" style="background:var(--c-caution);"></span></div></div>
+        <div class="cal-cell"><div class="flex-between"><span class="cal-num">18</span><span class="cal-count">57</span></div><div class="cal-dots"><span class="dot4" style="background:var(--c-primary);"></span><span class="dot4" style="background:var(--c-ok);"></span></div></div>
+        <div class="cal-cell sat"><div class="flex-between"><span class="cal-num">19</span><span class="cal-count">4</span></div><div class="cal-dots"><span class="dot4" style="background:var(--c-warn);"></span></div><div class="tiny">值班+顺延</div></div>
+        <div class="cal-cell sun"><div class="flex-between"><span class="cal-num">20</span><span class="tag tag-gray">休</span></div></div>
+        <div class="cal-cell"><div class="flex-between"><span class="cal-num">21</span><span class="cal-count">58</span></div><div class="cal-dots"><span class="dot4" style="background:var(--c-primary);"></span><span class="dot4" style="background:var(--c-ok);"></span></div></div>
+        <div class="cal-cell"><div class="flex-between"><span class="cal-num">22</span><span class="cal-count">60</span></div><div class="cal-dots"><span class="dot4" style="background:var(--c-primary);"></span><span class="dot4" style="background:var(--c-warn);"></span></div></div>
+        <div class="cal-cell"><div class="flex-between"><span class="cal-num">23</span><span class="cal-count">57</span></div><div class="cal-dots"><span class="dot4" style="background:var(--c-primary);"></span></div></div>
+        <div class="cal-cell"><div class="flex-between"><span class="cal-num">24</span><span class="cal-count">59</span></div><div class="cal-dots"><span class="dot4" style="background:var(--c-primary);"></span><span class="dot4" style="background:var(--c-caution);"></span></div></div>
+        <div class="cal-cell"><div class="flex-between"><span class="cal-num">25</span><span class="cal-count">61</span></div><div class="cal-dots"><span class="dot4" style="background:var(--c-primary);"></span><span class="dot4" style="background:var(--c-ok);"></span></div></div>
+        <div class="cal-cell sat"><div class="flex-between"><span class="cal-num">26</span><span class="cal-count">2</span></div><div class="cal-dots"><span class="dot4" style="background:var(--c-warn);"></span></div><div class="tiny">值班+顺延</div></div>
+        <div class="cal-cell sun"><div class="flex-between"><span class="cal-num">27</span><span class="tag tag-gray">休</span></div></div>
+        <div class="cal-cell"><div class="flex-between"><span class="cal-num">28</span><span class="cal-count">59</span></div><div class="cal-dots"><span class="dot4" style="background:var(--c-primary);"></span><span class="dot4" style="background:var(--c-ok);"></span></div></div>
+        <div class="cal-cell"><div class="flex-between"><span class="cal-num">29</span><span class="cal-count">58</span></div><div class="cal-dots"><span class="dot4" style="background:var(--c-primary);"></span></div></div>
+        <div class="cal-cell"><div class="flex-between"><span class="cal-num">30</span><span class="cal-count">60</span></div><div class="cal-dots"><span class="dot4" style="background:var(--c-primary);"></span><span class="dot4" style="background:var(--c-ok);"></span></div></div>
+        <div class="cal-cell off"></div><div class="cal-cell off"></div><div class="cal-cell off"></div><div class="cal-cell off"></div>
+      </div>
+      <div class="tiny mt-8">做五休二：周六仅排值班与顺延、周日休；法定节假日按考勤日历自动跳过（本月无法定节假日）。</div>
+    </div>
+
+    <div class="glass-card">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-list"></i>任务清单（节选 · 12-07 ~ 12-11）</div>
+        <span class="tag tag-gray">点击「命中链」核对为什么排这么密</span>
+      </div>
+      <div class="table-scroll">
+        <table class="glass-table">
+          <thead>
+            <tr><th>任务编号</th><th>计划日期</th><th>执行人</th><th>管段</th><th>属性</th><th>频次</th><th>来源</th><th>命中链</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="mono">RW202612-0312</td><td class="mono">12-07</td><td>王*强</td><td class="mono">GD-6620</td><td>中压主干</td><td class="mono">2次/周</td><td><span class="tag tag-cyan">常规</span></td><td><button class="btn btn-glass btn-xs" onclick="openModal('m-hit-chain')">展开</button></td></tr>
+            <tr><td class="mono">RW202612-0313</td><td class="mono">12-07</td><td>陈*军</td><td class="mono">GD-7821</td><td>中压主干</td><td class="mono">2次/周</td><td><span class="tag tag-cyan">常规</span></td><td><button class="btn btn-glass btn-xs" onclick="openModal('m-hit-chain')">展开</button></td></tr>
+            <tr><td class="mono">RW202612-0457</td><td class="mono">12-08</td><td>李*明</td><td class="mono">GD-9135</td><td>低压 · 新增通气</td><td class="mono">1次/月</td><td><span class="tag tag-green">新增通气</span></td><td><button class="btn btn-glass btn-xs" onclick="openModal('m-hit-chain')">展开</button></td></tr>
+            <tr><td class="mono">RW202612-0461</td><td class="mono">12-08</td><td>周*平</td><td class="mono">GD-9201</td><td>中压支线</td><td class="mono">1次/周</td><td><span class="tag tag-yellow">工地邻近</span></td><td><button class="btn btn-glass btn-xs" onclick="openModal('m-hit-chain')">展开</button></td></tr>
+            <tr><td class="mono">RW202612-0520</td><td class="mono">12-09</td><td>吴*芳</td><td class="mono">GD-5508</td><td>低压庭院</td><td class="mono">1次/月</td><td><span class="tag tag-orange">顺延</span></td><td><button class="btn btn-glass btn-xs" onclick="openModal('m-hit-chain')">展开</button></td></tr>
+            <tr><td class="mono">RW202612-0533</td><td class="mono">12-09</td><td>郑*涛</td><td class="mono">GD-3312</td><td>高压</td><td class="mono">1次/日</td><td><span class="tag tag-cyan">常规</span></td><td><button class="btn btn-glass btn-xs" onclick="openModal('m-hit-chain')">展开</button></td></tr>
+            <tr><td class="mono">RW202612-0618</td><td class="mono">12-10</td><td>刘*军</td><td class="mono">GD-7854</td><td>中压主干</td><td class="mono">2次/周</td><td><span class="tag tag-cyan">常规</span></td><td><button class="btn btn-glass btn-xs" onclick="openModal('m-hit-chain')">展开</button></td></tr>
+            <tr><td class="mono">RW202612-0702</td><td class="mono">12-11</td><td>孙*丽</td><td class="mono">GD-8834</td><td>中压支线</td><td class="mono">1次/2周</td><td><span class="tag tag-cyan">常规</span></td><td><button class="btn btn-glass btn-xs" onclick="openModal('m-hit-chain')">展开</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="modal-mask" id="m-hit-chain" onclick="if(event.target===this)closeModal('m-hit-chain')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-diagram-project"></i>任务频次命中链 · RW202612-0312</div>
+          <button class="modal-close" onclick="closeModal('m-hit-chain')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="tiny mb-14">管段 GD-6620 · 中压主干 · 钢管 · 运行年限 22 年 · 无泄漏史 · 健康等级黄色 · 当前处于冬保期</div>
+          <div class="chain-step"><span class="tag tag-gray">L0</span><span class="mono">RUL-L0-02</span><span>中压主干制度下限</span><span class="tag tag-gray">候选 ≥1次/周</span></div>
+          <div class="chain-step"><span class="tag tag-cyan">L2</span><span class="mono">RUL-L2-09</span><span>运行年限≥20年 ×1.3</span><span class="tag tag-gray">候选 1.3次/周 → 取密 2次/周</span></div>
+          <div class="chain-step"><span class="tag tag-orange">L3</span><span class="mono">RUL-L3-01</span><span>冬保模版 ×1.4</span><span class="tag tag-gray">候选 1.4次/周 → 取密 2次/周</span></div>
+          <div class="chain-final"><i class="fa-solid fa-circle-check"></i>多规则命中取最密者 → 最终频次 <span class="mono">2次/周</span>（为什么排这么密：L0 下限 + 年限加密 + 冬保模版三重命中）</div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost" onclick="closeModal('m-hit-chain')">关闭</button>
+          <button class="btn btn-primary" onclick="closeModal('m-hit-chain'); showToast('命中链核对无误，已记录核对操作')"><i class="fa-solid fa-check"></i>核对无误</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 页面6：工作量均衡分析 ================= -->
+  <section class="view" id="v-智能排班引擎-工作量均衡分析">
+    <div class="page-head">
+      <div>
+        <div class="page-title">智能排班引擎 · 工作量均衡分析（2026-12 第1周 · 北大桥站）</div>
+        <div class="page-desc">人均日工时 + 日均行进里程双口径 · 自动生成任务对调建议 · 采纳后重算复校 · 运行站站长 · PC端</div>
+      </div>
+      <button class="btn btn-glass btn-sm" onclick="showToast('已按最新口径重算：工时口径与员工效能模块完全一致（作业工时+行进工时）')"><i class="fa-solid fa-rotate"></i>重算工作量</button>
+    </div>
+
+    <div class="grid g-4 mb-14">
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-gauge-high"></i>人均日工时</div>
+        <div class="stat-value">7.6h</div>
+        <div class="stat-sub">上限 8h · 超限 2 人（红标）</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-person-walking"></i>人均日行进里程</div>
+        <div class="stat-value">23.2km</div>
+        <div class="stat-sub">双口径衡量 · 与工时并行</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-scale-balanced"></i>任务 / 人力匹配度</div>
+        <div class="stat-value blue">92.2%</div>
+        <div class="stat-sub">需求 5,842h / 可用 6,336h（36人×22日×8h）</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-right-left"></i>可采纳对调建议</div>
+        <div class="stat-value accent">2 条</div>
+        <div class="stat-sub">同站同网格 + 资质匹配 + 双方工时限内</div>
+      </div>
+    </div>
+
+    <div class="grid g-main-side">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-chart-simple"></i>人员工作量分布（人均日工时 / 日均行进里程）</div>
+          <span class="tag tag-red">红标 = 超 8h 限值</span>
+        </div>
+        <div class="bar-row"><span>陈*军</span><div class="meter"><div class="meter-fill" style="width:78%;"></div></div><span class="mono">7.8h · 24.6km</span></div>
+        <div class="bar-row"><span style="color:var(--c-danger); font-weight:600;">王*强</span><div class="meter"><div class="meter-fill red" style="width:86%;"></div></div><span class="mono" style="color:var(--c-danger);">8.6h · 26.1km 超限</span></div>
+        <div class="bar-row"><span>李*明</span><div class="meter"><div class="meter-fill" style="width:69%;"></div></div><span class="mono">6.9h · 21.8km</span></div>
+        <div class="bar-row"><span style="color:var(--c-danger); font-weight:600;">张*华</span><div class="meter"><div class="meter-fill red" style="width:84%;"></div></div><span class="mono" style="color:var(--c-danger);">8.4h · 25.4km 超限</span></div>
+        <div class="bar-row"><span>刘*芳</span><div class="meter"><div class="meter-fill" style="width:72%;"></div></div><span class="mono">7.2h · 22.3km</span></div>
+        <div class="bar-row"><span>周*平</span><div class="meter"><div class="meter-fill" style="width:65%;"></div></div><span class="mono">6.5h · 20.7km</span></div>
+        <div class="bar-row"><span>吴*涛</span><div class="meter"><div class="meter-fill" style="width:79%;"></div></div><span class="mono">7.9h · 24.9km</span></div>
+        <div class="bar-row"><span>郑*军</span><div class="meter"><div class="meter-fill" style="width:61%;"></div></div><span class="mono">6.1h · 19.5km</span></div>
+        <hr class="divider">
+        <div class="card-head" style="margin-bottom:8px;"><div class="card-title"><i class="fa-solid fa-ruler"></i>标准工时口径（与员工效能模块一致）</div></div>
+        <div class="tiny">中压主干 <b class="mono">0.42</b> 小时/百米 · 中压支线 <b class="mono">0.30</b> · 低压庭院 <b class="mono">0.22</b> + 路网行进时间；工作量 = 作业工时 + 行进工时。</div>
+      </div>
+
+      <div>
+        <div class="glass-card mb-14">
+          <div class="card-head"><div class="card-title"><i class="fa-solid fa-chart-line"></i>均衡度四项指标</div></div>
+          <ul class="icon-list">
+            <li><i class="fa-solid fa-check" style="color:var(--c-ok);"></i><span>工时标准差 <b class="mono">0.72h</b>（目标 ≤0.8）</span></li>
+            <li><i class="fa-solid fa-triangle-exclamation" style="color:var(--c-warn);"></i><span>工时极差 <b class="mono">2.5h</b>（目标 ≤2.0，橙标）</span></li>
+            <li><i class="fa-solid fa-check" style="color:var(--c-ok);"></i><span>里程标准差 <b class="mono">3.8km</b>（目标 ≤5.0）</span></li>
+            <li><i class="fa-solid fa-check" style="color:var(--c-ok);"></i><span>负载基尼系数 <b class="mono">0.08</b>（目标 ≤0.10）</span></li>
+          </ul>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-right-left"></i>对调建议</div>
+            <span class="tag tag-gray">不合规方案已在生成阶段过滤</span>
+          </div>
+          <div class="alert-strip cyan" style="margin-bottom:10px;">
+            <i class="fa-solid fa-filter"></i>
+            <span>过滤规则：资质不匹配 / 把强制任务调出本周期 / 频次低于下限的方案不生成。</span>
+          </div>
+          <div class="glass-card soft mb-8" style="padding:14px 16px;">
+            <div class="flex-between wrap">
+              <div><b>建议一：张*华（8.4h）↔ 李*明（6.9h）</b><div class="tiny mt-8">交换 12-09 任务 GD-8834 与 GD-7912（同站同网格 · 资质匹配）→ 调整后 7.6h / 7.7h，双方均在限内</div></div>
+              <button class="btn btn-primary btn-sm" onclick="showToast('建议一已采纳：自动重算并复校七项硬约束，全部通过（均衡是软目标、频次是硬约束）')"><i class="fa-solid fa-check"></i>采纳</button>
+            </div>
+          </div>
+          <div class="glass-card soft" style="padding:14px 16px;">
+            <div class="flex-between wrap">
+              <div><b>建议二：王*强（8.6h）→ 郑*军（6.1h）</b><div class="tiny mt-8">转移 12-10 任务 GD-5577（工地邻近 · 非强制）→ 调整后 7.8h / 6.9h，双方均在限内</div></div>
+              <button class="btn btn-primary btn-sm" onclick="showToast('建议二已采纳：自动重算并复校七项硬约束，全部通过')"><i class="fa-solid fa-check"></i>采纳</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 页面7：地图路线与点位 ================= -->
+  <section class="view" id="v-排班交互工作台-地图路线与点位">
+    <div class="page-head">
+      <div>
+        <div class="page-title">排班交互工作台 · 地图路线与点位（2026-12-08 · 北大桥站）</div>
+        <div class="page-desc">按班组按日展示巡检路线与点位顺序 · 新增通气管线与在监工地分布 · 可调项 / 不可调项明确标注 · 运行站排班员 · PC端</div>
+      </div>
+      <div class="flex wrap">
+        <button class="btn btn-glass btn-sm" onclick="showToast('已筛选：仅显示班组甲路线（演示）')"><i class="fa-solid fa-users-viewfinder"></i>班组甲</button>
+        <button class="btn btn-glass btn-sm" onclick="showToast('已筛选：仅显示班组乙路线（演示）')"><i class="fa-solid fa-users-viewfinder"></i>班组乙</button>
+        <button class="btn btn-glass btn-sm" onclick="showToast('已筛选：仅显示班组丙路线（演示）')"><i class="fa-solid fa-users-viewfinder"></i>班组丙</button>
+        <button class="btn btn-glass btn-sm" onclick="showToast('已显示全部班组路线')"><i class="fa-solid fa-layer-group"></i>全部</button>
+      </div>
+    </div>
+
+    <div class="grid g-main-side">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-map"></i>班组路线 · 点位顺序 · 新增通气 · 在监工地</div>
+          <span class="tag tag-gray">底图与外勤APP同源 · 划范围、范围内打点</span>
+        </div>
+        <div class="map-canvas" style="min-height:420px;">
+          <svg viewBox="0 0 860 420" style="position:absolute; inset:0; width:100%; height:100%;">
+            <polyline class="pipe" points="40,60 200,40 360,70 520,45 680,65 820,40" stroke="rgba(100,116,139,.22)" stroke-width="3"/>
+            <polyline class="pipe" points="60,120 140,200 120,300 200,380" stroke="rgba(100,116,139,.18)" stroke-width="3"/>
+            <polyline class="pipe" points="700,180 780,240 830,340" stroke="rgba(100,116,139,.18)" stroke-width="3"/>
+            <polyline class="pipe" points="60,340 150,300 240,315 330,270 420,290 500,250" stroke="#0E7490" stroke-width="5"/>
+            <polyline class="pipe" points="480,360 560,320 640,330 720,280 790,300" stroke="#FF9500" stroke-width="5"/>
+            <polyline class="pipe" points="90,140 180,110 280,130 370,90 460,120" stroke="#34A8FF" stroke-width="5"/>
+            <polyline points="540,150 620,120 700,140 780,100" stroke="#34C759" stroke-width="4" stroke-dasharray="10 7" fill="none" opacity=".9"/>
+            <circle cx="150" cy="300" r="9" fill="#0E7490" stroke="#fff" stroke-width="2"/><text x="150" y="304" text-anchor="middle" font-size="10" fill="#fff" font-family="DM Mono, monospace">1</text>
+            <circle cx="240" cy="315" r="9" fill="#0E7490" stroke="#fff" stroke-width="2"/><text x="240" y="319" text-anchor="middle" font-size="10" fill="#fff" font-family="DM Mono, monospace">2</text>
+            <circle cx="330" cy="270" r="9" fill="#0E7490" stroke="#fff" stroke-width="2"/><text x="330" y="274" text-anchor="middle" font-size="10" fill="#fff" font-family="DM Mono, monospace">3</text>
+            <circle cx="420" cy="290" r="9" fill="#0E7490" stroke="#fff" stroke-width="2"/><text x="420" y="294" text-anchor="middle" font-size="10" fill="#fff" font-family="DM Mono, monospace">4</text>
+            <circle cx="560" cy="320" r="9" fill="#FF9500" stroke="#fff" stroke-width="2"/><text x="560" y="324" text-anchor="middle" font-size="10" fill="#fff" font-family="DM Mono, monospace">1</text>
+            <circle cx="640" cy="330" r="9" fill="#FF9500" stroke="#fff" stroke-width="2"/><text x="640" y="334" text-anchor="middle" font-size="10" fill="#fff" font-family="DM Mono, monospace">2</text>
+            <circle cx="720" cy="280" r="9" fill="#FF9500" stroke="#fff" stroke-width="2"/><text x="720" y="284" text-anchor="middle" font-size="10" fill="#fff" font-family="DM Mono, monospace">3</text>
+            <circle cx="180" cy="110" r="9" fill="#34A8FF" stroke="#fff" stroke-width="2"/><text x="180" y="114" text-anchor="middle" font-size="10" fill="#fff" font-family="DM Mono, monospace">1</text>
+            <circle cx="280" cy="130" r="9" fill="#34A8FF" stroke="#fff" stroke-width="2"/><text x="280" y="134" text-anchor="middle" font-size="10" fill="#fff" font-family="DM Mono, monospace">2</text>
+            <circle cx="370" cy="90" r="9" fill="#34A8FF" stroke="#fff" stroke-width="2"/><text x="370" y="94" text-anchor="middle" font-size="10" fill="#fff" font-family="DM Mono, monospace">3</text>
+            <polygon points="300,168 312,180 300,192 288,180" fill="#FFCC00" stroke="#fff" stroke-width="1.5"/>
+            <polygon points="610,208 622,220 610,232 598,220" fill="#FFCC00" stroke="#fff" stroke-width="1.5"/>
+            <polygon points="170,228 182,240 170,252 158,240" fill="#FFCC00" stroke="#fff" stroke-width="1.5"/>
+            <text x="300" y="208" text-anchor="middle" font-size="10" fill="#9A7A00" font-weight="600">在监工地A</text>
+            <text x="610" y="248" text-anchor="middle" font-size="10" fill="#9A7A00" font-weight="600">在监工地B</text>
+            <text x="170" y="268" text-anchor="middle" font-size="10" fill="#9A7A00" font-weight="600">在监工地C</text>
+            <text x="660" y="88" text-anchor="middle" font-size="10" fill="#1E9E44" font-weight="600">新增通气 GD-9135（强制插入 · 仅可改期）</text>
+            <text x="255" y="345" text-anchor="middle" font-size="10" fill="#0E7490" font-weight="600">班组甲 · 12-08</text>
+            <text x="635" y="360" text-anchor="middle" font-size="10" fill="#C67200" font-weight="600">班组乙 · 12-08</text>
+            <text x="275" y="65" text-anchor="middle" font-size="10" fill="#0B7FD4" font-weight="600">班组丙 · 12-08</text>
+          </svg>
+          <div class="map-legend">
+            <span><span class="sw" style="background:#0E7490;"></span>班组甲</span>
+            <span><span class="sw" style="background:#FF9500;"></span>班组乙</span>
+            <span><span class="sw" style="background:#34A8FF;"></span>班组丙</span>
+            <span><span class="sw" style="background:repeating-linear-gradient(90deg,#34C759 0 4px,transparent 4px 7px);"></span>新增通气</span>
+            <span><span class="sw" style="background:#FFCC00; transform:rotate(45deg); width:9px; height:9px;"></span>在监工地</span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="glass-card mb-14">
+          <div class="card-head"><div class="card-title"><i class="fa-solid fa-sliders"></i>可调项 / 不可调项</div></div>
+          <ul class="icon-list">
+            <li><i class="fa-solid fa-check" style="color:var(--c-ok);"></i><span>可调：任务日期（法定节假日自动跳过）</span></li>
+            <li><i class="fa-solid fa-check" style="color:var(--c-ok);"></i><span>可调：执行人（需资质匹配）</span></li>
+            <li><i class="fa-solid fa-check" style="color:var(--c-ok);"></i><span>可调：点位顺序（保留人工顺序并给出与算法最优的里程差）</span></li>
+            <li><i class="fa-solid fa-ban" style="color:var(--c-danger);"></i><span>禁止（界面直接禁用）：删除强制插入任务（新增通气）</span></li>
+            <li><i class="fa-solid fa-ban" style="color:var(--c-danger);"></i><span>禁止：删除顺延任务</span></li>
+            <li><i class="fa-solid fa-ban" style="color:var(--c-danger);"></i><span>禁止：任何使频次低于制度下限的调整</span></li>
+          </ul>
+        </div>
+        <div class="glass-card mb-14">
+          <div class="card-head"><div class="card-title"><i class="fa-solid fa-magnifying-glass"></i>覆盖与盲区自查</div></div>
+          <dl class="kv">
+            <dt>覆盖管段</dt><dd class="mono">1,184 / 1,184（100%）</dd>
+            <dt>盲区</dt><dd class="mono" style="color:var(--c-ok);">0 段</dd>
+            <dt>盲区口径</dt><dd>与一张图共用同一判定口径</dd>
+            <dt>工地邻近加密</dt><dd class="mono">3 处工地 · 500米内 27 段已加密</dd>
+          </dl>
+        </div>
+        <div class="glass-card">
+          <div class="card-head"><div class="card-title"><i class="fa-solid fa-flag"></i>任务标识说明</div></div>
+          <div class="flex wrap" style="gap:8px;">
+            <span class="tag tag-green"><i class="fa-solid fa-plug-circle-plus"></i>强制插入 · 仅可改期</span>
+            <span class="tag tag-orange"><i class="fa-solid fa-rotate-right"></i>顺延任务 · 仅可改期</span>
+            <span class="tag tag-yellow"><i class="fa-solid fa-helmet-safety"></i>工地邻近加密</span>
+          </div>
+          <div class="tiny mt-8">在监第三方工地 500 米邻近管段自动加密一档；强制插入与顺延任务可改期但不可删除。</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 页面8：看板拖拽调整 ================= -->
+  <section class="view" id="v-排班交互工作台-看板拖拽调整">
+    <div class="page-head">
+      <div>
+        <div class="page-title">排班交互工作台 · 看板拖拽调整（2026-12-07 ~ 12-11 · 北大桥站）</div>
+        <div class="page-desc">人员 × 日期看板任务卡片跨人跨日拖拽 · 拖拽释放前端预校验 · 调整摘要与调整台账 · 运行站排班员 · PC端</div>
+      </div>
+      <button class="btn btn-glass btn-sm" onclick="showToast('台账已导出（演示）：本周期共 4 条调整记录，含 1 次阻断留痕')"><i class="fa-solid fa-file-export"></i>导出调整台账</button>
+    </div>
+
+    <div class="alert-strip blue mb-14">
+      <i class="fa-solid fa-hand-pointer"></i>
+      <span>拖拽释放瞬间前端预校验：合法落点显示绿框与调整后工时；禁止落点标红显示原因、松手后卡片自动弹回。<b>演示模式：点击任一任务卡片查看调整摘要弹窗。</b>保存时服务端按同一套规则复校验，不可绕过（接口直提同样拒绝并记录一次阻断）。</span>
+    </div>
+
+    <div class="glass-card mb-14">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-table-cells"></i>人员 × 日期看板（做五休二 · 周末不排任务）</div>
+        <div class="flex wrap" style="gap:8px;">
+          <span class="tag tag-cyan">常规</span><span class="tag tag-green">新增通气 · 仅可改期</span><span class="tag tag-orange">顺延 · 仅可改期</span><span class="tag tag-yellow">工地邻近</span>
+        </div>
+      </div>
+      <div class="kb-grid">
+        <div class="kb-head">人员</div>
+        <div class="kb-head">12-07 一</div>
+        <div class="kb-head">12-08 二</div>
+        <div class="kb-head">12-09 三</div>
+        <div class="kb-head">12-10 四</div>
+        <div class="kb-head">12-11 五</div>
+
+        <div class="kb-person"><span>王*强</span><span class="tiny mono">7.9h</span></div>
+        <div class="kb-cell">
+          <button class="kb-card" onclick="openModal('m-adjust')"><span class="segno">GD-6620</span><span>中压主干 · 2次/周</span><span class="tag tag-cyan" style="align-self:flex-start;">常规</span></button>
+          <button class="kb-card" onclick="openModal('m-adjust')"><span class="segno">GD-8802</span><span>低压庭院 · 1次/月</span><span class="tag tag-cyan" style="align-self:flex-start;">常规</span></button>
+        </div>
+        <div class="kb-cell">
+          <button class="kb-card" onclick="openModal('m-adjust')"><span class="segno">GD-6620</span><span>中压主干 · 2次/周</span><span class="tag tag-cyan" style="align-self:flex-start;">常规</span></button>
+        </div>
+        <div class="kb-cell">
+          <button class="kb-card" onclick="openModal('m-adjust')"><span class="segno">GD-7120</span><span>低压 · 顺延</span><span class="tag tag-orange" style="align-self:flex-start;">顺延 · 仅可改期</span></button>
+        </div>
+        <div class="kb-cell">
+          <button class="kb-card" onclick="openModal('m-adjust')"><span class="segno">GD-5577</span><span>中压支线 · 工地邻近</span><span class="tag tag-yellow" style="align-self:flex-start;">工地邻近</span></button>
+        </div>
+        <div class="kb-cell">
+          <button class="kb-card" onclick="openModal('m-adjust')"><span class="segno">GD-7033</span><span>中压支线 · 1次/2周</span><span class="tag tag-cyan" style="align-self:flex-start;">常规</span></button>
+        </div>
+
+        <div class="kb-person"><span>李*明</span><span class="tiny mono">7.2h</span></div>
+        <div class="kb-cell">
+          <button class="kb-card" onclick="openModal('m-adjust')"><span class="segno">GD-9201</span><span>中压支线 · 工地邻近</span><span class="tag tag-yellow" style="align-self:flex-start;">工地邻近</span></button>
+        </div>
+        <div class="kb-cell">
+          <button class="kb-card" onclick="openModal('m-adjust')"><span class="segno">GD-9135</span><span>低压 · 新增通气</span><span class="tag tag-green" style="align-self:flex-start;">强制插入 · 仅可改期</span></button>
+        </div>
+        <div class="kb-cell">
+          <button class="kb-card" onclick="openModal('m-adjust')"><span class="segno">GD-7912</span><span>低压庭院 · 1次/月</span><span class="tag tag-cyan" style="align-self:flex-start;">常规</span></button>
+        </div>
+        <div class="kb-cell"></div>
+        <div class="kb-cell">
+          <button class="kb-card" onclick="openModal('m-adjust')"><span class="segno">GD-3312</span><span>高压 · 1次/日</span><span class="tag tag-cyan" style="align-self:flex-start;">常规</span></button>
+        </div>
+
+        <div class="kb-person"><span>陈*军</span><span class="tiny mono">7.8h</span></div>
+        <div class="kb-cell">
+          <button class="kb-card" onclick="openModal('m-adjust')"><span class="segno">GD-7821</span><span>中压主干 · 2次/周</span><span class="tag tag-cyan" style="align-self:flex-start;">常规</span></button>
+        </div>
+        <div class="kb-cell"></div>
+        <div class="kb-cell">
+          <button class="kb-card" onclick="openModal('m-adjust')"><span class="segno">GD-7821</span><span>中压主干 · 2次/周</span><span class="tag tag-cyan" style="align-self:flex-start;">常规</span></button>
+        </div>
+        <div class="kb-cell">
+          <button class="kb-card" onclick="openModal('m-adjust')"><span class="segno">GD-5508</span><span>低压庭院 · 顺延</span><span class="tag tag-orange" style="align-self:flex-start;">顺延 · 仅可改期</span></button>
+        </div>
+        <div class="kb-cell">
+          <button class="kb-card" onclick="openModal('m-adjust')"><span class="segno">GD-7854</span><span>中压主干 · 2次/周</span><span class="tag tag-cyan" style="align-self:flex-start;">常规</span></button>
+        </div>
+
+        <div class="kb-person"><span>吴*芳</span><span class="tiny mono">7.5h</span></div>
+        <div class="kb-cell">
+          <button class="kb-card" onclick="openModal('m-adjust')"><span class="segno">GD-4419</span><span>低压庭院 · 1次/月</span><span class="tag tag-cyan" style="align-self:flex-start;">常规</span></button>
+        </div>
+        <div class="kb-cell">
+          <button class="kb-card" onclick="openModal('m-adjust')"><span class="segno">GD-4419</span><span>低压 · 新增通气</span><span class="tag tag-green" style="align-self:flex-start;">强制插入 · 仅可改期</span></button>
+        </div>
+        <div class="kb-cell"></div>
+        <div class="kb-cell">
+          <button class="kb-card" onclick="openModal('m-adjust')"><span class="segno">GD-9027</span><span>中压支线 · 1次/周</span><span class="tag tag-cyan" style="align-self:flex-start;">常规</span></button>
+        </div>
+        <div class="kb-cell">
+          <button class="kb-card" onclick="openModal('m-adjust')"><span class="segno">GD-8834</span><span>中压支线 · 1次/2周</span><span class="tag tag-cyan" style="align-self:flex-start;">常规</span></button>
+        </div>
+
+        <div class="kb-person"><span>周*平</span><span class="tiny mono">6.8h</span></div>
+        <div class="kb-cell"></div>
+        <div class="kb-cell">
+          <button class="kb-card" onclick="openModal('m-adjust')"><span class="segno">GD-6051</span><span>中压支线 · 工地邻近</span><span class="tag tag-yellow" style="align-self:flex-start;">工地邻近</span></button>
+        </div>
+        <div class="kb-cell">
+          <button class="kb-card" onclick="openModal('m-adjust')"><span class="segno">GD-2210</span><span>低压庭院 · 1次/月</span><span class="tag tag-cyan" style="align-self:flex-start;">常规</span></button>
+        </div>
+        <div class="kb-cell">
+          <button class="kb-card" onclick="openModal('m-adjust')"><span class="segno">GD-9027</span><span>中压支线 · 1次/周</span><span class="tag tag-cyan" style="align-self:flex-start;">常规</span></button>
+        </div>
+        <div class="kb-cell"></div>
+      </div>
+    </div>
+
+    <div class="glass-card">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-clipboard-list"></i>调整台账（六要素：调整人 / 时间 / 对象 / 原值 / 新值 / 理由）</div>
+      </div>
+      <div class="table-scroll">
+        <table class="glass-table">
+          <thead>
+            <tr><th>调整人</th><th>时间</th><th>对象</th><th>原值</th><th>新值</th><th>理由</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>排班员 周*</td><td class="mono">11-27 14:32</td><td class="mono">RW202612-0312</td><td class="mono">12-08 · 王*强</td><td class="mono">12-09 · 李*明</td><td>均衡工作量（绿框落点）</td></tr>
+            <tr><td>排班员 周*</td><td class="mono">11-27 14:40</td><td class="mono">RW202612-0457</td><td class="mono">删除任务</td><td class="mono" style="color:var(--c-danger);">—</td><td><span class="tag tag-red">红色阻断：删除强制插入，已回退并入账</span></td></tr>
+            <tr><td>排班员 周*</td><td class="mono">11-27 14:35</td><td class="mono">RW202612-0533</td><td class="mono">点位顺序 3-1-2</td><td class="mono">点位顺序 1-2-3</td><td>人工排序（里程劣化 2.1%，蓝色提示级直接保存）</td></tr>
+            <tr><td>站长 陈*</td><td class="mono">11-27 16:02</td><td class="mono">RW202612-0461</td><td class="mono">12-08</td><td class="mono">12-10</td><td>工地施工窗口期（改期）</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="tiny mt-8">并发编辑同一任务：由后提交者决定合并或放弃；下发后再调整走变更下发流程。</div>
+    </div>
+
+    <div class="modal-mask" id="m-adjust" onclick="if(event.target===this)closeModal('m-adjust')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-right-left"></i>调整摘要（拖拽释放 · 前端预校验通过）</div>
+          <button class="modal-close" onclick="closeModal('m-adjust')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <dl class="kv">
+            <dt>调整对象</dt><dd class="mono">RW202612-0312 · GD-6620 中压主干 · 2次/周</dd>
+            <dt>原值</dt><dd class="mono">2026-12-08 · 王*强</dd>
+            <dt>新值</dt><dd class="mono">2026-12-09 · 李*明</dd>
+            <dt>预校验</dt><dd><span class="tag tag-green"><i class="fa-solid fa-circle-check"></i>合法落点 · 绿框</span></dd>
+            <dt>调整后工时</dt><dd class="mono">王*强 7.2h（原 7.9h）· 李*明 7.9h（原 7.2h），均 ≤ 8h</dd>
+            <dt>点位顺序</dt><dd>人工顺序保留，与算法最优里程差 <b class="mono">+0.6km</b>（蓝色提示级，可直接保存）</dd>
+          </dl>
+          <div class="alert-strip cyan mt-14" style="margin-bottom:0;">
+            <i class="fa-solid fa-shield-halved"></i>
+            <span>保存时服务端按同一套规则复校验，不可绕过；接口直提同样拒绝并记录一次阻断。</span>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost" onclick="closeModal('m-adjust')">取消</button>
+          <button class="btn btn-primary" onclick="closeModal('m-adjust'); showToast('调整已保存：服务端复校验通过，六要素已记入调整台账')"><i class="fa-solid fa-check"></i>确认调整</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 页面9：合规性红色阻断弹窗 ================= -->
+  <section class="view" id="v-排班交互工作台-合规性红色阻断弹窗">
+    <div class="page-head">
+      <div>
+        <div class="page-title">排班交互工作台 · 合规性红色阻断弹窗（三级合规校验）</div>
+        <div class="page-desc">红色阻断级 / 橙色警示级 / 蓝色提示级 · 例外申请与审批流程 · 阻断记录入账 · 运行站排班员 / 站长 · PC端（模态弹窗）</div>
+      </div>
+    </div>
+
+    <div class="grid g-3 mb-14">
+      <div class="glass-card" style="border:1px solid rgba(255,59,48,.35);">
+        <div class="card-head"><div class="card-title" style="color:var(--c-danger);"><i class="fa-solid fa-ban"></i>红色阻断级</div></div>
+        <ul class="icon-list">
+          <li><i class="fa-solid fa-circle-exclamation" style="color:var(--c-danger);"></i><span>频次低于 L0 制度下限</span></li>
+          <li><i class="fa-solid fa-circle-exclamation" style="color:var(--c-danger);"></i><span>删除强制插入任务（新增通气）</span></li>
+          <li><i class="fa-solid fa-circle-exclamation" style="color:var(--c-danger);"></i><span>删除顺延任务</span></li>
+        </ul>
+        <div class="tiny mt-8">模态遮罩强制中断操作，仅「回退调整」与「提交例外申请」两条出路，不设「忽略并继续」。</div>
+      </div>
+      <div class="glass-card" style="border:1px solid rgba(255,149,0,.35);">
+        <div class="card-head"><div class="card-title" style="color:var(--c-warn);"><i class="fa-solid fa-triangle-exclamation"></i>橙色警示级</div></div>
+        <ul class="icon-list">
+          <li><i class="fa-solid fa-clock" style="color:var(--c-warn);"></i><span>调整后人均日工时超 8h</span></li>
+          <li><i class="fa-solid fa-people-arrows" style="color:var(--c-warn);"></i><span>跨站调派任务</span></li>
+          <li><i class="fa-solid fa-bed" style="color:var(--c-warn);"></i><span>连续 7 日无休</span></li>
+        </ul>
+        <div class="tiny mt-8">填写理由走审批流程，审批通过前不生效。</div>
+      </div>
+      <div class="glass-card" style="border:1px solid rgba(52,168,255,.35);">
+        <div class="card-head"><div class="card-title" style="color:var(--c-info);"><i class="fa-solid fa-circle-info"></i>蓝色提示级</div></div>
+        <ul class="icon-list">
+          <li><i class="fa-solid fa-route" style="color:var(--c-info);"></i><span>里程劣化 &gt; 20%</span></li>
+          <li><i class="fa-solid fa-calendar-day" style="color:var(--c-info);"></i><span>任务间隔过近</span></li>
+        </ul>
+        <div class="tiny mt-8">提示性质，可直接保存并留痕。</div>
+      </div>
+    </div>
+
+    <div class="grid g-main-side">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-ban"></i>阻断演示场景</div>
+        </div>
+        <div class="alert-strip red">
+          <i class="fa-solid fa-circle-exclamation"></i>
+          <span>场景：排班员在看板中将强制插入任务 <b class="mono">RW202612-0457</b>（新增通气 · GD-9135）拖出 12 月排班周期，试图删除。</span>
+        </div>
+        <p class="tiny mb-14">该操作命中「删除强制插入任务」红色阻断条件，系统以模态遮罩强制中断，阻断记录同步入账（制度执行的正面证据）。</p>
+        <button class="btn btn-danger" onclick="openModal('m-blocking')"><i class="fa-solid fa-hand"></i>触发阻断演示</button>
+        <hr class="divider">
+        <div class="card-head" style="margin-bottom:8px;"><div class="card-title"><i class="fa-solid fa-clipboard-list"></i>阻断与例外记录入账</div></div>
+        <div class="table-scroll">
+          <table class="glass-table">
+            <thead>
+              <tr><th>时间</th><th>人员</th><th>操作</th><th>阻断原因</th><th>处理结果</th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="mono">11-27 14:40</td><td>排班员 周*</td><td class="mono">删除 RW202612-0457</td><td><span class="tag tag-red">删除强制插入</span></td><td>回退调整</td></tr>
+              <tr><td class="mono">11-26 10:12</td><td>排班员 吴*</td><td class="mono">GD-3312 频次 1次/日→1次/2日</td><td><span class="tag tag-red">低于 L0 下限</span></td><td>例外申请审批中</td></tr>
+              <tr><td class="mono">11-21 09:55</td><td>排班员 郑*</td><td class="mono">删除顺延 RW202612-0520</td><td><span class="tag tag-red">删除顺延任务</span></td><td>回退调整</td></tr>
+              <tr><td class="mono">11-18 15:30</td><td>排班员 孙*</td><td class="mono">调整后人均 8.4h</td><td><span class="tag tag-orange">工时超 8h（橙色）</span></td><td>理由已审批通过</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="tiny mt-8">例外期内该管段在一张图标记「下限豁免」并单独列示；到期自动失效。</div>
+      </div>
+
+      <div class="glass-card">
+        <div class="card-head"><div class="card-title"><i class="fa-solid fa-file-signature"></i>例外申请与审批流程</div></div>
+        <ul class="icon-list">
+          <li><i class="fa-solid fa-pen-to-square"></i><span>排班员填写事由（必填）</span></li>
+          <li><i class="fa-solid fa-user-check"></i><span>站长初审</span></li>
+          <li><i class="fa-solid fa-stamp"></i><span>运行部审批</span></li>
+          <li><i class="fa-solid fa-calendar-check"></i><span>生效周期（限期）</span></li>
+          <li><i class="fa-solid fa-hourglass-end"></i><span>到期自动失效，频次自动回抬</span></li>
+        </ul>
+        <hr class="divider">
+        <div class="tiny"><i class="fa-solid fa-shield-halved" style="color:var(--c-danger);"></i> 被阻断操作同样入账留痕 —— 制度执行的正面证据；红色阻断不可绕过，接口直提同样拒绝。</div>
+        <button class="btn btn-glass btn-sm mt-14" onclick="openModal('m-exception')"><i class="fa-solid fa-file-signature"></i>查看例外申请表单</button>
+      </div>
+    </div>
+
+    <div class="modal-mask" id="m-blocking" onclick="if(event.target===this)closeModal('m-blocking')">
+      <div class="glass-modal blocking">
+        <div class="blocking-strip"><i class="fa-solid fa-ban"></i>合规红色阻断 · 不可绕过</div>
+        <div class="modal-head">
+          <div class="modal-title" style="color:var(--c-danger);"><i class="fa-solid fa-triangle-exclamation"></i>操作已被强制中断</div>
+          <button class="modal-close" onclick="closeModal('m-blocking')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <dl class="kv">
+            <dt>管段编号</dt><dd class="mono">GD-9135 · 低压 · 新增通气（强制插入任务 RW202612-0457）</dd>
+            <dt>制度下限</dt><dd class="mono">≥1次/月 · 条款出处《管网运行巡检管理办法》5.4.3 · 规则编号 <span class="mono">RUL-L0-04</span></dd>
+            <dt>计算频次</dt><dd class="mono">1次/月（命中链：L0 下限 → 新增通气 100% 强制纳入 RUL-L1-04）</dd>
+            <dt>调整后频次</dt><dd><span class="mono" style="color:var(--c-danger);">0次/月 · 低于下限 1 个档位</span></dd>
+            <dt>影响周期</dt><dd class="mono">2026-12-01 ~ 12-31 · 涉及任务 1 条</dd>
+            <dt>阻断原因</dt><dd><span class="tag tag-red"><i class="fa-solid fa-ban"></i>删除强制插入任务 + 频次低于 L0 制度下限</span></dd>
+          </dl>
+          <div class="alert-strip red mt-14" style="margin-bottom:0;">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <span>本操作已入账留痕（阻断记录 BD-20261127-003）。仅可选择回退调整或提交例外申请，不存在「忽略并继续」。</span>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-glass" onclick="closeModal('m-blocking'); showToast('已回退调整：任务 RW202612-0457 恢复原计划位置（12-08 · 李*明）')"><i class="fa-solid fa-rotate-left"></i>回退调整</button>
+          <button class="btn btn-danger" onclick="closeModal('m-blocking'); openModal('m-exception')"><i class="fa-solid fa-file-signature"></i>提交例外申请</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-mask" id="m-exception" onclick="if(event.target===this)closeModal('m-exception')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-file-signature"></i>例外申请 · GD-9135</div>
+          <button class="modal-close" onclick="closeModal('m-exception')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="form-label">事由说明 <span class="req">*</span></div>
+          <textarea class="form-textarea" rows="4" placeholder="必填：说明客观原因（如管线置换计划、监管机构豁免文件编号等）"></textarea>
+          <div class="form-row mt-14">
+            <div>
+              <div class="form-label">站长初审</div>
+              <select class="form-select" style="width:100%;">
+                <option>待站长 陈* 初审</option>
+                <option>已通过（演示）</option>
+              </select>
+            </div>
+            <div>
+              <div class="form-label">运行部审批</div>
+              <select class="form-select" style="width:100%;">
+                <option>待运行部审批</option>
+                <option>已通过（演示）</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-label mt-14">生效周期</div>
+          <select class="form-select" style="width:100%;">
+            <option>2026-12-01 ~ 2026-12-31（单周期，到期自动失效）</option>
+            <option>2026-12-01 ~ 2027-01-31（两个周期，到期自动失效）</option>
+          </select>
+          <div class="alert-strip orange mt-14" style="margin-bottom:0;">
+            <i class="fa-solid fa-hourglass-end"></i>
+            <span>例外期内该管段在一张图标记「下限豁免」并单独列示；到期自动失效，频次自动回抬至 L0 下限。</span>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost" onclick="closeModal('m-exception')">取消</button>
+          <button class="btn btn-primary" onclick="closeModal('m-exception'); showToast('例外申请已提交：待站长初审 → 运行部审批；阻断记录与申请单已关联入账')"><i class="fa-solid fa-paper-plane"></i>提交申请</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 页面10：隐患转化率分析 ================= -->
+  <section class="view" id="v-排班效能分析-隐患转化率分析">
+    <div class="page-head">
+      <div>
+        <div class="page-title">排班效能分析 · 隐患转化率分析（统计期 2026-04 ~ 2026-09）</div>
+        <div class="page-desc">区域 / 班组 / 管材 / 频次档 四维统计 · 双样本比例显著性检验 · 样本充足性判定 · 运行部管理人员 / 运行站长 · PC端</div>
+      </div>
+      <button class="btn btn-glass btn-sm" onclick="showToast('分组明细已导出（演示）：19 个分组，其中 3 个样本不足')"><i class="fa-solid fa-file-export"></i>导出分组明细</button>
+    </div>
+
+    <div class="alert-strip orange mb-14">
+      <i class="fa-solid fa-database"></i>
+      <span>本期数据回传完整度 <b class="mono">97.6%</b>（未达 100%），统计结果仅供参考并已标注完整度提示。</span>
+    </div>
+
+    <div class="grid g-4 mb-14">
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-magnifying-glass"></i>已完成巡检次数</div>
+        <div class="stat-value">707,910</div>
+        <div class="stat-sub">分母不含未完成 / 作废任务</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-triangle-exclamation"></i>确认成立隐患数</div>
+        <div class="stat-value orange">1,484</div>
+        <div class="stat-sub">分子已扣除撤销 / 误报</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-percent"></i>全网转化率</div>
+        <div class="stat-value">0.210%</div>
+        <div class="stat-sub">口径：确认隐患 ÷ 已完成巡检</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-chart-simple"></i>分组差异 / 样本充足</div>
+        <div class="stat-value blue">3.3倍 · 16/19</div>
+        <div class="stat-sub">阈值 800 次 · 不足分组不出结论</div>
+      </div>
+    </div>
+
+    <div class="glass-card mb-14">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-table-list"></i>四维统计（区域 / 班组 / 管材 / 频次档）</div>
+        <span class="tag tag-gray">p&lt;0.05 且置信区间与全网均值不重叠 → 判显著</span>
+      </div>
+      <div class="table-scroll">
+        <table class="glass-table">
+          <thead>
+            <tr><th>维度</th><th>分组</th><th>巡检次数</th><th>确认隐患</th><th>转化率</th><th>与均值倍数</th><th>p值</th><th>95%置信区间</th><th>判定</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><span class="tag tag-cyan">区域</span></td><td>北大桥</td><td class="mono">168,420</td><td class="mono">402</td><td class="mono">0.239%</td><td class="mono">1.14</td><td class="mono">0.062</td><td class="mono">—</td><td><span class="tag tag-gray">充足 · 不显著</span></td></tr>
+            <tr><td><span class="tag tag-cyan">区域</span></td><td>水湘</td><td class="mono">152,300</td><td class="mono">296</td><td class="mono">0.194%</td><td class="mono">0.92</td><td class="mono">0.310</td><td class="mono">—</td><td><span class="tag tag-gray">充足 · 不显著</span></td></tr>
+            <tr><td><span class="tag tag-cyan">区域</span></td><td>天目</td><td class="mono">141,880</td><td class="mono">398</td><td class="mono">0.280%</td><td class="mono">1.33</td><td class="mono">0.008</td><td class="mono">[0.253, 0.310]</td><td><span class="tag tag-green">充足 · 显著偏高</span></td></tr>
+            <tr><td><span class="tag tag-cyan">区域</span></td><td>三塘</td><td class="mono">128,760</td><td class="mono">210</td><td class="mono">0.163%</td><td class="mono">0.78</td><td class="mono">0.052</td><td class="mono">[0.142, 0.186]</td><td><span class="tag tag-gray">充足 · 临界</span></td></tr>
+            <tr><td><span class="tag tag-cyan">区域</span></td><td>转塘</td><td class="mono">116,550</td><td class="mono">178</td><td class="mono">0.153%</td><td class="mono">0.73</td><td class="mono">0.021</td><td class="mono">[0.131, 0.177]</td><td><span class="tag tag-blue">充足 · 显著偏低</span></td></tr>
+            <tr><td><span class="tag tag-blue">班组</span></td><td>运行一班</td><td class="mono">21,680</td><td class="mono">78</td><td class="mono">0.360%</td><td class="mono">1.71</td><td class="mono">0.011</td><td class="mono">[0.287, 0.448]</td><td><span class="tag tag-green">显著 · 推送员工效能匹配培训</span></td></tr>
+            <tr><td><span class="tag tag-blue">班组</span></td><td>运行三班</td><td class="mono">19,240</td><td class="mono">21</td><td class="mono">0.109%</td><td class="mono">0.52</td><td class="mono">0.028</td><td class="mono">[0.071, 0.166]</td><td><span class="tag tag-orange">显著偏低 · 疑似漏发现</span></td></tr>
+            <tr><td><span class="tag tag-orange">管材</span></td><td>钢管</td><td class="mono">386,200</td><td class="mono">1,204</td><td class="mono">0.312%</td><td class="mono">1.49</td><td class="mono">&lt;0.001</td><td class="mono">[0.295, 0.329]</td><td><span class="tag tag-green">充足 · 显著偏高</span></td></tr>
+            <tr><td><span class="tag tag-orange">管材</span></td><td>PE管</td><td class="mono">312,400</td><td class="mono">486</td><td class="mono">0.156%</td><td class="mono">0.74</td><td class="mono">&lt;0.001</td><td class="mono">[0.142, 0.170]</td><td><span class="tag tag-blue">充足 · 显著偏低</span></td></tr>
+            <tr><td><span class="tag tag-orange">管材</span></td><td>铸铁管</td><td class="mono">412</td><td class="mono">3</td><td class="mono">0.728%</td><td class="mono">3.47</td><td class="mono">—</td><td class="mono">—</td><td><span class="tag tag-yellow">样本不足 · 不出结论不进建议</span></td></tr>
+            <tr><td><span class="tag tag-red">频次档</span></td><td>高压日巡</td><td class="mono">96,360</td><td class="mono">388</td><td class="mono">0.403%</td><td class="mono">1.92</td><td class="mono">&lt;0.001</td><td class="mono">—</td><td><span class="tag tag-green">充足 · 显著偏高</span></td></tr>
+            <tr><td><span class="tag tag-red">频次档</span></td><td>中压主干周巡</td><td class="mono">182,300</td><td class="mono">502</td><td class="mono">0.275%</td><td class="mono">1.31</td><td class="mono">&lt;0.001</td><td class="mono">—</td><td><span class="tag tag-green">充足 · 显著偏高</span></td></tr>
+            <tr><td><span class="tag tag-red">频次档</span></td><td>中压支线双周</td><td class="mono">208,940</td><td class="mono">331</td><td class="mono">0.158%</td><td class="mono">0.75</td><td class="mono">&lt;0.001</td><td class="mono">—</td><td><span class="tag tag-gray">充足 · 频次冗余提示</span></td></tr>
+            <tr><td><span class="tag tag-red">频次档</span></td><td>低压月巡</td><td class="mono">220,110</td><td class="mono">198</td><td class="mono">0.090%</td><td class="mono">0.43</td><td class="mono">&lt;0.001</td><td class="mono">—</td><td><span class="tag tag-gray">充足 · 频次冗余提示</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="grid g-main-side">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-chart-column"></i>近六个月转化率趋势</div>
+        </div>
+        <div class="trend">
+          <div class="tcol"><span class="tiny mono">0.187%</span><div class="tbar" style="height:64%;"></div><span class="tiny">4月</span></div>
+          <div class="tcol"><span class="tiny mono">0.196%</span><div class="tbar" style="height:67%;"></div><span class="tiny">5月</span></div>
+          <div class="tcol"><span class="tiny mono">0.203%</span><div class="tbar" style="height:70%;"></div><span class="tiny">6月</span></div>
+          <div class="tcol"><span class="tiny mono">0.214%</span><div class="tbar" style="height:73%;"></div><span class="tiny">7月</span></div>
+          <div class="tcol"><span class="tiny mono">0.221%</span><div class="tbar" style="height:76%;"></div><span class="tiny">8月</span></div>
+          <div class="tcol"><span class="tiny mono">0.210%</span><div class="tbar" style="height:72%;"></div><span class="tiny">9月</span></div>
+        </div>
+      </div>
+      <div class="glass-card">
+        <div class="card-head"><div class="card-title"><i class="fa-solid fa-ruler-combined"></i>口径与判定规则</div></div>
+        <ul class="icon-list">
+          <li><i class="fa-solid fa-check"></i><span>转化率 = 确认成立隐患数 ÷ 已完成巡检次数（分子扣撤销误报，分母不含未完成作废）</span></li>
+          <li><i class="fa-solid fa-check"></i><span>样本量 &lt; 800 次的分组只展示数据、标注「样本不足」，不出结论、不进建议</span></li>
+          <li><i class="fa-solid fa-check"></i><span>置信区间与全网均值不重叠且 p&lt;0.05 判显著</span></li>
+          <li><i class="fa-solid fa-check"></i><span>按频次档区分「频次冗余」与「漏发现」；按班组指向能力问题并推送员工效能模块匹配培训（频次对人、不对管段）</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 页面11：频次优化建议与规则回流 ================= -->
+  <section class="view" id="v-排班效能分析-频次优化建议与规则回流">
+    <div class="page-head">
+      <div>
+        <div class="page-title">排班效能分析 · 频次优化建议与规则回流</div>
+        <div class="page-desc">优化建议生成（证据 / 置信水平 / 预计影响）· 下调类两道保险 · 影子试排 · 审批发布 · 生效两期后复评回滚 · 运行部管理员 · PC端</div>
+      </div>
+      <button class="btn btn-glass btn-sm" onclick="showToast('已重新生成建议清单：5 条候选，其中 2 条被下限过滤、1 条样本不足')"><i class="fa-solid fa-rotate"></i>重新生成建议</button>
+    </div>
+
+    <div class="alert-strip red mb-14">
+      <i class="fa-solid fa-filter-circle-xmark"></i>
+      <span>会穿透制度下限的建议在生成阶段直接过滤并标注「已过滤（穿透下限）」及原因；下调类建议未满足「连续两期结论一致」在提交时即拒绝。</span>
+    </div>
+
+    <div class="glass-card mb-14">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-lightbulb"></i>建议清单</div>
+        <span class="tag tag-gray">建议不自动改规则 · 须经试排 → 复核 → 审批进入新版本</span>
+      </div>
+      <div class="table-scroll">
+        <table class="glass-table">
+          <thead>
+            <tr><th>建议编号</th><th>类型</th><th>建议内容</th><th>分组转化率 vs 全网</th><th>样本量</th><th>与均值倍数</th><th>月度任务量</th><th>状态</th><th>操作</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="mono">OPT-2609-01</td>
+              <td><span class="tag tag-blue">下调</span></td>
+              <td>中压支线 · PE管 · 近36个月无泄漏 · 非工地邻近：1次/2周 → 1次/月</td>
+              <td class="mono">0.08% vs 0.210%</td>
+              <td class="mono">12,480</td>
+              <td class="mono">0.38</td>
+              <td class="mono" style="color:var(--c-ok);">-318</td>
+              <td><span class="tag tag-green">连续两期一致 · 待影子试排</span></td>
+              <td><button class="btn btn-primary btn-xs" onclick="openModal('m-shadow')"><i class="fa-solid fa-vial"></i>影子试排</button></td>
+            </tr>
+            <tr>
+              <td class="mono">OPT-2609-02</td>
+              <td><span class="tag tag-orange">上调</span></td>
+              <td>距在监工地≤500米 中压支线：1次/2周 → 1次/周</td>
+              <td class="mono">0.52% vs 0.210%</td>
+              <td class="mono">9,860</td>
+              <td class="mono">2.48</td>
+              <td class="mono" style="color:var(--c-warn);">+124</td>
+              <td><span class="tag tag-cyan">待复核审批</span></td>
+              <td><button class="btn btn-glass btn-xs" onclick="showToast('已提交复核：审批通过后进入新版本 RV-2026.12-01，下一周期自动采用')"><i class="fa-solid fa-paper-plane"></i>提交复核</button></td>
+            </tr>
+            <tr>
+              <td class="mono">OPT-2609-03</td>
+              <td><span class="tag tag-blue">下调</span></td>
+              <td>高压 · 近三年无泄漏：1次/日 → 1次/2日</td>
+              <td class="mono">—</td>
+              <td class="mono">—</td>
+              <td class="mono">—</td>
+              <td class="mono">—</td>
+              <td><span class="tag tag-red">已过滤（穿透下限 RUL-L0-01 ≥1次/日）</span></td>
+              <td><button class="btn btn-glass btn-xs disabled" disabled onclick="showToast('已过滤建议不可操作：穿透制度下限，不予生成')"><i class="fa-solid fa-ban"></i>不可操作</button></td>
+            </tr>
+            <tr>
+              <td class="mono">OPT-2609-04</td>
+              <td><span class="tag tag-blue">下调</span></td>
+              <td>低压庭院 · 健康等级绿色：1次/月 → 1次/2月</td>
+              <td class="mono">—</td>
+              <td class="mono">—</td>
+              <td class="mono">—</td>
+              <td class="mono">—</td>
+              <td><span class="tag tag-red">已过滤（穿透下限 RUL-L0-04 ≥1次/月）</span></td>
+              <td><button class="btn btn-glass btn-xs disabled" disabled onclick="showToast('已过滤建议不可操作：穿透制度下限，不予生成')"><i class="fa-solid fa-ban"></i>不可操作</button></td>
+            </tr>
+            <tr>
+              <td class="mono">OPT-2609-05</td>
+              <td><span class="tag tag-blue">下调</span></td>
+              <td>铸铁管整体降档评估</td>
+              <td class="mono">0.73% vs 0.210%</td>
+              <td class="mono">412</td>
+              <td class="mono">3.47</td>
+              <td class="mono">—</td>
+              <td><span class="tag tag-yellow">样本不足 · 不出结论</span></td>
+              <td><button class="btn btn-glass btn-xs disabled" disabled onclick="showToast('样本不足分组只展示数据，不出结论、不进建议')"><i class="fa-solid fa-ban"></i>不可操作</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="grid g-main-side">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-clock-rotate-left"></i>历史采纳与复评记录</div>
+        </div>
+        <div class="table-scroll">
+          <table class="glass-table">
+            <thead>
+              <tr><th>版本</th><th>规则变更</th><th>结论</th><th>复评结果</th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="mono">RV-2026.06-02</td><td>泄漏史≥2次 系数 1.5 → 1.8</td><td><span class="tag tag-green">采纳</span></td><td>生效两期复评：转化率 0.29% → 0.36% 提升，保留</td></tr>
+              <tr><td class="mono">RV-2026.03-01</td><td>低压 · 老旧铸铁下调试排</td><td><span class="tag tag-red">驳回</span></td><td>影子试排下限违规数 3，驳回并留痕</td></tr>
+              <tr><td class="mono">RV-2025.11-04</td><td>天目站网格系数 1.2 → 1.0</td><td><span class="tag tag-orange">回滚</span></td><td>生效两期复评：转化率 0.24% → 0.17% 劣化，触发回滚提醒并执行</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="glass-card">
+        <div class="card-head"><div class="card-title"><i class="fa-solid fa-shield-halved"></i>生效两期复评机制</div></div>
+        <ul class="icon-list">
+          <li><i class="fa-solid fa-vial"></i><span>建议经影子试排（影响面四项）→ 复核 → 审批进入新版本</span></li>
+          <li><i class="fa-solid fa-calendar-check"></i><span>新版本下一周期自动采用，不追溯已下发计划</span></li>
+          <li><i class="fa-solid fa-scale-balanced"></i><span>生效两个统计期后自动复评</span></li>
+          <li><i class="fa-solid fa-rotate-left"></i><span>无提升或劣化触发回滚提醒，回滚同样留痕</span></li>
+          <li><i class="fa-solid fa-filter-circle-xmark"></i><span>两道保险：下限过滤（生成阶段）+ 连续两期一致（提交阶段）</span></li>
+        </ul>
+        <button class="btn btn-glass btn-sm mt-14" onclick="showToast('复评计划：OPT-2609-01 若发布，将于 2027-02 与 2027-04 两个统计期末自动复评')"><i class="fa-solid fa-calendar-days"></i>查看复评计划</button>
+      </div>
+    </div>
+
+    <div class="modal-mask" id="m-shadow" onclick="if(event.target===this)closeModal('m-shadow')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-vial"></i>影子试排 · OPT-2609-01（不落库）</div>
+          <button class="modal-close" onclick="closeModal('m-shadow')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="grid g-2" style="gap:10px;">
+            <div class="stat-card soft" style="padding:12px 14px;">
+              <div class="stat-label">受影响管段数</div>
+              <div class="stat-value" style="font-size:22px;">286</div>
+            </div>
+            <div class="stat-card soft" style="padding:12px 14px;">
+              <div class="stat-label">月度任务量增减</div>
+              <div class="stat-value green" style="font-size:22px;">-318</div>
+            </div>
+            <div class="stat-card soft" style="padding:12px 14px;">
+              <div class="stat-label">人均日工作量</div>
+              <div class="stat-value green" style="font-size:22px;">-0.31h</div>
+            </div>
+            <div class="stat-card soft" style="padding:12px 14px;">
+              <div class="stat-label">下限违规数</div>
+              <div class="stat-value green" style="font-size:22px;">0</div>
+            </div>
+          </div>
+          <div class="alert-strip cyan mt-14" style="margin-bottom:0;">
+            <i class="fa-solid fa-circle-info"></i>
+            <span>影子试排不落库、不产出不完整结论；审批通过后进入新版本 RV-2026.12-01，下一周期自动采用，生效两个统计期后自动复评。</span>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-ghost" onclick="closeModal('m-shadow')">取消</button>
+          <button class="btn btn-primary" onclick="closeModal('m-shadow'); showToast('影子试排结果已提交复核：影响面四项已附入审批单')"><i class="fa-solid fa-paper-plane"></i>提交复核审批</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+function switchView(vid){
+  document.querySelectorAll('.view').forEach(function(v){v.classList.remove('active');});
+  var el=document.getElementById(vid); if(el){el.classList.add('active');}
+  document.querySelectorAll('.seg-item[data-view]').forEach(function(b){
+    b.classList.toggle('active', b.getAttribute('data-view')===vid);
+  });
+  try{history.replaceState(null,'','#'+encodeURIComponent(vid));}catch(e){}
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function openModal(id){var m=document.getElementById(id); if(m){m.classList.add('open');}}
+function closeModal(id){var m=document.getElementById(id); if(m){m.classList.remove('open');}}
+function showToast(msg){
+  var t=document.getElementById('app-toast');
+  if(!t){t=document.createElement('div');t.id='app-toast';t.className='toast';document.body.appendChild(t);}
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._tm);t._tm=setTimeout(function(){t.classList.remove('show');},2200);
+}
+window.addEventListener('hashchange',function(){
+  var h=decodeURIComponent(location.hash.replace('#',''));
+  if(h&&document.getElementById(h)){switchView(h);}
+});
+(function(){
+  var h=decodeURIComponent(location.hash.replace('#',''));
+  if(h&&document.getElementById(h)){switchView(h);}
+})();
+</script>
+<script>
+function checkCoef(v){
+  var val=parseFloat(v);
+  var tip=document.getElementById('coef-tip');
+  var txt=tip.querySelector('.tip-text');
+  var btn=document.getElementById('coef-save');
+  if(isNaN(val)||val<1.0){
+    txt.textContent='系数低于 1.0（制度下限不允许任何放宽，L0 层锁定），拒绝保存';
+    tip.style.display='flex'; btn.disabled=true; btn.classList.add('disabled');
+  }else if(val>4.0){
+    txt.textContent='系数超出上限 4.0（允许区间 1.0-4.0），拒绝保存';
+    tip.style.display='flex'; btn.disabled=true; btn.classList.add('disabled');
+  }else{
+    tip.style.display='none'; btn.disabled=false; btn.classList.remove('disabled');
+  }
+}
+</script>
+</body>
+</html>

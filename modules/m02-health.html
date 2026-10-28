@@ -1,0 +1,1597 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>管网健康等级评估助手 · M02 · 杭州燃气管网运营智能体平台</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="../styles/liquid-glass.css">
+<style>
+/* ============ m02 页内微调（仅滑杆玻璃样式与本页局部布局，不覆盖全局组件） ============ */
+input[type=range].wslider{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:6px;background:rgba(22,50,60,.10);outline:none;box-shadow:inset 0 1px 2px rgba(22,50,60,.08);}
+input[type=range].wslider::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,var(--c-primary),var(--c-primary-hi));border:2px solid #fff;box-shadow:0 2px 8px rgba(14,116,144,.4);cursor:pointer;}
+input[type=range].wslider::-moz-range-thumb{width:15px;height:15px;border-radius:50%;background:var(--c-primary);border:2px solid #fff;cursor:pointer;}
+.wrow{padding:10px 2px;border-bottom:1px dashed var(--c-line);}
+.wrow:last-child{border-bottom:none;}
+.wrow.off{opacity:.45;}
+.wrow-top{display:flex;align-items:center;gap:10px;}
+.wmeta{flex:1;min-width:0;}
+.wname{font-size:12.5px;font-weight:600;}
+.wval{font-size:13px;font-weight:700;color:var(--c-primary);min-width:52px;text-align:right;font-family:'DM Mono',monospace;}
+.wtoggle{accent-color:var(--c-primary);width:15px;height:15px;cursor:pointer;flex-shrink:0;margin-top:2px;}
+.tpl-children{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;position:relative;padding-top:24px;margin-top:8px;}
+.tpl-children:before{content:'';position:absolute;top:6px;left:16.5%;right:16.5%;height:2px;background:rgba(14,116,144,.28);}
+.tpl-node{position:relative;}
+.tpl-node:before{content:'';position:absolute;top:-24px;left:50%;width:2px;height:24px;background:rgba(14,116,144,.28);}
+.fact-row{padding:11px 0;border-bottom:1px dashed var(--c-line);}
+.fact-row:last-child{border-bottom:none;}
+.json-pre{font-family:'DM Mono',monospace;font-size:11px;line-height:1.7;background:rgba(255,255,255,.62);border:1px solid var(--c-line);border-radius:var(--radius-sm);padding:12px 14px;white-space:pre-wrap;word-break:break-all;color:var(--c-text);}
+@media (max-width:1000px){.tpl-children{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="ambient-blob"></div>
+
+<div class="module-wrap">
+
+  <!-- ===================== 模块顶部 ===================== -->
+  <div class="module-top">
+    <div>
+      <div class="flex wrap" style="gap:12px;">
+        <span class="module-title">管网健康等级评估助手</span>
+        <span class="badge badge-high"><i class="fa-solid fa-triangle-exclamation"></i>优先级 高</span>
+      </div>
+      <div class="module-sub">对应条款 5.4.2 · 评估依据 GBT 47764-2026《城镇燃气输配管道完整性管理规范》· 待系统数据打通后实施 · 考核：风险排名符合率（前100条）≥85%（需求概要）/ ≥90%（技术文件）</div>
+    </div>
+  </div>
+
+  <div class="seg" style="margin-bottom:18px;">
+    <button class="seg-item active" data-view="v-评估模型权重与策略配置-因子权重配置" onclick="switchView('v-评估模型权重与策略配置-因子权重配置')">因子权重配置</button>
+    <button class="seg-item" data-view="v-评估模型权重与策略配置-材质模版管理" onclick="switchView('v-评估模型权重与策略配置-材质模版管理')">材质模版管理</button>
+    <button class="seg-item" data-view="v-评估模型权重与策略配置-模型试算与新旧对比" onclick="switchView('v-评估模型权重与策略配置-模型试算与新旧对比')">模型试算对比</button>
+    <button class="seg-item" data-view="v-管网健康等级评估与风险排名-评估结果地图" onclick="switchView('v-管网健康等级评估与风险排名-评估结果地图')">评估结果地图</button>
+    <button class="seg-item" data-view="v-管网健康等级评估与风险排名-风险排名清单" onclick="switchView('v-管网健康等级评估与风险排名-风险排名清单')">风险排名清单</button>
+    <button class="seg-item" data-view="v-管网健康等级评估与风险排名-单管段评分溯源" onclick="switchView('v-管网健康等级评估与风险排名-单管段评分溯源')">单管段评分溯源</button>
+    <button class="seg-item" data-view="v-评估结果数据推送与日志管理-推送任务配置" onclick="switchView('v-评估结果数据推送与日志管理-推送任务配置')">推送任务配置</button>
+    <button class="seg-item" data-view="v-评估结果数据推送与日志管理-推送日志与人工补推" onclick="switchView('v-评估结果数据推送与日志管理-推送日志与人工补推')">推送日志补推</button>
+  </div>
+
+  <!-- ============================================================
+       页面1：评估模型权重与策略配置 · 因子权重配置
+       ============================================================ -->
+  <section class="view active" id="v-评估模型权重与策略配置-因子权重配置">
+    <div class="page-head">
+      <div>
+        <div class="page-title">评估模型权重与策略配置 · 因子权重配置</div>
+        <div class="page-desc">技术部后台 · 技术部管理员 ｜ 当前材质模版：GS-STEEL 钢管（生效版本 v3.2）｜ 备注口径：依据 GBT 47764-2026，当前版本仅对钢管评级；PE 管仅敷设年限与抢修两类数据，不足以支撑评估，暂不考虑；分项权重按国标是否还需调整为待明确事项</div>
+      </div>
+      <div class="flex" style="gap:8px;">
+        <button class="btn btn-glass btn-sm" onclick="resetWeights()"><i class="fa-solid fa-rotate-left"></i>恢复默认</button>
+        <button class="btn btn-primary btn-sm" id="btn-save-w" onclick="saveDraft()"><i class="fa-solid fa-floppy-disk"></i>保存为草稿</button>
+      </div>
+    </div>
+
+    <div class="alert-strip red" id="w-alert" style="display:none;">
+      <i class="fa-solid fa-circle-exclamation"></i>
+      <span id="w-alert-msg"></span>
+    </div>
+
+    <div class="grid g-main-side">
+      <div class="grid">
+        <!-- 本体属性组 -->
+        <div class="glass-card">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-cube"></i>本体属性组<span class="tag tag-cyan">组内合计 <span class="mono" id="gsub-g1">0.300</span></span></div>
+            <span class="tiny">来源：管网主数据 / GIS 台账（日同步）</span>
+          </div>
+          <div class="wrow" id="w-f1" data-group="g1" data-name="敷设年限">
+            <div class="wrow-top">
+              <input type="checkbox" class="wtoggle" checked onchange="toggleFactor(this,'w-f1')">
+              <div class="wmeta"><div class="wname">敷设年限</div><div class="tiny">投运至今年限，按材质折算老化系数（1991-2020 投运批次）</div></div>
+              <div class="wval">0.140</div>
+            </div>
+            <input type="range" class="wslider" min="0" max="0.2" step="0.001" value="0.140" data-def="0.140" oninput="wslide(this)">
+          </div>
+          <div class="wrow" id="w-f2" data-group="g1" data-name="管径规格">
+            <div class="wrow-top">
+              <input type="checkbox" class="wtoggle" checked onchange="toggleFactor(this,'w-f2')">
+              <div class="wmeta"><div class="wname">管径规格</div><div class="tiny">DN80-DN1000，小管径优先级上调</div></div>
+              <div class="wval">0.060</div>
+            </div>
+            <input type="range" class="wslider" min="0" max="0.2" step="0.001" value="0.060" data-def="0.060" oninput="wslide(this)">
+          </div>
+          <div class="wrow" id="w-f3" data-group="g1" data-name="材质等级">
+            <div class="wrow-top">
+              <input type="checkbox" class="wtoggle" checked onchange="toggleFactor(this,'w-f3')">
+              <div class="wmeta"><div class="wname">材质等级</div><div class="tiny">20# 无缝 / 螺旋焊 / 镀锌等材质等级映射</div></div>
+              <div class="wval">0.060</div>
+            </div>
+            <input type="range" class="wslider" min="0" max="0.2" step="0.001" value="0.060" data-def="0.060" oninput="wslide(this)">
+          </div>
+          <div class="wrow" id="w-f4" data-group="g1" data-name="壁厚腐蚀裕量">
+            <div class="wrow-top">
+              <input type="checkbox" class="wtoggle" checked onchange="toggleFactor(this,'w-f4')">
+              <div class="wmeta"><div class="wname">壁厚腐蚀裕量</div><div class="tiny">设计壁厚减实测最小壁厚</div></div>
+              <div class="wval">0.040</div>
+            </div>
+            <input type="range" class="wslider" min="0" max="0.2" step="0.001" value="0.040" data-def="0.040" oninput="wslide(this)">
+          </div>
+        </div>
+
+        <!-- 运行历史组 -->
+        <div class="glass-card">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-clock-rotate-left"></i>运行历史组<span class="tag tag-cyan">组内合计 <span class="mono" id="gsub-g2">0.260</span></span></div>
+            <span class="tiny">来源：抢修台账 / 隐患系统（按坐标与管段就近匹配）</span>
+          </div>
+          <div class="wrow" id="w-f5" data-group="g2" data-name="泄漏抢修次数">
+            <div class="wrow-top">
+              <input type="checkbox" class="wtoggle" checked onchange="toggleFactor(this,'w-f5')">
+              <div class="wmeta"><div class="wname">泄漏抢修次数</div><div class="tiny">近10年泄漏抢修工单次数（失效数据：腐蚀老化类）</div></div>
+              <div class="wval">0.120</div>
+            </div>
+            <input type="range" class="wslider" min="0" max="0.2" step="0.001" value="0.120" data-def="0.120" oninput="wslide(this)">
+          </div>
+          <div class="wrow" id="w-f6" data-group="g2" data-name="隐患工单记录">
+            <div class="wrow-top">
+              <input type="checkbox" class="wtoggle" checked onchange="toggleFactor(this,'w-f6')">
+              <div class="wmeta"><div class="wname">隐患工单记录</div><div class="tiny">未闭环隐患条数与严重度加权</div></div>
+              <div class="wval">0.080</div>
+            </div>
+            <input type="range" class="wslider" min="0" max="0.2" step="0.001" value="0.080" data-def="0.080" oninput="wslide(this)">
+          </div>
+          <div class="wrow" id="w-f7" data-group="g2" data-name="违章占压记录">
+            <div class="wrow-top">
+              <input type="checkbox" class="wtoggle" checked onchange="toggleFactor(this,'w-f7')">
+              <div class="wmeta"><div class="wname">违章占压记录</div><div class="tiny">占压坐标就近匹配管段条数（拓扑断点影响匹配准确度）</div></div>
+              <div class="wval">0.060</div>
+            </div>
+            <input type="range" class="wslider" min="0" max="0.2" step="0.001" value="0.060" data-def="0.060" oninput="wslide(this)">
+          </div>
+        </div>
+
+        <!-- 腐蚀环境组 -->
+        <div class="glass-card">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-flask"></i>腐蚀环境组<span class="tag tag-cyan">组内合计 <span class="mono" id="gsub-g3">0.300</span></span></div>
+            <span class="tiny">来源：阴保监测平台 / 完整性系统（钢管专有，GS-STEEL 差异项）</span>
+          </div>
+          <div class="wrow" id="w-f8" data-group="g3" data-name="地铁杂散电流">
+            <div class="wrow-top">
+              <input type="checkbox" class="wtoggle" checked onchange="toggleFactor(this,'w-f8')">
+              <div class="wmeta"><div class="wname">地铁杂散电流 <span class="tag tag-accent">差异项</span></div><div class="tiny">管段与地铁线位交叉距离及实测杂散电流强度</div></div>
+              <div class="wval">0.120</div>
+            </div>
+            <input type="range" class="wslider" min="0" max="0.2" step="0.001" value="0.120" data-def="0.120" oninput="wslide(this)">
+          </div>
+          <div class="wrow" id="w-f9" data-group="g3" data-name="阴保电位达标率">
+            <div class="wrow-top">
+              <input type="checkbox" class="wtoggle" checked onchange="toggleFactor(this,'w-f9')">
+              <div class="wmeta"><div class="wname">阴保电位达标率 <span class="tag tag-accent">差异项</span></div><div class="tiny">保护电位 -0.85V 达标样本占比（完整性系统判欠保护需安排处理）</div></div>
+              <div class="wval">0.100</div>
+            </div>
+            <input type="range" class="wslider" min="0" max="0.2" step="0.001" value="0.100" data-def="0.100" oninput="wslide(this)">
+          </div>
+          <div class="wrow" id="w-f10" data-group="g3" data-name="土壤腐蚀性">
+            <div class="wrow-top">
+              <input type="checkbox" class="wtoggle" checked onchange="toggleFactor(this,'w-f10')">
+              <div class="wmeta"><div class="wname">土壤腐蚀性 <span class="tag tag-accent">差异项</span></div><div class="tiny">土壤电阻率分级（I-IV 级）</div></div>
+              <div class="wval">0.060</div>
+            </div>
+            <input type="range" class="wslider" min="0" max="0.2" step="0.001" value="0.060" data-def="0.060" oninput="wslide(this)">
+          </div>
+          <div class="wrow" id="w-f11" data-group="g3" data-name="完整性检测记录">
+            <div class="wrow-top">
+              <input type="checkbox" class="wtoggle" checked onchange="toggleFactor(this,'w-f11')">
+              <div class="wmeta"><div class="wname">完整性检测记录</div><div class="tiny">内检测 / 外检测结论（含欠保护判定）</div></div>
+              <div class="wval">0.020</div>
+            </div>
+            <input type="range" class="wslider" min="0" max="0.2" step="0.001" value="0.020" data-def="0.020" oninput="wslide(this)">
+          </div>
+        </div>
+
+        <!-- 外部影响组 -->
+        <div class="glass-card">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-helmet-safety"></i>外部影响组<span class="tag tag-cyan">组内合计 <span class="mono" id="gsub-g4">0.140</span></span></div>
+            <span class="tiny">来源：第三方施工报装 / 地灾评估 / 监护记录</span>
+          </div>
+          <div class="wrow" id="w-f12" data-group="g4" data-name="第三方施工密度">
+            <div class="wrow-top">
+              <input type="checkbox" class="wtoggle" checked onchange="toggleFactor(this,'w-f12')">
+              <div class="wmeta"><div class="wname">第三方施工密度</div><div class="tiny">管段两侧 100m 内在建工程数量（失效数据：第三方损坏类）</div></div>
+              <div class="wval">0.100</div>
+            </div>
+            <input type="range" class="wslider" min="0" max="0.2" step="0.001" value="0.100" data-def="0.100" oninput="wslide(this)">
+          </div>
+          <div class="wrow" id="w-f13" data-group="g4" data-name="地质灾害风险">
+            <div class="wrow-top">
+              <input type="checkbox" class="wtoggle" checked onchange="toggleFactor(this,'w-f13')">
+              <div class="wmeta"><div class="wname">地质灾害风险</div><div class="tiny">软土地沉 / 滑坡易发区叠加（失效数据：地质灾害类）</div></div>
+              <div class="wval">0.020</div>
+            </div>
+            <input type="range" class="wslider" min="0" max="0.2" step="0.001" value="0.020" data-def="0.020" oninput="wslide(this)">
+          </div>
+          <div class="wrow" id="w-f14" data-group="g4" data-name="监护记录">
+            <div class="wrow-top">
+              <input type="checkbox" class="wtoggle" checked onchange="toggleFactor(this,'w-f14')">
+              <div class="wmeta"><div class="wname">监护记录</div><div class="tiny">监护坐标就近匹配管段（失效数据：阴保失效/监护类）</div></div>
+              <div class="wval">0.020</div>
+            </div>
+            <input type="range" class="wslider" min="0" max="0.2" step="0.001" value="0.020" data-def="0.020" oninput="wslide(this)">
+          </div>
+        </div>
+      </div>
+
+      <!-- 右列：校验卡 + 版本管理 + 调研备注 -->
+      <div class="grid">
+        <div class="glass-card strong">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-scale-balanced"></i>保存前三项强制校验</div>
+          </div>
+          <div class="stat-card soft" style="border:none;box-shadow:none;background:transparent;padding:6px 0 10px;">
+            <div class="stat-label"><i class="fa-solid fa-sigma"></i>全局合计（必须 = 1.000）</div>
+            <div class="stat-value" id="w-total">1.000</div>
+            <div class="stat-sub">单项上限 0.200 · 滑杆调整实时重算</div>
+          </div>
+          <ul class="icon-list">
+            <li id="chk1"><i class="fa-solid fa-circle-check" style="color:var(--c-ok)"></i>全局合计 1.000 = 1.000</li>
+            <li id="chk2"><i class="fa-solid fa-circle-check" style="color:var(--c-ok)"></i>单项权重均 ≤ 0.200</li>
+            <li id="chk3"><i class="fa-solid fa-circle-check" style="color:var(--c-ok)"></i>每组至少启用 1 项因子</li>
+          </ul>
+          <div class="divider"></div>
+          <div class="tiny"><i class="fa-solid fa-circle-info" style="color:var(--c-primary)"></i> 因子停用后权重按组内比例回收重分配；合计≠1.000 或单项&gt;0.200 将阻断保存并提示偏差量；保存为草稿后须经 模拟试算 → 差异复核 → 审批发布，次日 02:00 全网重算生效。</div>
+        </div>
+
+        <div class="glass-card">
+          <div class="card-head">
+            <div class="card-title"><i class="fa-solid fa-code-branch"></i>模型版本管理</div>
+            <button class="btn btn-ghost btn-xs" onclick="showToast('版本对比：v3.3 草稿 vs v3.2 生效中，共 3 项因子权重存在差异')"><i class="fa-solid fa-code-compare"></i>版本对比</button>
+          </div>
+          <div class="table-scroll">
+            <table class="glass-table">
+              <thead><tr><th>版本</th><th>状态</th><th>生效时点</th><th>操作</th></tr></thead>
+              <tbody>
+                <tr><td class="mono">v3.3</td><td><span class="tag tag-yellow">草稿·编辑中</span></td><td>—</td><td><button class="btn btn-glass btn-xs" onclick="showToast('v3.3 草稿已定位到当前编辑区')">定位</button></td></tr>
+                <tr><td class="mono">v3.2</td><td><span class="tag tag-green">生效中</span></td><td>2026-10-12 02:00</td><td><button class="btn btn-glass btn-xs" onclick="showToast('已生成 v3.2 只读副本，可查看其因子快照')">查看快照</button></td></tr>
+                <tr><td class="mono">v3.1</td><td><span class="tag tag-gray">已归档</span></td><td>2026-06-08 02:00</td><td><button class="btn btn-danger btn-xs" onclick="openModal('m-rollback')"><i class="fa-solid fa-clock-rotate-left"></i>回滚</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="tiny mt-8">回滚须走审批并全程留痕；一键回滚生效于次日 02:00 重算。</div>
+        </div>
+
+        <div class="glass-card soft">
+          <div class="card-head"><div class="card-title"><i class="fa-solid fa-magnifying-glass"></i>调研口径备注</div></div>
+          <ul class="icon-list">
+            <li><i class="fa-solid fa-file-lines"></i>评估依据 GBT 47764-2026 城镇燃气输配管道完整性管理规范，当前仅对钢管评级。</li>
+            <li><i class="fa-solid fa-ban"></i>PE 管仅敷设年限与抢修两类数据，不足以支撑评估，暂不考虑评定（待明确）。</li>
+            <li><i class="fa-solid fa-link"></i>抢修/隐患/监护/违章占压记录只有坐标，需按坐标与管网数据就近匹配，拓扑断点影响匹配准确度。</li>
+            <li><i class="fa-solid fa-circle-half-stroke"></i>失效数据含腐蚀老化、第三方损坏、地质灾害、阴保失效、事故统计五类。</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- 弹窗：保存确认 -->
+    <div class="modal-mask" id="m-save" onclick="if(event.target===this)closeModal('m-save')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-floppy-disk"></i>确认保存草稿 v3.3</div>
+          <button class="modal-close" onclick="closeModal('m-save')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="kv">
+            <dt>校验结果</dt><dd><span class="tag tag-green"><i class="fa-solid fa-check"></i>三项强制校验全部通过</span></dd>
+            <dt>模版</dt><dd>GS-STEEL 钢管模版</dd>
+            <dt>生效流程</dt><dd>模拟试算 → 差异复核 → 审批发布</dd>
+            <dt>生效时点</dt><dd>审批通过后次日 02:00 全网重算生效</dd>
+            <dt>操作留痕</dt><dd>操作人 陈*明（技术部管理员）· 2026-10-28 10:12</dd>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-glass" onclick="closeModal('m-save')">取消</button>
+          <button class="btn btn-primary" onclick="confirmSaveDraft()"><i class="fa-solid fa-check"></i>确认保存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 弹窗：保存阻断（红色阻断 · 仅两条出路） -->
+    <div class="modal-mask" id="m-block-save" onclick="if(event.target===this)closeModal('m-block-save')">
+      <div class="glass-modal blocking" style="width:520px;">
+        <div class="blocking-strip"><i class="fa-solid fa-ban"></i>保存阻断 · SAVE BLOCKED</div>
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-circle-exclamation" style="color:var(--c-danger)"></i>强制校验未通过</div>
+          <button class="modal-close" onclick="closeModal('m-block-save')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert-strip red" style="margin-bottom:10px;">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span id="block-dev">全局合计 1.000 ≠ 1.000，偏差 +0.000</span>
+          </div>
+          <div class="tiny">依据保存前三项强制校验规则，合计≠1.000 或单项权重&gt;0.200 时阻断保存。请返回调整滑杆，或使用「按比例归一」自动将启用因子权重等比缩放至合计 1.000。</div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-glass" onclick="closeModal('m-block-save')"><i class="fa-solid fa-sliders"></i>返回调整</button>
+          <button class="btn btn-danger" onclick="balanceWeights()"><i class="fa-solid fa-scale-balanced"></i>按比例归一至 1.000</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 弹窗：回滚确认（红色阻断 · 仅两条出路） -->
+    <div class="modal-mask" id="m-rollback" onclick="if(event.target===this)closeModal('m-rollback')">
+      <div class="glass-modal blocking" style="width:520px;">
+        <div class="blocking-strip"><i class="fa-solid fa-clock-rotate-left"></i>版本回滚 · 须审批留痕</div>
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-circle-exclamation" style="color:var(--c-danger)"></i>回滚至 v3.1（已归档）</div>
+          <button class="modal-close" onclick="closeModal('m-rollback')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="kv">
+            <dt>回滚目标</dt><dd>v3.1（2026-06-08 02:00 生效版本）</dd>
+            <dt>影响范围</dt><dd>全网 6,632 段钢管评分将于次日 02:00 按 v3.1 重算</dd>
+            <dt>留痕要求</dt><dd>回滚走审批并全程留痕，不可绕过</dd>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-glass" onclick="closeModal('m-rollback')">取消</button>
+          <button class="btn btn-danger" onclick="confirmRollback()"><i class="fa-solid fa-check"></i>提交回滚审批</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       页面2：评估模型权重与策略配置 · 材质模版管理
+       ============================================================ -->
+  <section class="view" id="v-评估模型权重与策略配置-材质模版管理">
+    <div class="page-head">
+      <div>
+        <div class="page-title">评估模型权重与策略配置 · 材质模版管理</div>
+        <div class="page-desc">技术部后台 · 技术部管理员 ｜ 四套材质模版（基础 / 钢管 / PE / 铸铁）继承管理，子模版只维护差异项，因子集合与材质失效机理一一对应</div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="openModal('m-tpl-new')"><i class="fa-solid fa-plus"></i>新建材质模版</button>
+    </div>
+
+    <div class="grid g-main-side">
+      <!-- 左：继承关系树 -->
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-sitemap"></i>模版继承关系树</div>
+          <span class="tiny">标注口径：<span class="tag tag-accent" style="margin:0 4px;">差异项</span>子模版自定义 ·<span class="tag tag-gray" style="margin:0 4px;">继承项</span>自动继承父模版</span>
+        </div>
+        <div style="max-width:360px;margin:0 auto;">
+          <div class="glass-card strong" style="text-align:center;">
+            <div class="flex-between">
+              <span class="wname"><i class="fa-solid fa-cube" style="color:var(--c-primary)"></i> GS-BASE 基础模版</span>
+              <span class="tag tag-green">生效 v3.2</span>
+            </div>
+            <div class="tiny mt-8">适用材质：全部 ｜ 14 项通用因子 ｜ 差异因子数 0</div>
+            <button class="btn btn-glass btn-xs mt-8" onclick="showToast('GS-BASE 为根模版，调整后各子模版继承项同步更新、差异项不变')"><i class="fa-solid fa-eye"></i>查看基础因子</button>
+          </div>
+        </div>
+        <div class="tpl-children">
+          <div class="tpl-node">
+            <div class="glass-card">
+              <div class="flex-between"><span class="wname">GS-STEEL 钢管</span><span class="tag tag-green">生效 v3.2</span></div>
+              <div class="tiny mt-8">差异因子数 3（腐蚀三项）</div>
+              <div class="mt-8" style="display:flex;flex-wrap:wrap;gap:5px;">
+                <span class="tag tag-accent">地铁杂散电流 0.12</span>
+                <span class="tag tag-accent">阴保电位达标率 0.10</span>
+                <span class="tag tag-accent">土壤腐蚀性 0.06</span>
+                <span class="tag tag-gray">其余 11 项继承</span>
+              </div>
+              <button class="btn btn-primary btn-xs mt-8" onclick="setTplDiff('steel');openModal('m-tpl-diff')"><i class="fa-solid fa-sliders"></i>配置差异项</button>
+            </div>
+          </div>
+          <div class="tpl-node">
+            <div class="glass-card">
+              <div class="flex-between"><span class="wname">GS-PE 聚乙烯</span><span class="tag tag-yellow">灰度·暂缓</span></div>
+              <div class="tiny mt-8">差异因子数 2（专有项）</div>
+              <div class="mt-8" style="display:flex;flex-wrap:wrap;gap:5px;">
+                <span class="tag tag-accent">熔接接口质量 0.08</span>
+                <span class="tag tag-accent">第三方施工密度提至 0.20</span>
+                <span class="tag tag-gray">腐蚀组置灰</span>
+              </div>
+              <button class="btn btn-glass btn-xs mt-8" onclick="setTplDiff('pe');openModal('m-tpl-diff')"><i class="fa-solid fa-sliders"></i>配置差异项</button>
+            </div>
+          </div>
+          <div class="tpl-node">
+            <div class="glass-card">
+              <div class="flex-between"><span class="wname">GS-CI 铸铁</span><span class="tag tag-green">生效 v2.6</span></div>
+              <div class="tiny mt-8">差异因子数 1（新增项）</div>
+              <div class="mt-8" style="display:flex;flex-wrap:wrap;gap:5px;">
+                <span class="tag tag-accent">接口填料老化 0.09</span>
+                <span class="tag tag-gray">其余 13 项继承</span>
+              </div>
+              <button class="btn btn-glass btn-xs mt-8" onclick="setTplDiff('ci');openModal('m-tpl-diff')"><i class="fa-solid fa-sliders"></i>配置差异项</button>
+            </div>
+          </div>
+        </div>
+        <div class="alert-strip cyan mt-14" style="margin-bottom:0;">
+          <i class="fa-solid fa-circle-info"></i>
+          <span>子模版未声明因子自动继承父模版；GS-BASE 调整后继承项同步更新、差异项不变；管段按主数据材质字段自动匹配模版，材质变更（如铸铁改 PE）在次日重算时自动切换。</span>
+        </div>
+      </div>
+
+      <!-- 右：失效机理 + 待明确 -->
+      <div class="grid">
+        <div class="glass-card">
+          <div class="card-head"><div class="card-title"><i class="fa-solid fa-microscope"></i>材质失效机理对照</div></div>
+          <ul class="icon-list">
+            <li><i class="fa-solid fa-bolt"></i><div><b>钢管</b>：腐蚀老化（地铁杂散电流 / 阴保失效 / 土壤腐蚀性）— 对应 GBT 47764-2026 完整性管理<span class="tag tag-cyan" style="margin-left:6px;">当前唯一评级口径</span></div></li>
+            <li><i class="fa-solid fa-fire"></i><div><b>PE 管</b>：第三方损坏 / 熔接接口质量 — 仅敷设年限与抢修两类数据，不足以支撑评估（调研结论）</div></li>
+            <li><i class="fa-solid fa-gears"></i><div><b>铸铁管</b>：接口填料老化 / 脆性断裂 — 灰度试算口径</div></li>
+            <li><i class="fa-solid fa-shield-halved"></i><div><b>通用</b>：第三方施工、地质灾害、占压与监护就近匹配</div></li>
+          </ul>
+        </div>
+        <div class="glass-card soft">
+          <div class="card-head"><div class="card-title"><i class="fa-solid fa-clipboard-question"></i>待明确事项</div></div>
+          <ul class="icon-list">
+            <li><i class="fa-solid fa-circle-question"></i>分项权重按国标（GBT 47764-2026）是否还需调整。</li>
+            <li><i class="fa-solid fa-circle-question"></i>PE 管是否需要评定（当前数据不支撑，暂不考虑）。</li>
+          </ul>
+          <div class="divider"></div>
+          <div class="tiny">调研备注：失效数据含腐蚀老化、第三方损坏、地质灾害、阴保失效、事故统计五类；完整性系统判欠保护管段需安排处理。</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 弹窗：差异项配置 -->
+    <div class="modal-mask" id="m-tpl-diff" onclick="if(event.target===this)closeModal('m-tpl-diff')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-sliders"></i><span id="tpl-diff-title">GS-STEEL 钢管模版 · 差异项配置</span></div>
+          <button class="modal-close" onclick="closeModal('m-tpl-diff')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div id="tpldiff-steel">
+            <div class="alert-strip cyan"><i class="fa-solid fa-sitemap"></i><span>差异项 3 项，其余 11 项自动继承 GS-BASE；继承项在父模版调整后同步更新。</span></div>
+            <ul class="icon-list">
+              <li><i class="fa-solid fa-bolt"></i><div><b>地铁杂散电流</b> 权重 <span class="mono">0.120</span> · 钢管腐蚀老化失效机理专有因子，取自阴保监测平台</div></li>
+              <li><i class="fa-solid fa-battery-half"></i><div><b>阴保电位达标率</b> 权重 <span class="mono">0.100</span> · 完整性系统判欠保护管段需安排处理</div></li>
+              <li><i class="fa-solid fa-flask"></i><div><b>土壤腐蚀性</b> 权重 <span class="mono">0.060</span> · 土壤电阻率 I-IV 级映射</div></li>
+            </ul>
+          </div>
+          <div id="tpldiff-pe" style="display:none;">
+            <div class="alert-strip orange"><i class="fa-solid fa-triangle-exclamation"></i><span>PE 管仅敷设年限与抢修两类数据，不足以支撑评估，当前为灰度暂缓口径（调研结论，是否评定待明确）。</span></div>
+            <ul class="icon-list">
+              <li><i class="fa-solid fa-circle-nodes"></i><div><b>熔接接口质量</b> 权重 <span class="mono">0.080</span> · PE 专有差异项</div></li>
+              <li><i class="fa-solid fa-helmet-safety"></i><div><b>第三方施工密度</b> 权重提高至 <span class="mono">0.200</span> · PE 失效以第三方损坏为主</div></li>
+              <li><i class="fa-solid fa-flask"></i><div><b>腐蚀环境组</b> · 置灰停用（PE 不适用腐蚀机理）</div></li>
+            </ul>
+          </div>
+          <div id="tpldiff-ci" style="display:none;">
+            <div class="alert-strip cyan"><i class="fa-solid fa-sitemap"></i><span>差异项 1 项新增，其余 13 项继承 GS-BASE；灰度试算口径。</span></div>
+            <ul class="icon-list">
+              <li><i class="fa-solid fa-gears"></i><div><b>接口填料老化</b> 权重 <span class="mono">0.090</span> · 铸铁管机械接口填料老化专有因子</div></li>
+              <li><i class="fa-solid fa-link"></i><div><b>继承项</b> · 本体属性 / 运行历史 / 外部影响三组同步 GS-BASE</div></li>
+            </ul>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-glass" onclick="closeModal('m-tpl-diff')">关闭</button>
+          <button class="btn btn-primary" onclick="closeModal('m-tpl-diff');showToast('差异项已保存至草稿模版，须影子试算复核后发布生效')"><i class="fa-solid fa-check"></i>保存差异项</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 弹窗：新建材质模版 -->
+    <div class="modal-mask" id="m-tpl-new" onclick="if(event.target===this)closeModal('m-tpl-new')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-plus"></i>新建材质模版</div>
+          <button class="modal-close" onclick="closeModal('m-tpl-new')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="form-row">
+            <div>
+              <label class="form-label">模版名称 <span class="req">*</span></label>
+              <input type="text" class="form-input" placeholder="如 GS-STEEL-X 钢管（地铁密集区）" id="tpl-new-name">
+            </div>
+            <div>
+              <label class="form-label">适用材质 <span class="req">*</span></label>
+              <select class="form-select" id="tpl-new-mat">
+                <option>钢管</option><option>PE 管（灰度）</option><option>铸铁管</option>
+              </select>
+            </div>
+          </div>
+          <div class="mt-14">
+            <label class="form-label">继承父模版</label>
+            <select class="form-select" style="width:100%;">
+              <option>GS-BASE 基础模版（14 项通用因子）</option>
+              <option>GS-STEEL 钢管模版（继承腐蚀三项差异）</option>
+              <option>GS-CI 铸铁模版（继承接口填料老化）</option>
+            </select>
+          </div>
+          <div class="tiny mt-14"><i class="fa-solid fa-circle-info" style="color:var(--c-primary)"></i> 新模版创建后仅维护差异项，未声明因子自动继承父模版；管段按主数据材质字段自动匹配，材质变更在次日重算时自动切换。</div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-glass" onclick="closeModal('m-tpl-new')">取消</button>
+          <button class="btn btn-primary" onclick="confirmTplNew()"><i class="fa-solid fa-check"></i>创建模版</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       页面3：评估模型权重与策略配置 · 模型试算与新旧对比
+       ============================================================ -->
+  <section class="view" id="v-评估模型权重与策略配置-模型试算与新旧对比">
+    <div class="page-head">
+      <div>
+        <div class="page-title">评估模型权重与策略配置 · 模型试算与新旧对比（影子试算）</div>
+        <div class="page-desc">技术部后台 · 技术部管理员 / 技术部负责人 ｜ 影子环境按草稿配置全网试算（同一代码 + 同一数据快照），结果写独立试算表、不影响在用评分</div>
+      </div>
+      <div class="flex" style="gap:8px;">
+        <button class="btn btn-glass btn-sm" onclick="showToast('影子试算已启动：读取 2026-10-27 数据快照，全网 6,632 段，预计约 12 分钟完成')"><i class="fa-solid fa-play"></i>发起影子试算</button>
+        <button class="btn btn-glass btn-sm" onclick="showToast('前100条新旧对比明细已导出（快照 2026-10-27）')"><i class="fa-solid fa-file-export"></i>导出对比明细</button>
+      </div>
+    </div>
+
+    <div class="grid g-4 mb-14">
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-layer-group"></i>前100条留存率（阈值 ≥70%）</div>
+        <div class="stat-value orange">68.4%</div>
+        <div class="stat-sub">留存 68 条 · 新进入 32 条</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-arrow-right-arrow-left"></i>新进入条数</div>
+        <div class="stat-value accent">32</div>
+        <div class="stat-sub">跌出 32 条（旧前100）</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-chart-line"></i>排名秩相关系数（Spearman ≥0.80）</div>
+        <div class="stat-value red">0.79</div>
+        <div class="stat-sub">低于 0.80 · 判定剧烈变动</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-palette"></i>四色分级变动占比</div>
+        <div class="stat-value blue">8.7%</div>
+        <div class="stat-sub">577 段变色（红→橙 61 / 橙→黄 396 / 黄→蓝 120）</div>
+      </div>
+    </div>
+
+    <div class="alert-strip orange" id="trial-alert">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      <span id="trial-alert-msg">留存率 68.4% &lt; 70% 且秩相关系数 0.79 &lt; 0.80，判定为剧烈变动：强制人工差异复核后方可提交审批，当前「提交审批」已阻断。</span>
+      <button class="btn btn-accent btn-sm" style="margin-left:auto;" onclick="markReviewed()"><i class="fa-solid fa-user-check"></i>完成人工差异复核</button>
+    </div>
+
+    <div class="glass-card">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-table-columns"></i>前100条逐条新旧对比（节选 · 草稿 v3.3 vs 生效 v3.2）</div>
+        <span class="tiny">数据快照 2026-10-27 · 试算时点 2026-10-28 09:40 · 影子库独立存放</span>
+      </div>
+      <div class="table-scroll">
+        <table class="glass-table">
+          <thead><tr><th>新排名</th><th>管段编号</th><th>综合得分（新）</th><th>旧排名</th><th>排名位移</th><th>变动原因</th><th>状态</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">1</td><td class="mono">GD-1991-0336</td><td class="mono">92.4</td><td class="mono">2</td><td><span style="color:var(--c-danger);"><i class="fa-solid fa-arrow-up"></i> 1</span></td><td class="tiny">地铁杂散电流权重 0.10 → 0.12</td><td><span class="tag tag-red">留存</span></td></tr>
+            <tr><td class="mono">2</td><td class="mono">GD-1993-0718</td><td class="mono">91.8</td><td class="mono">1</td><td><span style="color:var(--c-ok);"><i class="fa-solid fa-arrow-down"></i> 1</span></td><td class="tiny">阴保电位达标率权重不变·快照更新</td><td><span class="tag tag-red">留存</span></td></tr>
+            <tr><td class="mono">3</td><td class="mono">GD-1998-0512</td><td class="mono">90.7</td><td class="mono">5</td><td><span style="color:var(--c-danger);"><i class="fa-solid fa-arrow-up"></i> 2</span></td><td class="tiny">杂散电流交叉段数据就近匹配修正</td><td><span class="tag tag-red">留存</span></td></tr>
+            <tr><td class="mono">4</td><td class="mono">GD-2001-0244</td><td class="mono">89.9</td><td class="mono">9</td><td><span style="color:var(--c-danger);"><i class="fa-solid fa-arrow-up"></i> 5</span></td><td class="tiny">第三方施工密度权重 0.08 → 0.10</td><td><span class="tag tag-red">留存</span></td></tr>
+            <tr><td class="mono">5</td><td class="mono">GD-2003-0108</td><td class="mono">89.3</td><td class="mono">12</td><td><span style="color:var(--c-danger);"><i class="fa-solid fa-arrow-up"></i> 7</span></td><td class="tiny">土壤腐蚀性权重 0.05 → 0.06</td><td><span class="tag tag-red">留存</span></td></tr>
+            <tr><td class="mono">6</td><td class="mono">GD-2008-0329</td><td class="mono">88.6</td><td class="mono">15</td><td><span style="color:var(--c-danger);"><i class="fa-solid fa-arrow-up"></i> 9</span></td><td class="tiny">泄漏抢修次数权重 0.10 → 0.12</td><td><span class="tag tag-red">留存</span></td></tr>
+            <tr><td class="mono">7</td><td class="mono">GD-2010-0664</td><td class="mono">88.0</td><td class="mono">22</td><td><span style="color:var(--c-danger);"><i class="fa-solid fa-arrow-up"></i> 15</span></td><td class="tiny">滨江站在监工地新叠加 3 处</td><td><span class="tag tag-red">留存</span></td></tr>
+            <tr><td class="mono">8</td><td class="mono">GD-2013-0019</td><td class="mono">87.2</td><td class="mono">8</td><td><span style="color:var(--c-ok);"><i class="fa-solid fa-arrow-down"></i> 5</span></td><td class="tiny">完整性检测记录权重 0.03 → 0.02</td><td><span class="tag tag-red">留存</span></td></tr>
+            <tr><td class="mono">9</td><td class="mono">GD-1992-0455</td><td class="mono">86.9</td><td class="mono">—</td><td><span class="tag tag-accent">新进入</span></td><td class="tiny">泄漏史 3 次，权重上调后秩上升</td><td><span class="tag tag-accent">新进入</span></td></tr>
+            <tr><td class="mono">10</td><td class="mono">GD-1995-0644</td><td class="mono">89.3</td><td class="mono">6</td><td><span style="color:var(--c-ok);"><i class="fa-solid fa-arrow-down"></i> 4</span></td><td class="tiny">专家核验负样本·权重校正回落</td><td><span class="tag tag-red">留存</span></td></tr>
+            <tr><td class="mono">11</td><td class="mono">GD-2015-0457</td><td class="mono">85.9</td><td class="mono">18</td><td><span style="color:var(--c-danger);"><i class="fa-solid fa-arrow-up"></i> 7</span></td><td class="tiny">监护记录就近匹配修正</td><td><span class="tag tag-orange">留存</span></td></tr>
+            <tr><td class="mono">12</td><td class="mono">GD-1997-0820</td><td class="mono">85.3</td><td class="mono">—</td><td><span class="tag tag-accent">新进入</span></td><td class="tiny">投运 1997 · 隐患未闭环 2 条</td><td><span class="tag tag-accent">新进入</span></td></tr>
+            <tr><td class="mono">…</td><td class="mono">GD-2020-0115（原 89 位）</td><td class="mono">—</td><td class="mono">89</td><td><span class="tag tag-gray">跌出</span></td><td class="tiny">管龄权重下调 0.16 → 0.14</td><td><span class="tag tag-gray">跌出</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="divider"></div>
+      <div class="flex-between wrap">
+        <div class="tiny">并列排序规则：得分并列时依次按泄漏史次数 → 运行年限 → 管径降序 → 管段编号升序，同一批数据两次计算结果一致。</div>
+        <div class="flex" style="gap:8px;">
+          <button class="btn btn-ghost btn-sm" onclick="showToast('回滚须走审批并留痕：已生成 v3.3 → v3.2 回滚申请单，等待技术部负责人审批')"><i class="fa-solid fa-clock-rotate-left"></i>一键回滚</button>
+          <button class="btn btn-primary btn-sm disabled" id="btn-approve" onclick="submitApprove()"><i class="fa-solid fa-paper-plane"></i>提交审批发布</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 弹窗：提交审批 -->
+    <div class="modal-mask" id="m-approve" onclick="if(event.target===this)closeModal('m-approve')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-paper-plane"></i>提交审批发布 v3.3</div>
+          <button class="modal-close" onclick="closeModal('m-approve')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="kv">
+            <dt>试算结论</dt><dd><span class="tag tag-green"><i class="fa-solid fa-check"></i>人工差异复核已完成</span></dd>
+            <dt>复核人</dt><dd>周*敏（技术部负责人）· 2026-10-28 10:36</dd>
+            <dt>审批人</dt><dd>吴*华（总工程师）</dd>
+            <dt>发布时点</dt><dd>审批通过后次日 02:00 全网重算生效</dd>
+            <dt>影响范围</dt><dd>全网 6,632 段 · 前100清单预计变动 32 条</dd>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-glass" onclick="closeModal('m-approve')">取消</button>
+          <button class="btn btn-primary" onclick="confirmApprove()"><i class="fa-solid fa-check"></i>确认提交</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       页面4：管网健康等级评估与风险排名 · 评估结果地图
+       ============================================================ -->
+  <section class="view" id="v-管网健康等级评估与风险排名-评估结果地图">
+    <div class="page-head">
+      <div>
+        <div class="page-title">管网健康等级评估与风险排名 · 评估结果地图</div>
+        <div class="page-desc">PC端 · 技术人员 ｜ 全网管段四色渲染，与管网生命线一张图四色图层共用同一份评分结果（不各自计算）；当前仅对钢管评级（GBT 47764-2026）</div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="switchView('v-管网健康等级评估与风险排名-风险排名清单')"><i class="fa-solid fa-list-ol"></i>查看前100条清单</button>
+    </div>
+
+    <div class="filter-bar">
+      <div class="filter-item">
+        <div class="filter-label">图层叠加</div>
+        <div class="flex" style="gap:6px;">
+          <button class="btn btn-glass btn-xs" id="ly-btn-metro" onclick="toggleLayer('ly-metro','ly-btn-metro')"><i class="fa-solid fa-train-subway"></i>地铁线位</button>
+          <button class="btn btn-glass btn-xs" id="ly-btn-station" onclick="toggleLayer('ly-station','ly-btn-station')"><i class="fa-solid fa-draw-polygon"></i>运行站边界</button>
+          <button class="btn btn-glass btn-xs" id="ly-btn-site" onclick="toggleLayer('ly-site','ly-btn-site')"><i class="fa-solid fa-helmet-safety"></i>在监工地</button>
+        </div>
+      </div>
+      <div class="filter-item">
+        <div class="filter-label">评估时点</div>
+        <select class="filter-select"><option>2026-10-28 02:00（最新）</option><option>2026-10-27 02:00</option><option>2026-10-26 02:00</option></select>
+      </div>
+      <div class="filter-item">
+        <div class="filter-label">四色渲染</div>
+        <select class="filter-select"><option>全部四色</option><option>仅红色一级</option><option>红色 + 橙色</option></select>
+      </div>
+      <button class="btn btn-glass btn-sm" onclick="showToast('已重置图层与筛选条件')"><i class="fa-solid fa-rotate"></i>重置</button>
+    </div>
+
+    <div class="grid g-main-side">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-map-location-dot"></i>全网健康四色渲染（示意 · 6,632 段）</div>
+          <span class="tiny">点击管段/编号气泡进入评分溯源 · 评分日 02:00 批量重算</span>
+        </div>
+        <div class="map-canvas" style="min-height:420px;">
+          <svg viewBox="0 0 800 440" style="position:absolute;inset:0;width:100%;height:100%;">
+            <g id="ly-pipe">
+              <polyline class="pipe" points="60,120 180,140 300,180 420,160 520,210 640,190" stroke="#FF3B30" stroke-width="6"/>
+              <polyline class="pipe" points="40,60 140,50 260,90 380,70 470,100" stroke="#FF3B30" stroke-width="5"/>
+              <polyline class="pipe" points="120,300 220,280 340,320 470,300 580,340 690,320" stroke="#FF9500" stroke-width="5"/>
+              <polyline class="pipe" points="560,50 620,90 700,130 760,180" stroke="#FF9500" stroke-width="4"/>
+              <polyline class="pipe" points="200,420 300,390 420,410 540,380 660,400" stroke="#FFCC00" stroke-width="4"/>
+              <polyline class="pipe" points="100,160 200,190 320,170 400,220" stroke="#FFCC00" stroke-width="4"/>
+              <polyline class="pipe" points="600,260 680,240 750,280" stroke="#FFCC00" stroke-width="4"/>
+              <polyline class="pipe" points="80,200 200,230 320,210 440,250 560,230 700,260" stroke="#34A8FF" stroke-width="4"/>
+              <polyline class="pipe" points="300,260 420,240 540,270 640,300" stroke="#34A8FF" stroke-width="4"/>
+              <polyline class="pipe" points="100,360 240,340 380,370 500,350" stroke="#34A8FF" stroke-width="4"/>
+              <polyline class="pipe" points="420,60 480,120 540,160 620,180" stroke="#34A8FF" stroke-width="4"/>
+            </g>
+            <g id="ly-metro">
+              <polyline points="20,240 200,180 400,220 600,120 780,60" stroke="#64748B" stroke-width="2.5" stroke-dasharray="10 7" fill="none" opacity=".6"/>
+              <polyline points="60,420 260,330 480,360 700,280" stroke="#64748B" stroke-width="2.5" stroke-dasharray="10 7" fill="none" opacity=".6"/>
+            </g>
+            <g id="ly-station">
+              <rect x="40" y="90" width="240" height="130" rx="26" fill="rgba(14,116,144,.05)" stroke="rgba(14,116,144,.5)" stroke-dasharray="6 5"/>
+              <text x="52" y="108" font-size="11" fill="#64748B">城北站</text>
+              <rect x="300" y="250" width="250" height="120" rx="26" fill="rgba(14,116,144,.05)" stroke="rgba(14,116,144,.5)" stroke-dasharray="6 5"/>
+              <text x="312" y="268" font-size="11" fill="#64748B">拱墅站</text>
+              <rect x="560" y="150" width="210" height="150" rx="26" fill="rgba(14,116,144,.05)" stroke="rgba(14,116,144,.5)" stroke-dasharray="6 5"/>
+              <text x="572" y="168" font-size="11" fill="#64748B">滨江站</text>
+            </g>
+            <g id="ly-site">
+              <circle cx="160" cy="140" r="7" fill="#FF9F0A" opacity=".9"/>
+              <circle cx="350" cy="300" r="7" fill="#FF9F0A" opacity=".9"/>
+              <circle cx="620" cy="210" r="7" fill="#FF9F0A" opacity=".9"/>
+              <circle cx="250" cy="380" r="7" fill="#FF9F0A" opacity=".9"/>
+              <circle cx="520" cy="90" r="7" fill="#FF9F0A" opacity=".9"/>
+            </g>
+          </svg>
+          <div class="map-pin" style="left:30%;top:24%;background:var(--risk-red);" title="GD-1991-0336 · 一级" onclick="goTrace('GD-1991-0336')"><i>1</i></div>
+          <div class="map-pin" style="left:54%;top:14%;background:var(--risk-red);" title="GD-1993-0718 · 一级" onclick="goTrace('GD-1993-0718')"><i>2</i></div>
+          <div class="map-pin" style="left:66%;top:38%;background:var(--risk-red);" title="GD-1998-0512 · 一级" onclick="goTrace('GD-1998-0512')"><i>3</i></div>
+          <div class="map-pin" style="left:16%;top:46%;background:var(--risk-orange);" title="GD-2001-0244 · 二级" onclick="goTrace('GD-2001-0244')"><i>4</i></div>
+          <div class="map-pin" style="left:42%;top:56%;background:var(--risk-orange);" title="GD-2003-0108 · 二级" onclick="goTrace('GD-2003-0108')"><i>5</i></div>
+          <div class="map-pin" style="left:74%;top:60%;background:var(--risk-orange);" title="GD-2008-0329 · 二级" onclick="goTrace('GD-2008-0329')"><i>6</i></div>
+          <div class="map-pin" style="left:10%;top:18%;background:var(--risk-yellow);" title="GD-2010-0664 · 三级" onclick="goTrace('GD-2010-0664')"><i>7</i></div>
+          <div class="map-pin" style="left:56%;top:76%;background:var(--risk-yellow);" title="GD-2015-0457 · 三级" onclick="goTrace('GD-2015-0457')"><i>8</i></div>
+          <div class="map-pin" style="left:80%;top:26%;background:var(--risk-yellow);" title="GD-2013-0019 · 三级" onclick="goTrace('GD-2013-0019')"><i>9</i></div>
+          <div class="map-pin" style="left:36%;top:80%;background:var(--risk-yellow);" title="GD-1994-0187 · 三级" onclick="goTrace('GD-1994-0187')"><i>10</i></div>
+          <div class="map-legend">
+            <span><i class="sw" style="background:var(--risk-red);"></i>一级 红</span>
+            <span><i class="sw" style="background:var(--risk-orange);"></i>二级 橙</span>
+            <span><i class="sw" style="background:var(--risk-yellow);"></i>三级 黄</span>
+            <span><i class="sw" style="background:var(--risk-blue);"></i>四级 蓝</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="glass-card">
+          <div class="card-head"><div class="card-title"><i class="fa-solid fa-chart-pie"></i>四色分级占比（分位阈值）</div></div>
+          <ul class="icon-list">
+            <li><i class="fa-solid fa-circle" style="color:var(--risk-red);"></i><div class="flex-between"><span>红色 一级（前 4-5% 分位）</span><b class="mono">278 段 · 4.2%</b></div><div class="meter mt-8"><div class="meter-fill red" style="width:4.2%;"></div></div></li>
+            <li><i class="fa-solid fa-circle" style="color:var(--risk-orange);"></i><div class="flex-between"><span>橙色 二级（至 15% 分位）</span><b class="mono">637 段 · 9.6%</b></div><div class="meter mt-8"><div class="meter-fill orange" style="width:9.6%;"></div></div></li>
+            <li><i class="fa-solid fa-circle" style="color:var(--risk-yellow);"></i><div class="flex-between"><span>黄色 三级（至 40% 分位）</span><b class="mono">1,751 段 · 26.4%</b></div><div class="meter mt-8"><div class="meter-fill" style="width:26.4%;background:var(--c-caution);"></div></div></li>
+            <li><i class="fa-solid fa-circle" style="color:var(--risk-blue);"></i><div class="flex-between"><span>蓝色 四级（其余）</span><b class="mono">3,966 段 · 59.8%</b></div><div class="meter mt-8"><div class="meter-fill green" style="width:59.8%;background:var(--risk-blue);"></div></div></li>
+          </ul>
+        </div>
+        <div class="glass-card">
+          <div class="card-head"><div class="card-title"><i class="fa-solid fa-arrows-rotate"></i>重算信息</div></div>
+          <div class="kv">
+            <dt>最近重算</dt><dd>2026-10-28 02:00（定时批量）</dd>
+            <dt>重算耗时</dt><dd>11 分 42 秒</dd>
+            <dt>变更管段</dt><dd>47 段（较昨日 02:00）</dd>
+            <dt>即时重算</dt><dd>模型发布 / 主数据变更 / 泄漏事件触发</dd>
+          </div>
+          <div class="divider"></div>
+          <div class="tiny">全网 10,815 km · 6,632 段参与评级（钢管口径，GBT 47764-2026）；与管网生命线一张图四色图层共用同一份评分结果，不各自计算。</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       页面5：管网健康等级评估与风险排名 · 风险排名清单
+       ============================================================ -->
+  <!-- 并列排序规则：综合得分并列时，依次按 泄漏史次数（降序）→ 运行年限（降序）→ 管径（降序）→ 管段编号（升序）；同一批数据两次计算结果一致（幂等）。 -->
+  <section class="view" id="v-管网健康等级评估与风险排名-风险排名清单">
+    <div class="page-head">
+      <div>
+        <div class="page-title">管网健康等级评估与风险排名 · 风险排名清单（前100条）</div>
+        <div class="page-desc">PC端 · 技术人员 / 计划人员 ｜ 全网「最不健康」前 100 条管段（条数固定）；清单按评估时点留存快照，可回溯任一历史时点；在建改造管段标记不剔除</div>
+      </div>
+      <div class="flex" style="gap:8px;">
+        <button class="btn btn-glass btn-sm" onclick="showToast('前100条清单已导出（快照 2026-10-28 02:00），含并列排序明细')"><i class="fa-solid fa-file-export"></i>导出清单</button>
+        <button class="btn btn-glass btn-sm" onclick="showToast('已推送至巡检排班系统：作为频次上调依据（日 03:00 定时任务 PUSH-001）')"><i class="fa-solid fa-paper-plane"></i>同步排班频次</button>
+        <button class="btn btn-primary btn-sm" onclick="openModal('m-toji')"><i class="fa-solid fa-clipboard-list"></i>转入技改计划</button>
+      </div>
+    </div>
+
+    <div class="filter-bar">
+      <div class="filter-item">
+        <div class="filter-label">所属运行站</div>
+        <select class="filter-select"><option>全部运行站</option><option>城北站</option><option>拱墅站</option><option>西湖站</option><option>滨江站</option><option>萧山站</option></select>
+      </div>
+      <div class="filter-item">
+        <div class="filter-label">材质</div>
+        <select class="filter-select"><option>全部（钢管评级口径）</option><option>钢管</option><option>铸铁（灰度试算）</option><option>PE（暂不评级）</option></select>
+      </div>
+      <div class="filter-item">
+        <div class="filter-label">管段编号 / 关键词</div>
+        <input type="text" class="filter-input" placeholder="如 GD-1991-0336">
+      </div>
+      <div class="filter-item">
+        <div class="filter-label">历史时点快照</div>
+        <select class="filter-select"><option>2026-10-28 02:00</option><option>2026-09-28 02:00</option><option>2026-06-08 02:00</option></select>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="showToast('已按筛选条件刷新清单（当前时点 2026-10-28 02:00）')"><i class="fa-solid fa-magnifying-glass"></i>查询</button>
+    </div>
+
+    <div class="glass-card">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-list-ol"></i>最不健康管段清单 · 前 100 条（节选前 12）</div>
+        <span class="tiny">综合得分降序 · 得分并列依次按泄漏史次数 → 运行年限 → 管径降序 → 管段编号升序，两次计算结果一致</span>
+      </div>
+      <div class="table-scroll">
+        <table class="glass-table">
+          <thead><tr><th>排名</th><th>管段编号</th><th>所属运行站</th><th>材质</th><th>管径</th><th>投运年份</th><th>综合得分</th><th>主因子（贡献度）</th><th>建议措施</th><th>核验状态</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">1</td><td class="mono">GD-1991-0336</td><td>城北站</td><td>钢管</td><td class="mono">DN200</td><td class="mono">1991</td><td class="mono" style="color:var(--c-danger);font-weight:700;">92.4</td><td>地铁杂散电流（0.21）</td><td class="tiny">排流改造 + 防腐层检测</td><td><span class="tag tag-green">已核验·正样本</span></td><td><button class="btn btn-glass btn-xs" onclick="goTrace('GD-1991-0336')">溯源</button></td></tr>
+            <tr><td class="mono">2</td><td class="mono">GD-1993-0718</td><td>城北站</td><td>钢管</td><td class="mono">DN300</td><td class="mono">1993</td><td class="mono" style="color:var(--c-danger);font-weight:700;">91.8</td><td>阴保电位达标率（0.19）</td><td class="tiny">阴保电位修复专项</td><td><span class="tag tag-green">已核验·正样本</span></td><td><button class="btn btn-glass btn-xs" onclick="goTrace('GD-1993-0718')">溯源</button></td></tr>
+            <tr><td class="mono">3</td><td class="mono">GD-1998-0512</td><td>拱墅站</td><td>钢管</td><td class="mono">DN200</td><td class="mono">1998</td><td class="mono" style="color:var(--c-danger);font-weight:700;">90.7</td><td>地铁杂散电流（0.18）</td><td class="tiny">排流 + 杂散电流监测</td><td><span class="tag tag-green">已核验·正样本</span></td><td><button class="btn btn-glass btn-xs" onclick="goTrace('GD-1998-0512')">溯源</button></td></tr>
+            <tr><td class="mono">4</td><td class="mono">GD-1992-0455</td><td>西湖站</td><td>钢管</td><td class="mono">DN150</td><td class="mono">1992</td><td class="mono" style="color:var(--c-danger);font-weight:700;">90.1</td><td>泄漏抢修次数（0.18）</td><td class="tiny">纳入年度改造计划</td><td><span class="tag tag-yellow">待核验</span></td><td><button class="btn btn-glass btn-xs" onclick="goTrace('GD-1992-0455')">溯源</button></td></tr>
+            <tr><td class="mono">5</td><td class="mono">GD-2001-0244</td><td>滨江站</td><td>钢管</td><td class="mono">DN300</td><td class="mono">2001</td><td class="mono" style="color:var(--c-warn);font-weight:700;">89.9</td><td>第三方施工密度（0.17）</td><td class="tiny">加密第三方监护旁站</td><td><span class="tag tag-yellow">待核验</span></td><td><button class="btn btn-glass btn-xs" onclick="goTrace('GD-2001-0244')">溯源</button></td></tr>
+            <tr><td class="mono">6</td><td class="mono">GD-1995-0644</td><td>城北站</td><td>钢管</td><td class="mono">DN200</td><td class="mono">1995</td><td class="mono" style="color:var(--c-warn);font-weight:700;">89.3</td><td>阴保电位达标率（0.17）</td><td class="tiny">阴保专项检测</td><td><span class="tag tag-red">已核验·负样本</span></td><td><button class="btn btn-glass btn-xs" onclick="goTrace('GD-1995-0644')">溯源</button></td></tr>
+            <tr><td class="mono">7</td><td class="mono">GD-2003-0108</td><td>萧山站</td><td>钢管</td><td class="mono">DN150</td><td class="mono">2003</td><td class="mono" style="color:var(--c-warn);font-weight:700;">88.6</td><td>土壤腐蚀性（0.16）</td><td class="tiny">土壤腐蚀复查 + 外防腐修复</td><td><span class="tag tag-yellow">待核验</span></td><td><button class="btn btn-glass btn-xs" onclick="goTrace('GD-2003-0108')">溯源</button></td></tr>
+            <tr><td class="mono">8</td><td class="mono">GD-2008-0329</td><td>拱墅站</td><td>钢管</td><td class="mono">DN200</td><td class="mono">2008</td><td class="mono" style="color:var(--c-warn);font-weight:700;">88.0</td><td>地铁杂散电流（0.15）</td><td class="tiny">排流监测布点</td><td><span class="tag tag-yellow">待核验</span></td><td><button class="btn btn-glass btn-xs" onclick="goTrace('GD-2008-0329')">溯源</button></td></tr>
+            <tr><td class="mono">9</td><td class="mono">GD-1996-0813</td><td>西湖站</td><td>铸铁 <span class="tag tag-gray">灰度试算</span></td><td class="mono">DN300</td><td class="mono">1996</td><td class="mono" style="color:var(--c-warn);font-weight:700;">87.6</td><td>接口填料老化（0.15）</td><td class="tiny">灰度口径·暂不处置</td><td><span class="tag tag-gray">不参与核验</span></td><td><button class="btn btn-glass btn-xs" onclick="goTrace('GD-1996-0813')">溯源</button></td></tr>
+            <tr><td class="mono">10</td><td class="mono">GD-2010-0664</td><td>滨江站</td><td>钢管</td><td class="mono">DN400</td><td class="mono">2010</td><td class="mono" style="color:var(--c-warn);font-weight:700;">87.2</td><td>第三方施工密度（0.14）</td><td class="tiny">施工交底 + 旁站监护</td><td><span class="tag tag-yellow">待核验</span></td><td><button class="btn btn-glass btn-xs" onclick="goTrace('GD-2010-0664')">溯源</button></td></tr>
+            <tr><td class="mono">11</td><td class="mono">GD-1994-0187</td><td>萧山站</td><td>钢管</td><td class="mono">DN150</td><td class="mono">1994</td><td class="mono" style="color:var(--c-warn);font-weight:700;">86.9</td><td>泄漏抢修次数（0.14）</td><td class="tiny">改造计划 + 加密巡检</td><td><span class="tag tag-green">已核验·正样本</span></td><td><button class="btn btn-glass btn-xs" onclick="goTrace('GD-1994-0187')">溯源</button></td></tr>
+            <tr><td class="mono">12</td><td class="mono">GD-2013-0019</td><td>城北站</td><td>钢管</td><td class="mono">DN200</td><td class="mono">2013</td><td class="mono" style="color:var(--c-warn);font-weight:700;">86.4</td><td>完整性检测记录（0.13）</td><td class="tiny">安排内检测</td><td><span class="tag tag-yellow">待核验</span></td><td><button class="btn btn-glass btn-xs" onclick="goTrace('GD-2013-0019')">溯源</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="divider"></div>
+      <div class="flex-between wrap">
+        <div class="flex wrap" style="gap:6px;">
+          <span class="tag tag-red">泄漏史相关 38 条</span>
+          <span class="tag tag-orange">杂散电流相关 27 条</span>
+          <span class="tag tag-yellow">阴保相关 19 条</span>
+          <span class="tag tag-blue">其他 16 条</span>
+          <span class="tag tag-gray">在建改造标记 6 条（不剔除）</span>
+        </div>
+        <span class="tiny">考核口径：风险排名符合率（前100条）≥85%（需求概要）/ ≥90%（技术文件）</span>
+      </div>
+    </div>
+
+    <!-- 弹窗：转入技改计划 -->
+    <div class="modal-mask" id="m-toji" onclick="if(event.target===this)closeModal('m-toji')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-clipboard-list"></i>一键转入技措技改计划</div>
+          <button class="modal-close" onclick="closeModal('m-toji')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="form-row">
+            <div>
+              <label class="form-label">转入范围</label>
+              <select class="form-select" style="width:100%;"><option>前 100 条全部（建议措施随行）</option><option>仅红色一级 278 段中前 20 条</option><option>按运行站勾选（城北站）</option></select>
+            </div>
+            <div>
+              <label class="form-label">目标计划</label>
+              <select class="form-select" style="width:100%;"><option>2027 年度技措技改储备库</option><option>2026 四季度追加计划</option></select>
+            </div>
+          </div>
+          <div class="mt-14">
+            <label class="form-label">备注说明</label>
+            <textarea class="form-textarea" rows="3" placeholder="如：结合排流改造专项同步实施">含并列排序明细与评估时点快照，随清单一并归档。</textarea>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-glass" onclick="closeModal('m-toji')">取消</button>
+          <button class="btn btn-primary" onclick="confirmToji()"><i class="fa-solid fa-check"></i>确认转入</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       页面6：管网健康等级评估与风险排名 · 单管段评分溯源
+       ============================================================ -->
+  <section class="view" id="v-管网健康等级评估与风险排名-单管段评分溯源">
+    <div class="page-head">
+      <div>
+        <div class="page-title">管网健康等级评估与风险排名 · 单管段评分溯源</div>
+        <div class="page-desc">PC端 · 技术人员 / 技术专家 ｜ 直接读取重算落库的因子快照，不重新计算（单次查询 &lt;900ms 且与重算严格一致）</div>
+      </div>
+    </div>
+
+    <div class="filter-bar">
+      <div class="filter-item">
+        <div class="filter-label">管段编号</div>
+        <input type="text" class="filter-input" id="trace-input" value="GD-1991-0336" style="min-width:200px;">
+      </div>
+      <div class="filter-item">
+        <div class="filter-label">评估时点快照</div>
+        <select class="filter-select"><option>2026-10-28 02:00（最新）</option><option>2026-10-27 02:00</option><option>2026-10-26 02:00</option></select>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="doTrace()"><i class="fa-solid fa-magnifying-glass"></i>查询</button>
+      <button class="btn btn-glass btn-sm" onclick="openModal('drawer-trace')"><i class="fa-solid fa-layer-group"></i>展开逐因子贡献度</button>
+    </div>
+
+    <div class="grid g-main-side">
+      <div class="glass-card">
+        <div class="card-head">
+          <div class="card-title"><i class="fa-solid fa-file-lines"></i>管段档案与综合得分 · <span class="mono" id="trace-seg">GD-1991-0336</span></div>
+          <span class="tag tag-red"><i class="fa-solid fa-circle-exclamation"></i>一级（红）· 排名 1 / 6632</span>
+        </div>
+        <div class="grid g-2">
+          <div>
+            <div class="kv">
+              <dt>管段编号</dt><dd class="mono">GD-1991-0336</dd>
+              <dt>起终点</dt><dd>中河路阀室 — 文晖路调压站</dd>
+              <dt>材质</dt><dd>钢管（20# 无缝）· GS-STEEL 模版</dd>
+              <dt>管径 / 长度</dt><dd>DN200 · 1.28 km</dd>
+              <dt>投运年份</dt><dd>1991（管龄 35 年）</dd>
+              <dt>所属运行站</dt><dd>城北站</dd>
+            </div>
+          </div>
+          <div>
+            <div class="kv">
+              <dt>综合得分</dt><dd><span class="mono" style="font-size:22px;font-weight:700;color:var(--c-danger);">92.4</span></dd>
+              <dt>主因子（前三）</dt><dd>地铁杂散电流 / 阴保电位达标率 / 泄漏抢修次数</dd>
+              <dt>重算时点</dt><dd class="mono">2026-10-28 02:00</dd>
+              <dt>因子快照</dt><dd>与重算严格一致（查询耗时 0.42s）</dd>
+              <dt>专家核验</dt><dd><span class="tag tag-green">已核验·正样本</span></dd>
+              <dt>在建改造</dt><dd><span class="tag tag-gray">无</span></dd>
+            </div>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div class="tiny"><i class="fa-solid fa-circle-info" style="color:var(--c-primary)"></i> 超期数据按最近有效值参与并标记、生成数据治理待办（当前 1 项超期、1 项连续两期缺失自动降权）；专家核验正负样本回流用于因子有效性检验与权重校正。</div>
+      </div>
+
+      <div class="grid">
+        <div class="glass-card">
+          <div class="card-head"><div class="card-title"><i class="fa-solid fa-user-check"></i>专家核验与样本回流</div></div>
+          <ul class="icon-list">
+            <li><i class="fa-solid fa-check-double"></i><div>本期已核验 63 / 100 · 正样本 51 · 负样本 12</div></li>
+            <li><i class="fa-solid fa-rotate"></i><div>负样本回流：因子取值错误 5 / 权重不合理 4 / 数据缺失 3</div></li>
+          </ul>
+          <div class="divider"></div>
+          <div class="flex wrap" style="gap:8px;">
+            <button class="btn btn-primary btn-sm" onclick="showToast('已标记为正样本：GD-1991-0336 评分与排名符合现场认知，样本已回流')"><i class="fa-solid fa-thumbs-up"></i>标记正样本</button>
+            <button class="btn btn-danger btn-sm" onclick="openModal('m-verify')"><i class="fa-solid fa-thumbs-down"></i>标记负样本</button>
+          </div>
+        </div>
+        <div class="glass-card soft">
+          <div class="card-head"><div class="card-title"><i class="fa-solid fa-database"></i>数据治理待办</div></div>
+          <ul class="icon-list">
+            <li><i class="fa-solid fa-clock"></i><div>阴保电位达标率超期 43 天 → 待办 DQ-2026-1028-07（催办阴保监测平台补采）</div></li>
+            <li><i class="fa-solid fa-triangle-exclamation"></i><div>第三方施工密度连续两期缺失 → 自动降权 0.100 → 0.050，待办 DQ-2026-1028-08</div></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- 抽屉：逐因子贡献度分解 -->
+    <div class="glass-drawer" id="drawer-trace">
+      <div class="modal-head">
+        <div class="modal-title"><i class="fa-solid fa-layer-group"></i><span id="drawer-seg">GD-1991-0336</span> · 逐因子贡献度分解</div>
+        <button class="modal-close" onclick="closeModal('drawer-trace')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert-strip cyan"><i class="fa-solid fa-circle-info"></i><span>直接读取 2026-10-28 02:00 重算落库因子快照，不重新计算；贡献分降序排列，前三项为主因子。</span></div>
+        <div class="fact-row">
+          <div class="flex-between"><div><span class="wname">地铁杂散电流</span> <span class="tag tag-red">主因子</span></div><span class="mono">贡献 0.210</span></div>
+          <div class="tiny mt-8">取值 82 μA/m² · 来源 阴保监测平台 · 采集 2026-10-27 23:10 · <span class="tag tag-green" style="font-size:10px;">时效正常</span> · 权重 0.120</div>
+          <div class="meter mt-8"><div class="meter-fill red" style="width:100%;"></div></div>
+        </div>
+        <div class="fact-row">
+          <div class="flex-between"><div><span class="wname">阴保电位达标率</span> <span class="tag tag-red">主因子</span></div><span class="mono">贡献 0.156</span></div>
+          <div class="tiny mt-8">取值 61.5% · 来源 阴保监测平台 · 采集 2026-09-15 06:00 · <span class="tag tag-orange" style="font-size:10px;">超期 43 天 · 按最近有效值</span> · 权重 0.100</div>
+          <div class="meter mt-8"><div class="meter-fill red" style="width:74%;"></div></div>
+        </div>
+        <div class="fact-row">
+          <div class="flex-between"><div><span class="wname">泄漏抢修次数</span> <span class="tag tag-red">主因子</span></div><span class="mono">贡献 0.132</span></div>
+          <div class="tiny mt-8">取值 3 次 / 10 年（最近 2024-11-02 中河路泄漏）· 来源 抢修台账系统 · 采集 2026-10-20 16:40 · <span class="tag tag-green" style="font-size:10px;">时效正常</span> · 权重 0.120</div>
+          <div class="meter mt-8"><div class="meter-fill red" style="width:63%;"></div></div>
+        </div>
+        <div class="fact-row">
+          <div class="flex-between"><div><span class="wname">敷设年限</span></div><span class="mono">贡献 0.098</span></div>
+          <div class="tiny mt-8">取值 35 年（1991 投运）· 来源 管网主数据 / GIS · 采集 2026-10-27 18:00 · <span class="tag tag-green" style="font-size:10px;">时效正常</span> · 权重 0.140</div>
+          <div class="meter mt-8"><div class="meter-fill orange" style="width:47%;"></div></div>
+        </div>
+        <div class="fact-row">
+          <div class="flex-between"><div><span class="wname">土壤腐蚀性</span></div><span class="mono">贡献 0.062</span></div>
+          <div class="tiny mt-8">取值 III 级（强腐蚀）· 来源 完整性管理系统 · 采集 2026-09-28 · <span class="tag tag-green" style="font-size:10px;">时效正常</span> · 权重 0.060</div>
+          <div class="meter mt-8"><div class="meter-fill orange" style="width:30%;"></div></div>
+        </div>
+        <div class="fact-row">
+          <div class="flex-between"><div><span class="wname">隐患工单记录</span></div><span class="mono">贡献 0.054</span></div>
+          <div class="tiny mt-8">取值 2 条未闭环（YH-2025-0442 / YH-2026-0093）· 来源 隐患管理系统 · 采集 2026-10-26 · <span class="tag tag-green" style="font-size:10px;">时效正常</span> · 权重 0.080</div>
+          <div class="meter mt-8"><div class="meter-fill orange" style="width:26%;"></div></div>
+        </div>
+        <div class="fact-row">
+          <div class="flex-between"><div><span class="wname">违章占压记录</span></div><span class="mono">贡献 0.030</span></div>
+          <div class="tiny mt-8">取值 1 处（文晖路 38 号商铺占压，坐标就近匹配）· 来源 监管执法系统 · 采集 2026-10-24 · <span class="tag tag-green" style="font-size:10px;">时效正常</span> · 权重 0.060</div>
+          <div class="meter mt-8"><div class="meter-fill" style="width:14%;"></div></div>
+        </div>
+        <div class="fact-row">
+          <div class="flex-between"><div><span class="wname">完整性检测记录</span></div><span class="mono">贡献 0.026</span></div>
+          <div class="tiny mt-8">取值 判欠保护（2025 外检测）· 来源 完整性管理系统 · 采集 2026-09-30 · <span class="tag tag-blue" style="font-size:10px;">已生成处理待办</span> · 权重 0.020</div>
+          <div class="meter mt-8"><div class="meter-fill" style="width:12%;"></div></div>
+        </div>
+        <div class="fact-row">
+          <div class="flex-between"><div><span class="wname">管径规格</span></div><span class="mono">贡献 0.018</span></div>
+          <div class="tiny mt-8">取值 DN200 · 来源 管网主数据 / GIS · 采集 2026-10-27 18:00 · <span class="tag tag-green" style="font-size:10px;">时效正常</span> · 权重 0.060</div>
+          <div class="meter mt-8"><div class="meter-fill" style="width:9%;"></div></div>
+        </div>
+        <div class="fact-row">
+          <div class="flex-between"><div><span class="wname">第三方施工密度</span> <span class="tag tag-red">连续缺失·自动降权</span></div><span class="mono">贡献 0.000</span></div>
+          <div class="tiny mt-8">取值 按最近有效值（2026-08 快照 4 处）· 来源 第三方施工报装系统 · 采集 2026-08-26 · <span class="tag tag-red" style="font-size:10px;">连续两期缺失</span> · 权重 0.100 → 0.050</div>
+          <div class="meter mt-8"><div class="meter-fill" style="width:2%;"></div></div>
+        </div>
+        <div class="fact-row">
+          <div class="flex-between"><div><span class="wname">材质等级</span></div><span class="mono">贡献 0.012</span></div>
+          <div class="tiny mt-8">取值 20# 无缝 · 来源 管网主数据 / GIS · 采集 2026-10-27 18:00 · <span class="tag tag-green" style="font-size:10px;">时效正常</span> · 权重 0.060</div>
+          <div class="meter mt-8"><div class="meter-fill" style="width:6%;"></div></div>
+        </div>
+        <div class="fact-row">
+          <div class="flex-between"><div><span class="wname">地质灾害风险</span></div><span class="mono">贡献 0.002</span></div>
+          <div class="tiny mt-8">取值 低（非软土沉降区）· 来源 地灾评估系统 · 采集 2026-09-01 · <span class="tag tag-green" style="font-size:10px;">时效正常</span> · 权重 0.020</div>
+          <div class="meter mt-8"><div class="meter-fill" style="width:1%;"></div></div>
+        </div>
+        <div class="tiny mt-14">壁厚腐蚀裕量、监护记录两因子本期无有效数据，未参与计算（合计 12 / 14 项参与）。</div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-primary" onclick="closeModal('drawer-trace')"><i class="fa-solid fa-check"></i>关闭分解视图</button>
+      </div>
+    </div>
+
+    <!-- 弹窗：负样本核验 -->
+    <div class="modal-mask" id="m-verify" onclick="if(event.target===this)closeModal('m-verify')">
+      <div class="glass-modal">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-thumbs-down"></i>标记负样本（误报）</div>
+          <button class="modal-close" onclick="closeModal('m-verify')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <label class="form-label">误报原因 <span class="req">*</span></label>
+          <select class="form-select" style="width:100%;" id="verify-reason">
+            <option>因子取值错误（来源数据质量问题）</option>
+            <option>权重不合理（建议调整因子权重）</option>
+            <option>数据缺失（超期 / 连续缺失降权导致）</option>
+          </select>
+          <div class="mt-14">
+            <label class="form-label">核验说明</label>
+            <textarea class="form-textarea" rows="3" placeholder="如：与现场检测结论不符，建议……">现场阴保测试桩数据正常，评分偏高，疑似采集样本失真。</textarea>
+          </div>
+          <div class="tiny mt-14">负样本将回流至因子有效性检验与权重校正流程（每月汇总一次）。</div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-glass" onclick="closeModal('m-verify')">取消</button>
+          <button class="btn btn-danger" onclick="confirmVerify()"><i class="fa-solid fa-check"></i>确认标记</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       页面7：评估结果数据推送与日志管理 · 推送任务配置
+       ============================================================ -->
+  <section class="view" id="v-评估结果数据推送与日志管理-推送任务配置">
+    <div class="page-head">
+      <div>
+        <div class="page-title">评估结果数据推送与日志管理 · 推送任务配置</div>
+        <div class="page-desc">系统管理后台 · 系统管理员 ｜ 标准API推送外围系统；新增下游系统界面维护即可、不需改代码；推送与全网重算强制串行</div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="openModal('m-task')"><i class="fa-solid fa-plus"></i>新建推送任务</button>
+    </div>
+
+    <div class="glass-card">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-tower-broadcast"></i>推送任务清单</div>
+        <span class="tiny">协议 HTTPS+REST+JSON · 鉴权 OAuth2.0 客户端凭证 + 双向 TLS · 报文签名 SHA256withRSA</span>
+      </div>
+      <div class="table-scroll">
+        <table class="glass-table">
+          <thead><tr><th>任务编号</th><th>任务名称</th><th>目标系统</th><th>内容范围</th><th>定时（Cron）</th><th>触发方式</th><th>状态</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">PUSH-001</td><td>巡检频次因子推送</td><td>巡检排班系统</td><td class="tiny">前100清单 + 因子明细</td><td class="mono">0 0 3 * * ?（日 03:00）</td><td>定时</td><td><span class="tag tag-green">启用</span></td><td><button class="btn btn-glass btn-xs" onclick="showToast('编辑 PUSH-001：已加载任务配置（分批 500 条/批、间隔 200ms、上限 30 批）')">编辑</button> <button class="btn btn-glass btn-xs" onclick="showToast('PUSH-001 手动触发已受理：重算状态检查通过，开始推送（500 条/批）')">手动触发</button></td></tr>
+            <tr><td class="mono">PUSH-002</td><td>四色图层推送</td><td>管网生命线一张图</td><td class="tiny">全网 6,632 段四色评分</td><td class="mono">0 10 3 * * ?（日 03:10）</td><td>定时</td><td><span class="tag tag-green">启用</span></td><td><button class="btn btn-glass btn-xs" onclick="showToast('编辑 PUSH-002：已加载任务配置（与一张图共用同一份评分结果）')">编辑</button> <button class="btn btn-glass btn-xs" onclick="showToast('PUSH-002 手动触发已受理：全网 6,632 段，13 批推送预计 38 秒')">手动触发</button></td></tr>
+            <tr><td class="mono">PUSH-003</td><td>技改清单推送</td><td>技改项目管理系统</td><td class="tiny">前100清单 + 建议措施</td><td class="mono">0 0 8 1 * ?（月1日 08:00）</td><td>定时</td><td><span class="tag tag-green">启用</span></td><td><button class="btn btn-glass btn-xs" onclick="showToast('编辑 PUSH-003：已加载任务配置')">编辑</button> <button class="btn btn-glass btn-xs" onclick="showToast('PUSH-003 手动触发已受理：月度清单 100 条，1 批完成')">手动触发</button></td></tr>
+            <tr><td class="mono">PUSH-004</td><td>阴保专项数据推送</td><td>阴保监测平台</td><td class="tiny">欠保护管段清单（132 段）</td><td class="mono">—</td><td>手动</td><td><span class="tag tag-green">启用</span></td><td><button class="btn btn-glass btn-xs" onclick="showToast('编辑 PUSH-004：已加载任务配置（欠保护管段按完整性系统判定）')">编辑</button> <button class="btn btn-glass btn-xs" onclick="showToast('PUSH-004 阴保专项手动推送已触发：132 段欠保护清单推送中')">手动触发</button></td></tr>
+            <tr><td class="mono">PUSH-005</td><td>红段应急推送</td><td>应急指挥平台</td><td class="tiny">红色一级管段（278 段）</td><td class="mono">—</td><td>手动</td><td><span class="tag tag-gray">停用</span></td><td><button class="btn btn-glass btn-xs" onclick="showToast('编辑 PUSH-005：已加载任务配置（当前停用）')">编辑</button> <button class="btn btn-glass btn-xs" onclick="showToast('PUSH-005 已启用：待评估结果更新后可手动触发')">启用</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="grid g-2 mt-14">
+      <div class="glass-card">
+        <div class="card-head"><div class="card-title"><i class="fa-solid fa-shield-halved"></i>安全与幂等机制</div></div>
+        <ul class="icon-list">
+          <li><i class="fa-solid fa-lock"></i><div>鉴权：OAuth2.0 客户端凭证 + 双向 TLS（mTLS）</div></li>
+          <li><i class="fa-solid fa-signature"></i><div>报文签名：SHA256withRSA（私钥签名，接收方公钥验签）</div></li>
+          <li><i class="fa-solid fa-fingerprint"></i><div>幂等键：任务编号 + 评估时点 + 管段编号（重复推送返回 409 记为成功）</div></li>
+          <li><i class="fa-solid fa-layer-group"></i><div>分批策略：500 条/批 · 间隔 200ms · 上限 30 批</div></li>
+        </ul>
+      </div>
+      <div class="glass-card">
+        <div class="card-head"><div class="card-title"><i class="fa-solid fa-rotate"></i>串行与顺延机制</div></div>
+        <ul class="icon-list">
+          <li><i class="fa-solid fa-arrow-right-arrow-left"></i><div>与全网重算强制串行：到达时点先检查重算状态，未完成自动顺延（重算完成后 10 分钟内执行）</div></li>
+          <li><i class="fa-solid fa-clock-rotate-left"></i><div>失败重试：5xx 与超时按 1 / 5 / 15 分钟三次重试；422 校验不通过不重试、直接告警并留存报文</div></li>
+          <li><i class="fa-solid fa-plug"></i><div>新增下游系统：界面维护即可，不需改代码（目标系统字典可扩展）</div></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 弹窗：新建推送任务 -->
+    <div class="modal-mask" id="m-task" onclick="if(event.target===this)closeModal('m-task')">
+      <div class="glass-modal wide">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-plus"></i>新建推送任务</div>
+          <button class="modal-close" onclick="closeModal('m-task')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="form-row">
+            <div>
+              <label class="form-label">任务名称 <span class="req">*</span></label>
+              <input type="text" class="form-input" placeholder="如：调度 SCADA 健康分推送" id="task-name">
+            </div>
+            <div>
+              <label class="form-label">目标系统 <span class="req">*</span></label>
+              <select class="form-select" id="task-target" style="width:100%;">
+                <option>巡检排班系统</option><option>管网生命线一张图</option><option>技改项目管理系统</option><option>阴保监测平台</option><option>应急指挥平台</option><option>新增下游系统（界面维护即可）</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row mt-14">
+            <div>
+              <label class="form-label">接口地址 <span class="req">*</span></label>
+              <input type="text" class="form-input" placeholder="https://api.example-system.cn/v2/gas-health/push" id="task-url">
+            </div>
+            <div>
+              <label class="form-label">Cron 表达式（定时触发）</label>
+              <input type="text" class="form-input" placeholder="0 0 3 * * ?（秒 分 时 日 月 周）" id="task-cron">
+            </div>
+          </div>
+          <div class="form-row mt-14">
+            <div>
+              <label class="form-label">鉴权方式</label>
+              <select class="form-select" style="width:100%;"><option>OAuth2.0 客户端凭证 + 双向 TLS</option></select>
+            </div>
+            <div>
+              <label class="form-label">报文签名</label>
+              <select class="form-select" style="width:100%;"><option>SHA256withRSA</option></select>
+            </div>
+          </div>
+          <div class="form-row mt-14">
+            <div>
+              <label class="form-label">分批策略</label>
+              <select class="form-select" style="width:100%;"><option>500 条/批 · 间隔 200ms · 上限 30 批</option><option>1,000 条/批 · 间隔 300ms · 上限 30 批</option></select>
+            </div>
+            <div>
+              <label class="form-label">失败重试规则</label>
+              <select class="form-select" style="width:100%;"><option>5xx / 超时：1 / 5 / 15 分钟三次重试</option><option>仅一次重试（5 分钟）</option></select>
+            </div>
+          </div>
+          <div class="mt-14">
+            <label class="form-label">内容范围</label>
+            <select class="form-select" style="width:100%;"><option>前100清单 + 因子明细</option><option>全网四色评分</option><option>红色一级管段</option><option>欠保护管段清单</option></select>
+          </div>
+          <div class="alert-strip cyan mt-14" style="margin-bottom:0;">
+            <i class="fa-solid fa-circle-info"></i>
+            <span>保存前自动校验 Cron 表达式与接口连通性，通过后任务方可启用；到达时点检查重算状态，未完成自动顺延；幂等键 = 任务编号 + 评估时点 + 管段编号。</span>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-glass" onclick="closeModal('m-task')">取消</button>
+          <button class="btn btn-primary" onclick="saveTask()"><i class="fa-solid fa-check"></i>保存并启用</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       页面8：评估结果数据推送与日志管理 · 推送日志与人工补推
+       ============================================================ -->
+  <section class="view" id="v-评估结果数据推送与日志管理-推送日志与人工补推">
+    <div class="page-head">
+      <div>
+        <div class="page-title">评估结果数据推送与日志管理 · 推送日志与人工补推</div>
+        <div class="page-desc">系统管理后台 · 系统管理员 ｜ 请求/响应报文原文全量留存 ≥12 个月；返回 200 或 409（幂等重复）记为成功；三次失败转人工补推并双通道告警</div>
+      </div>
+      <button class="btn btn-glass btn-sm" onclick="showToast('日志已导出并记入审计（用户字段已脱敏：陈*明）')"><i class="fa-solid fa-file-export"></i>导出日志</button>
+    </div>
+
+    <div class="grid g-4 mb-14">
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-paper-plane"></i>近30日推送批次</div>
+        <div class="stat-value">1,284</div>
+        <div class="stat-sub">日均 43 批 · 4 个启用任务</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-circle-check"></i>推送成功率</div>
+        <div class="stat-value green">99.2%</div>
+        <div class="stat-sub">含重试成功 9 次 · 幂等 409 记成功</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-circle-xmark"></i>失败次数</div>
+        <div class="stat-value orange">11</div>
+        <div class="stat-sub">422 校验失败 3 次 · 超时 8 次</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><i class="fa-solid fa-hand-point-right"></i>人工补推</div>
+        <div class="stat-value accent">3</div>
+        <div class="stat-sub">均二次确认 · 操作留痕</div>
+      </div>
+    </div>
+
+    <div class="filter-bar">
+      <div class="filter-item">
+        <div class="filter-label">推送任务</div>
+        <select class="filter-select"><option>全部任务</option><option>PUSH-001 巡检频次因子</option><option>PUSH-002 四色图层</option><option>PUSH-003 技改清单</option><option>PUSH-004 阴保专项</option></select>
+      </div>
+      <div class="filter-item">
+        <div class="filter-label">目标系统</div>
+        <select class="filter-select"><option>全部系统</option><option>巡检排班系统</option><option>管网生命线一张图</option><option>技改项目管理系统</option><option>阴保监测平台</option></select>
+      </div>
+      <div class="filter-item">
+        <div class="filter-label">状态</div>
+        <select class="filter-select"><option>全部状态</option><option>成功</option><option>重试中</option><option>失败</option><option>幂等成功（409）</option><option>已转人工补推</option></select>
+      </div>
+      <div class="filter-item">
+        <div class="filter-label">时间范围</div>
+        <input type="text" class="filter-input" value="2026-09-28 ~ 2026-10-28" style="min-width:180px;">
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="showToast('已按组合条件刷新推送日志（近30日 1,284 批）')"><i class="fa-solid fa-magnifying-glass"></i>查询</button>
+    </div>
+
+    <div class="glass-card">
+      <div class="card-head">
+        <div class="card-title"><i class="fa-solid fa-list-check"></i>逐次推送日志（节选）</div>
+        <span class="tiny">点击「报文」查看请求/响应原文（留存 ≥12 个月）</span>
+      </div>
+      <div class="table-scroll">
+        <table class="glass-table">
+          <thead><tr><th>推送时间</th><th>任务</th><th>目标系统</th><th>触发方式</th><th>条数</th><th>耗时</th><th>返回码</th><th>状态</th><th>操作</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">10-28 03:00:12</td><td class="mono">PUSH-001</td><td>巡检排班系统</td><td>定时</td><td class="mono">100（1批）</td><td class="mono">4.8s</td><td class="mono">200</td><td><span class="tag tag-green">成功</span></td><td><button class="btn btn-glass btn-xs" onclick="openModal('m-log')">报文</button></td></tr>
+            <tr><td class="mono">10-28 03:10:05</td><td class="mono">PUSH-002</td><td>管网生命线一张图</td><td>定时</td><td class="mono">6,632（13批）</td><td class="mono">38s</td><td class="mono">200</td><td><span class="tag tag-green">成功</span></td><td><button class="btn btn-glass btn-xs" onclick="openModal('m-log')">报文</button></td></tr>
+            <tr><td class="mono">10-27 03:00:09</td><td class="mono">PUSH-001</td><td>巡检排班系统</td><td>定时</td><td class="mono">100（1批）</td><td class="mono">4.2s</td><td class="mono">200</td><td><span class="tag tag-orange">重试成功（第2次）</span></td><td><button class="btn btn-glass btn-xs" onclick="openModal('m-log')">报文</button> <button class="btn btn-ghost btn-xs" onclick="showToast('重试链路：03:00:04 超时 504 → 1 分钟后自动重试 → 03:00:09 成功 200')">重试链路</button></td></tr>
+            <tr><td class="mono">10-27 03:00:04</td><td class="mono">PUSH-001</td><td>巡检排班系统</td><td>定时</td><td class="mono">—</td><td class="mono">30.0s</td><td class="mono">504</td><td><span class="tag tag-orange">重试中（1/3）</span></td><td><button class="btn btn-glass btn-xs" onclick="openModal('m-log')">报文</button></td></tr>
+            <tr><td class="mono">10-26 03:10:11</td><td class="mono">PUSH-002</td><td>管网生命线一张图</td><td>定时</td><td class="mono">—</td><td class="mono">2.1s</td><td class="mono">422</td><td><span class="tag tag-red">校验失败·不重试</span></td><td><button class="btn btn-glass btn-xs" onclick="openModal('m-log')">报文</button> <button class="btn btn-ghost btn-xs" onclick="showToast('422 校验不通过：已直接告警（短信 + 企微双通道）并留存报文原文，不自动重试')">告警记录</button></td></tr>
+            <tr><td class="mono">10-25 08:00:03</td><td class="mono">PUSH-003</td><td>技改项目管理系统</td><td>定时</td><td class="mono">100（1批）</td><td class="mono">3.6s</td><td class="mono">200</td><td><span class="tag tag-green">成功</span></td><td><button class="btn btn-glass btn-xs" onclick="openModal('m-log')">报文</button></td></tr>
+            <tr><td class="mono">10-24 03:10:07</td><td class="mono">PUSH-002</td><td>管网生命线一张图</td><td>定时</td><td class="mono">—</td><td class="mono">3×30s</td><td class="mono">504×3</td><td><span class="tag tag-red">三次失败·转人工补推</span></td><td><button class="btn btn-glass btn-xs" onclick="openModal('m-log')">报文</button> <button class="btn btn-accent btn-xs" onclick="openModal('m-repush')"><i class="fa-solid fa-hand-point-right"></i>人工补推</button></td></tr>
+            <tr><td class="mono">10-24 03:00:02</td><td class="mono">PUSH-001</td><td>巡检排班系统</td><td>定时</td><td class="mono">100</td><td class="mono">4.5s</td><td class="mono">409</td><td><span class="tag tag-cyan">幂等成功（409）</span></td><td><button class="btn btn-glass btn-xs" onclick="openModal('m-log')">报文</button></td></tr>
+            <tr><td class="mono">10-23 14:22:31</td><td class="mono">PUSH-004</td><td>阴保监测平台</td><td>手动</td><td class="mono">132</td><td class="mono">1.8s</td><td class="mono">200</td><td><span class="tag tag-green">成功</span></td><td><button class="btn btn-glass btn-xs" onclick="openModal('m-log')">报文</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="divider"></div>
+      <div class="tiny">重试策略：返回 200 / 409 记为成功；5xx 与超时按 1 / 5 / 15 分钟三次重试；422 校验不通过不重试、直接告警并留存报文；三次失败转人工补推并双通道告警（短信 + 企微）；补推以相同幂等键与数据快照执行、须管理员二次确认并记录操作人；日志查询导出记入审计、用户字段脱敏。</div>
+    </div>
+
+    <!-- 弹窗：报文详情 -->
+    <div class="modal-mask" id="m-log" onclick="if(event.target===this)closeModal('m-log')">
+      <div class="glass-modal wide">
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-code"></i>推送报文原文（留存 ≥12 个月）</div>
+          <button class="modal-close" onclick="closeModal('m-log')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="flex-between mb-8"><b class="tiny">请求报文 · POST（HTTPS + 双向 TLS）</b><span class="tag tag-cyan">签名 SHA256withRSA</span></div>
+          <div class="json-pre">POST /api/v2/gas-health/push?taskId=PUSH-001&amp;evalTime=2026-10-28T02:00
+X-Signature: 9f3a...c21e（SHA256withRSA）
+{
+  "taskId": "PUSH-001",
+  "evalTime": "2026-10-28 02:00",
+  "batchNo": 1,
+  "batchTotal": 1,
+  "count": 100,
+  "idempotentKeyPrefix": "PUSH-001-2026102802-GD",
+  "segments": [
+    { "segId": "GD-1991-0336", "score": 92.4, "level": "RED", "rank": 1,
+      "mainFactor": "STRAY_CURRENT", "contribution": 0.210,
+      "suggest": "排流改造+防腐层检测", "patrolFreqUp": true }
+  ]
+}</div>
+          <div class="flex-between mb-8 mt-14"><b class="tiny">响应报文</b><span class="tag tag-green">200 OK · 4.8s</span></div>
+          <div class="json-pre">{
+  "code": 200,
+  "msg": "ok",
+  "received": 100,
+  "deduplicated": 0,
+  "echoIdempotentKey": "PUSH-001-2026102802-GD-1991-0336"
+}</div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-glass" onclick="closeModal('m-log')">关闭</button>
+          <button class="btn btn-primary" onclick="closeModal('m-log');showToast('报文原文已复制（含签名头与幂等键）')"><i class="fa-solid fa-copy"></i>复制原文</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 弹窗：人工补推二次确认（红色阻断 · 仅两条出路） -->
+    <div class="modal-mask" id="m-repush" onclick="if(event.target===this)closeModal('m-repush')">
+      <div class="glass-modal blocking" style="width:560px;">
+        <div class="blocking-strip"><i class="fa-solid fa-hand-point-right"></i>人工补推 · 管理员二次确认</div>
+        <div class="modal-head">
+          <div class="modal-title"><i class="fa-solid fa-circle-exclamation" style="color:var(--c-danger)"></i>PUSH-002 三次失败转人工补推</div>
+          <button class="modal-close" onclick="closeModal('m-repush')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="kv">
+            <dt>失败明细</dt><dd>10-24 03:10:07 起 504 超时 ×3（1 / 5 / 15 分钟重试均失败）</dd>
+            <dt>幂等键</dt><dd class="mono">PUSH-002-2026102403-GD*（与原推送一致）</dd>
+            <dt>数据快照</dt><dd>2026-10-24 03:00 评估时点（原快照，不取最新）</dd>
+            <dt>双通道告警</dt><dd>已发送：短信 + 企业微信（2026-10-24 03:46）</dd>
+            <dt>操作留痕</dt><dd>二次确认后记录操作人 陈*明（系统管理员）</dd>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn btn-glass" onclick="closeModal('m-repush')">取消</button>
+          <button class="btn btn-danger" onclick="confirmRepush()"><i class="fa-solid fa-check"></i>确认补推（原快照）</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+function switchView(vid){
+  document.querySelectorAll('.view').forEach(function(v){v.classList.remove('active');});
+  var el=document.getElementById(vid); if(el){el.classList.add('active');}
+  document.querySelectorAll('.seg-item[data-view]').forEach(function(b){
+    b.classList.toggle('active', b.getAttribute('data-view')===vid);
+  });
+  try{history.replaceState(null,'','#'+encodeURIComponent(vid));}catch(e){}
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function openModal(id){var m=document.getElementById(id); if(m){m.classList.add('open');}}
+function closeModal(id){var m=document.getElementById(id); if(m){m.classList.remove('open');}}
+function showToast(msg){
+  var t=document.getElementById('app-toast');
+  if(!t){t=document.createElement('div');t.id='app-toast';t.className='toast';document.body.appendChild(t);}
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._tm);t._tm=setTimeout(function(){t.classList.remove('show');},2200);
+}
+window.addEventListener('hashchange',function(){
+  var h=decodeURIComponent(location.hash.replace('#',''));
+  if(h&&document.getElementById(h)){switchView(h);}
+});
+(function(){
+  var h=decodeURIComponent(location.hash.replace('#',''));
+  if(h&&document.getElementById(h)){switchView(h);}
+})();
+</script>
+
+<script>
+/* ================= m02 模块脚本 ================= */
+
+/* ---------- 页1：因子权重配置 ---------- */
+function wslide(s){
+  var row=s.closest('.wrow');
+  row.querySelector('.wval').textContent=(parseFloat(s.value)||0).toFixed(3);
+  recalcWeights();
+}
+function recalcWeights(){
+  var total=0,groups={},maxV=0,maxName='',allOff={};
+  document.querySelectorAll('.wrow').forEach(function(row){
+    var g=row.getAttribute('data-group');
+    var on=row.querySelector('.wtoggle').checked;
+    var v=on?(parseFloat(row.querySelector('.wslider').value)||0):0;
+    groups[g]=(groups[g]||0)+v;
+    if(!(g in allOff)){allOff[g]=true;}
+    if(on){allOff[g]=false;}
+    total+=v;
+    if(v>maxV+1e-9){maxV=v;maxName=row.getAttribute('data-name');}
+  });
+  ['g1','g2','g3','g4'].forEach(function(g){
+    var el=document.getElementById('gsub-'+g);
+    if(el){el.textContent=(groups[g]||0).toFixed(3);}
+  });
+  var tEl=document.getElementById('w-total');
+  if(tEl){
+    tEl.textContent=total.toFixed(3);
+    tEl.style.color=Math.abs(total-1)<0.0005?'var(--c-text)':'var(--c-danger)';
+  }
+  var ok1=Math.abs(total-1)<0.0005;
+  var ok2=maxV<=0.2005;
+  var ok3=true;
+  for(var g in allOff){if(allOff[g]){ok3=false;}}
+  setChk('chk1',ok1,ok1?('全局合计 '+total.toFixed(3)+' = 1.000'):('全局合计 '+total.toFixed(3)+'，偏差 '+(total-1>=0?'+':'')+(total-1).toFixed(3)));
+  setChk('chk2',ok2,ok2?'单项权重均 ≤ 0.200':('「'+maxName+'」权重 '+maxV.toFixed(3)+' 超过上限 0.200'));
+  var gOff=[];
+  for(var g2 in allOff){if(allOff[g2]){gOff.push(g2);}}
+  setChk('chk3',ok3,ok3?'每组至少启用 1 项因子':('存在因子全部停用的因子组：'+gOff.join('、')));
+  var ok=ok1&&ok2&&ok3;
+  window._wok=ok;
+  var alertEl=document.getElementById('w-alert');
+  if(alertEl){
+    if(ok){alertEl.style.display='none';}
+    else{
+      alertEl.style.display='flex';
+      var msgs=[];
+      if(!ok1){msgs.push('合计偏差 '+(total-1>=0?'+':'')+(total-1).toFixed(3));}
+      if(!ok2){msgs.push('单项权重超过上限 0.200');}
+      if(!ok3){msgs.push('因子组全部停用');}
+      document.getElementById('w-alert-msg').textContent='保存阻断：'+msgs.join('；')+'。请调整滑杆后再保存。';
+    }
+  }
+  var sb=document.getElementById('btn-save-w');
+  if(sb){sb.classList.toggle('disabled',!ok);}
+  window._wtot=total;
+}
+function setChk(id,ok,text){
+  var el=document.getElementById(id);
+  if(!el){return;}
+  el.innerHTML='<i class="fa-solid '+(ok?'fa-circle-check':'fa-circle-xmark')+'" style="color:'+(ok?'var(--c-ok)':'var(--c-danger)')+';"></i><span>'+text+'</span>';
+  el.style.color=ok?'var(--c-text)':'var(--c-danger)';
+}
+function toggleFactor(cb,rowId){
+  var row=document.getElementById(rowId);
+  var grp=row.getAttribute('data-group');
+  var slider=row.querySelector('.wslider');
+  var wu=Math.round((parseFloat(slider.value)||0)*1000);
+  if(!cb.checked){
+    var rows=[];
+    document.querySelectorAll('.wrow[data-group="'+grp+'"]').forEach(function(r){
+      if(r.id!==rowId&&r.querySelector('.wtoggle').checked){rows.push(r);}
+    });
+    if(rows.length&&wu>0){
+      var olds=rows.map(function(r){return Math.round((parseFloat(r.querySelector('.wslider').value)||0)*1000);});
+      var sum=olds.reduce(function(a,b){return a+b;},0);
+      var extras,rem,i;
+      if(sum>0){
+        extras=olds.map(function(o){return Math.floor(wu*o/sum);});
+        rem=wu-extras.reduce(function(a,b){return a+b;},0);
+        var idx=olds.map(function(_,k){return k;}).sort(function(a,b){return olds[b]-olds[a];});
+        var k=0;
+        while(rem>0){extras[idx[k%idx.length]]++;rem--;k++;}
+      }else{
+        extras=rows.map(function(){return Math.floor(wu/rows.length);});
+        rem=wu-extras.reduce(function(a,b){return a+b;},0);
+        for(i=0;i<rem&&i<rows.length;i++){extras[i]++;}
+      }
+      rows.forEach(function(r,i2){
+        var nv=(olds[i2]+extras[i2])/1000;
+        if(nv>0.2){nv=0.2;}
+        var s=r.querySelector('.wslider');
+        s.value=nv.toFixed(3);
+        r.querySelector('.wval').textContent=nv.toFixed(3);
+      });
+    }
+    slider.value=0;
+    row.querySelector('.wval').textContent='0.000';
+    row.classList.add('off');
+    showToast('因子已停用：权重 '+(wu/1000).toFixed(3)+' 已按组内比例回收重分配（单项上限 0.200）');
+  }else{
+    var dv=parseFloat(slider.getAttribute('data-def'))||0.05;
+    slider.value=dv.toFixed(3);
+    row.querySelector('.wval').textContent=dv.toFixed(3);
+    row.classList.remove('off');
+    showToast('因子已启用：恢复默认权重 '+dv.toFixed(3)+'，请重新平衡全局合计');
+  }
+  recalcWeights();
+}
+function saveDraft(){
+  recalcWeights();
+  if(!window._wok){
+    var el=document.getElementById('block-dev');
+    if(el){
+      var t=window._wtot||0;
+      el.textContent='全局合计 '+t.toFixed(3)+' ≠ 1.000，偏差 '+(t-1>=0?'+':'')+(t-1).toFixed(3)+'，保存已阻断';
+    }
+    openModal('m-block-save');
+    return;
+  }
+  openModal('m-save');
+}
+function confirmSaveDraft(){
+  closeModal('m-save');
+  showToast('草稿 v3.3 已保存：须经影子试算 → 差异复核 → 审批发布，次日 02:00 全网重算生效');
+}
+function balanceWeights(){
+  var rows=[];
+  document.querySelectorAll('.wrow').forEach(function(r){
+    if(r.querySelector('.wtoggle').checked){rows.push(r);}
+  });
+  var units=rows.map(function(r){return Math.round((parseFloat(r.querySelector('.wslider').value)||0)*1000);});
+  var sum=units.reduce(function(a,b){return a+b;},0);
+  if(sum>0&&rows.length>0){
+    var vals=units.map(function(u){return Math.floor(1000*u/sum);});
+    var rem=1000-vals.reduce(function(a,b){return a+b;},0);
+    var idx=units.map(function(_,k){return k;}).sort(function(a,b){return units[b]-units[a];});
+    var k=0;
+    while(rem>0){vals[idx[k%vals.length]]++;rem--;k++;}
+    rows.forEach(function(r,i){
+      var nv=vals[i]/1000;
+      if(nv>0.2){nv=0.2;}
+      var s=r.querySelector('.wslider');
+      s.value=nv.toFixed(3);
+      r.querySelector('.wval').textContent=nv.toFixed(3);
+    });
+  }
+  recalcWeights();
+  closeModal('m-block-save');
+  showToast('已按比例归一：全局合计已调整为 '+(window._wtot||0).toFixed(3));
+}
+function resetWeights(){
+  document.querySelectorAll('.wrow').forEach(function(row){
+    var s=row.querySelector('.wslider');
+    var d=parseFloat(s.getAttribute('data-def'))||0;
+    s.value=d.toFixed(3);
+    row.querySelector('.wval').textContent=d.toFixed(3);
+    var t=row.querySelector('.wtoggle');
+    if(t){t.checked=true;}
+    row.classList.remove('off');
+  });
+  recalcWeights();
+  showToast('已恢复 GS-STEEL v3.2 生效版本默认权重（合计 1.000）');
+}
+function confirmRollback(){
+  closeModal('m-rollback');
+  showToast('回滚申请已提交审批并留痕（操作人：陈*明，2026-10-28 10:12），生效于次日 02:00 重算');
+}
+
+/* ---------- 页2：材质模版管理 ---------- */
+function setTplDiff(kind){
+  var t={steel:'GS-STEEL 钢管模版 · 差异项配置',pe:'GS-PE 聚乙烯模版 · 差异项配置（灰度·暂缓）',ci:'GS-CI 铸铁模版 · 差异项配置'};
+  document.getElementById('tpl-diff-title').textContent=t[kind]||t.steel;
+  document.getElementById('tpldiff-steel').style.display=(kind==='steel')?'':'none';
+  document.getElementById('tpldiff-pe').style.display=(kind==='pe')?'':'none';
+  document.getElementById('tpldiff-ci').style.display=(kind==='ci')?'':'none';
+}
+function confirmTplNew(){
+  var name=document.getElementById('tpl-new-name');
+  if(!name||!name.value.trim()){
+    showToast('请填写模版名称后再创建');
+    return;
+  }
+  closeModal('m-tpl-new');
+  showToast('模版「'+name.value.trim()+'」已创建：未声明因子自动继承父模版，请在差异项中维护');
+  name.value='';
+}
+
+/* ---------- 页3：模型试算与新旧对比 ---------- */
+function markReviewed(){
+  window._reviewed=true;
+  var strip=document.getElementById('trial-alert');
+  strip.classList.remove('orange');
+  strip.classList.add('blue');
+  document.getElementById('trial-alert-msg').innerHTML='人工差异复核已完成：留存率 68.4% 与秩相关 0.79 的剧烈变动已逐条复核（32 条新进入全部确认）· 复核人 周*敏（技术部负责人）· 2026-10-28 10:36，「提交审批」已解除阻断。';
+  var btn=document.getElementById('btn-approve');
+  if(btn){btn.classList.remove('disabled');}
+  var oldBtn=strip.querySelector('button');
+  if(oldBtn){oldBtn.style.display='none';}
+  showToast('人工差异复核完成：复核记录已留痕，可提交审批发布');
+}
+function submitApprove(){
+  if(!window._reviewed){
+    showToast('留存率 68.4% < 70%：强制人工差异复核未完成，提交审批已阻断');
+    return;
+  }
+  openModal('m-approve');
+}
+function confirmApprove(){
+  closeModal('m-approve');
+  showToast('v3.3 已提交审批（审批人：吴*华），审批通过后次日 02:00 全网重算生效');
+}
+
+/* ---------- 页4：评估结果地图 ---------- */
+function toggleLayer(gid,bid){
+  var g=document.getElementById(gid);
+  var b=document.getElementById(bid);
+  if(!g){return;}
+  var hide=g.style.display==='none';
+  g.style.display=hide?'':'none';
+  if(b){b.classList.toggle('btn-primary',hide);b.classList.toggle('btn-glass',!hide);}
+  showToast((hide?'已显示':'已隐藏')+'图层：'+(b?b.textContent.trim():gid));
+}
+
+/* ---------- 页5/页6：清单 → 溯源 ---------- */
+function goTrace(seg){
+  var inp=document.getElementById('trace-input');
+  if(inp){inp.value=seg;}
+  var s1=document.getElementById('trace-seg');
+  if(s1){s1.textContent=seg;}
+  var s2=document.getElementById('drawer-seg');
+  if(s2){s2.textContent=seg;}
+  switchView('v-管网健康等级评估与风险排名-单管段评分溯源');
+  showToast('已定位管段 '+seg+' 评分溯源（读取 2026-10-28 02:00 重算因子快照）');
+  setTimeout(function(){openModal('drawer-trace');},450);
+}
+function doTrace(){
+  var inp=document.getElementById('trace-input');
+  var seg=inp&&inp.value.trim()?inp.value.trim():'GD-1991-0336';
+  var s1=document.getElementById('trace-seg');
+  if(s1){s1.textContent=seg;}
+  var s2=document.getElementById('drawer-seg');
+  if(s2){s2.textContent=seg;}
+  showToast('已读取 '+seg+' 重算落库因子快照：查询耗时 0.42s，与重算结果严格一致');
+}
+function confirmToji(){
+  closeModal('m-toji');
+  showToast('前100条清单已转入 2027 年度技措技改储备库（随附建议措施与评估时点快照）');
+}
+function confirmVerify(){
+  var sel=document.getElementById('verify-reason');
+  var reason=sel?sel.options[sel.selectedIndex].value:'';
+  closeModal('m-verify');
+  showToast('负样本已回流：'+reason+'（每月汇总用于因子有效性检验与权重校正）');
+}
+
+/* ---------- 页7：推送任务配置 ---------- */
+function saveTask(){
+  var name=document.getElementById('task-name');
+  var url=document.getElementById('task-url');
+  var cron=document.getElementById('task-cron');
+  if(!name||!name.value.trim()){showToast('保存阻断：请填写任务名称');return;}
+  if(!url||!url.value.trim()||url.value.indexOf('https://')!==0){showToast('保存阻断：接口地址必须为 HTTPS 且已通过连通性校验');return;}
+  if(!cron||!cron.value.trim()){showToast('保存阻断：Cron 表达式校验不通过（如 0 0 3 * * ?）');return;}
+  closeModal('m-task');
+  showToast('Cron 表达式与接口连通性校验通过：任务 PUSH-006 已保存并启用（'+name.value.trim()+'）');
+  name.value='';url.value='';cron.value='';
+}
+
+/* ---------- 页8：推送日志与人工补推 ---------- */
+function confirmRepush(){
+  closeModal('m-repush');
+  showToast('补推已执行：相同幂等键 + 2026-10-24 03:00 原数据快照，操作人 陈*明 已记录留痕');
+}
+
+/* 初始化权重合计 */
+recalcWeights();
+</script>
+</body>
+</html>
